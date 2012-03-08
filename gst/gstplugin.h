@@ -253,7 +253,11 @@ struct _GstPluginClass {
  *
  * If defined, the GST_PACKAGE_RELEASE_DATETIME will also be used for the
  * #GstPluginDesc,release_datetime field.
+ *
+ * Deprecated: Use GST_PLUGIN_DEFINE2() instead, which also allows to create
+ * plugins that can be used for static linking.
  */
+#ifndef GST_DISABLE_DEPRECATED
 #define GST_PLUGIN_DEFINE(major,minor,name,description,init,version,license,package,origin)	\
 G_BEGIN_DECLS \
 GST_PLUGIN_EXPORT GstPluginDesc gst_plugin_desc = {	\
@@ -271,6 +275,87 @@ GST_PLUGIN_EXPORT GstPluginDesc gst_plugin_desc = {	\
   GST_PADDING_INIT				        \
 }; \
 G_END_DECLS
+#endif
+
+/**
+ * GST_PLUGIN_STATIC_REGISTER:
+ * @name: short, but unique name of the plugin
+ *
+ * This macro can be used to initialize statically linked plugins. It is
+ * necessary to call this macro before the plugin can be used.
+ *
+ * Since: 0.10.37
+ */
+#define GST_PLUGIN_STATIC_REGISTER(name) G_STMT_START {                                         \
+  extern void GST_PLUGIN_STATIC_REGISTER_FUNCTION_NAME (void);                                  \
+  G_PASTE(gst_plugin_, G_PASTE(name, _register)) ();                                            \
+} G_STMT_END
+
+/**
+ * GST_PLUGIN_DEFINE2:
+ * @major: major version number of the gstreamer-core that plugin was compiled for
+ * @minor: minor version number of the gstreamer-core that plugin was compiled for
+ * @name: short, but unique name of the plugin
+ * @description: information about the purpose of the plugin
+ * @init: function pointer to the plugin_init method with the signature of <code>static gboolean plugin_init (GstPlugin * plugin)</code>.
+ * @version: full version string (e.g. VERSION from config.h)
+ * @license: under which licence the package has been released, e.g. GPL, LGPL.
+ * @package: the package-name (e.g. PACKAGE_NAME from config.h)
+ * @origin: a description from where the package comes from (e.g. the homepage URL)
+ *
+ * This macro needs to be used to define the entry point and meta data of a
+ * plugin. One would use this macro to export a plugin, so that it can be used
+ * by other applications.
+ *
+ * The macro uses a define named PACKAGE for the #GstPluginDesc,source field.
+ * When using autoconf, this is usually set automatically via the AC_INIT
+ * macro, and set in config.h. If you are not using autoconf, you will need to
+ * define PACKAGE yourself and set it to a short mnemonic string identifying
+ * your application/package, e.g. 'someapp' or 'my-plugins-foo.
+ *
+ * If defined, the GST_PACKAGE_RELEASE_DATETIME will also be used for the
+ * #GstPluginDesc,release_datetime field.
+ *
+ * If GST_PLUGIN_BUILD_STATIC is defined this will create a plugin that
+ * can be statically linked to an application and can't be dynamically
+ * loaded by the plugin loader anymore. If this plugin should be used
+ * statically linked to an application it is necessary to call
+ * GST_PLUGIN_STATIC_REGISTER(name) before the plugin can be used.
+ *
+ * Since: 0.10.37
+ */
+#ifdef GST_PLUGIN_BUILD_STATIC
+#define GST_PLUGIN_DEFINE2(major,minor,name,description,init,version,license,package,origin)	\
+G_BEGIN_DECLS						\
+GST_PLUGIN_EXPORT void G_PASTE(gst_plugin_, G_PASTE(name, _register)) (void);			\
+							\
+void							\
+G_PASTE(gst_plugin_, G_PASTE(name, _register)) (void)	\
+{							\
+  gst_plugin_register_static (major, minor, #name,	\
+      description, init, version, license,		\
+      PACKAGE, package, origin);			\
+}							\
+G_END_DECLS
+#else /* !GST_PLUGIN_BUILD_STATIC */
+#define GST_PLUGIN_DEFINE2(major,minor,name,description,init,version,license,package,origin)	\
+G_BEGIN_DECLS \
+GST_PLUGIN_EXPORT GstPluginDesc gst_plugin_desc = {	\
+  major,						\
+  minor,						\
+ #name,							\
+  (gchar *) description,				\
+  init,							\
+  version,						\
+  license,						\
+  PACKAGE,						\
+  package,						\
+  origin,						\
+  __GST_PACKAGE_RELEASE_DATETIME,                       \
+  GST_PADDING_INIT				        \
+}; \
+G_END_DECLS
+#endif /* GST_PLUGIN_BUILD_STATIC */
 
 /**
  * GST_PLUGIN_DEFINE_STATIC:

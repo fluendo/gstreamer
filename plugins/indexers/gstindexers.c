@@ -17,6 +17,10 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <gst/gst_private.h>
 #include <gst/gstversion.h>
 #include <gst/gstplugin.h>
@@ -36,8 +40,8 @@ plugin_init (GstPlugin * plugin)
   return res;
 }
 
-GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
+GST_PLUGIN_DEFINE2 (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
-    "coreindexers",
+    coreindexers,
     "GStreamer core indexers",
     plugin_init, VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN);

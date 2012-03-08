@@ -22,7 +22,10 @@ libgstcoreindexers_la_SOURCES = gstindexers.c gstmemindex.c $(GST_LOADSAVE_SRC)
 libgstcoreindexers_la_CFLAGS = $(GST_OBJ_CFLAGS)
 libgstcoreindexers_la_LIBADD = $(GST_OBJ_LIBS) $(GST_FILEINDEX_LIBS)
 libgstcoreindexers_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
+
+if !GST_PLUGIN_BUILD_STATIC
 libgstcoreindexers_la_LIBTOOLFLAGS = --tag=disable-static
+endif
 
 %.c.gcov: .libs/libgstcoreindexers_la-%.gcda %.c
 	$(GCOV) -b -f -o $^ > $@.out
