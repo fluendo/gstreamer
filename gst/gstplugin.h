@@ -278,16 +278,33 @@ G_END_DECLS
 #endif
 
 /**
+ * GST_PLUGIN_STATIC_DECLARE:
+ * @name: short, but unique name of the plugin
+ *
+ * This macro can be used to initialize statically linked plugins. It is
+ * necessary to call this macro before the plugin can be used.
+ * It has to be used in combination with GST_PLUGIN_STATIC_REGISTER
+ * and must be placed outside any block to declare the plugin initialization
+ * function.
+ *
+ * Since: 0.10.37
+ */
+#define GST_PLUGIN_STATIC_DECLARE(name) \
+  extern void G_PASTE(gst_plugin_, G_PASTE(name, _register)) (void)
+
+/**
  * GST_PLUGIN_STATIC_REGISTER:
  * @name: short, but unique name of the plugin
  *
  * This macro can be used to initialize statically linked plugins. It is
  * necessary to call this macro before the plugin can be used.
+ * It has to be used in combination with GST_PLUGIN_STATIC_DECLARE and
+ * calls the plugin initialization function.
  *
  * Since: 0.10.37
  */
 #define GST_PLUGIN_STATIC_REGISTER(name) G_STMT_START {                                         \
-  extern void GST_PLUGIN_STATIC_REGISTER_FUNCTION_NAME (void);                                  \
+  extern void G_PASTE(gst_plugin_, G_PASTE(name, _register)) (void);                            \
   G_PASTE(gst_plugin_, G_PASTE(name, _register)) ();                                            \
 } G_STMT_END
 
