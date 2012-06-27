@@ -303,10 +303,7 @@ G_END_DECLS
  *
  * Since: 0.10.37
  */
-#define GST_PLUGIN_STATIC_REGISTER(name) G_STMT_START {                                         \
-  extern void G_PASTE(gst_plugin_, G_PASTE(name, _register)) (void);                            \
-  G_PASTE(gst_plugin_, G_PASTE(name, _register)) ();                                            \
-} G_STMT_END
+#define GST_PLUGIN_STATIC_REGISTER(name) G_PASTE(gst_plugin_, G_PASTE(name, _register)) ()
 
 /**
  * GST_PLUGIN_DEFINE2:
