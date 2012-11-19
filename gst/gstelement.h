@@ -677,9 +677,6 @@ struct _GstElementClass
                                                  GstState newstate, GstState pending);
 
   gboolean              (*post_message)         (GstElement *element, GstMessage *message);
-
-  /*< private >*/
-  gpointer _gst_reserved[GST_PADDING-4];
 };
 
 /* element class pad templates */
