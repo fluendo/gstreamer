@@ -451,7 +451,14 @@ gst_pipeline_change_state (GstElement * element, GstStateChange transition)
           gst_object_unref (clock);
 
         if (start_time != GST_CLOCK_TIME_NONE && now != GST_CLOCK_TIME_NONE) {
-          GstClockTime new_base_time = now - start_time + delay;
+          GstClockTime new_base_time;
+
+          if (now + delay < start_time) {
+            new_base_time = now + delay;
+          } else {
+            new_base_time = now - start_time + delay;
+          }
+
           GST_DEBUG_OBJECT (element,
               "start_time=%" GST_TIME_FORMAT ", now=%" GST_TIME_FORMAT
               ", base_time %" GST_TIME_FORMAT,
