@@ -1970,7 +1970,7 @@ gst_base_parse_push_frame (GstBaseParse * parse, GstBaseParseFrame * frame)
       GST_LOG_OBJECT (parse, "frame (%d bytes) queued for now",
           GST_BUFFER_SIZE (buffer));
       parse->priv->buffers_queued =
-          g_slist_prepend (parse->priv->buffers_queued, buffer);
+          g_slist_append (parse->priv->buffers_queued, buffer);
       ret = GST_FLOW_OK;
     }
   } else {
@@ -2173,7 +2173,7 @@ push:
   }
 
   /* audio may have all marked as keyframe, so arrange to send here */
-  if (!seen_delta)
+  if (!seen_delta || seen_key)
     ret = gst_base_parse_send_buffers (parse);
 
   /* any trailing unused no longer usable (ideally none) */
@@ -2298,6 +2298,14 @@ gst_base_parse_chain (GstPad * pad, GstBuffer * buffer)
     GST_LOG_OBJECT (parse, "buffer size: %d, offset = %" G_GINT64_FORMAT,
         GST_BUFFER_SIZE (buffer), GST_BUFFER_OFFSET (buffer));
     if (G_UNLIKELY (parse->priv->passthrough)) {
+      if (parse->segment.rate < 0.0) {
+        if (G_UNLIKELY (GST_BUFFER_FLAG_IS_SET (buffer,
+                    GST_BUFFER_FLAG_DISCONT))) {
+          GST_DEBUG_OBJECT (parse,
+              "buffer starts new reverse playback fragment");
+          ret = gst_base_parse_process_fragment (parse, FALSE);
+        }
+      }
       gst_base_parse_frame_init (frame);
       frame->buffer = gst_buffer_make_metadata_writable (buffer);
       return gst_base_parse_push_frame (parse, frame);
