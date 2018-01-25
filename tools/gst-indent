@@ -1,12 +1,18 @@
 #!/bin/sh
 
+#-------------------------------------------------------------
+# GNU INDENT configuration
+#-------------------------------------------------------------
+
+function gnu_indent()
+{
 version=`gnuindent --version 2>/dev/null`
 if test "x$version" = "x"; then
   version=`indent --version 2>/dev/null`
   if test "x$version" = "x"; then
     echo "GStreamer git pre-commit hook:"
     echo "Did not find GNU indent, please install it before continuing."
-    exit 1
+    return 1
   fi
   INDENT=indent
 else
@@ -19,7 +25,7 @@ case `$INDENT --version` in
   default)
       echo "Did not find GNU indent, please install it before continuing."
       echo "(Found $INDENT, but it doesn't seem to be GNU indent)"
-      exit 1
+      return 1
       ;;
 esac
 
@@ -37,4 +43,43 @@ $INDENT \
   --tab-size8 \
   --indent-level2 \
   --leave-preprocessor-space \
-  $*
+  $1
+  return $?
+}
+
+#-------------------------------------------------------------
+# uncrustify configuration
+#-------------------------------------------------------------
+
+function uncrustify_indent()
+{
+ if ! [ -x "$(command -v uncrustify)" ]; then
+  echo 'Error: uncrustify is not installed.' >&2
+  echo 'Needed for OCL language.' >&2
+  return 1
+fi
+uncrustify --replace -q -c $1/uncrustify.config $2
+return $?
+}
+
+
+#-------------------------------------------------------------
+# Iterate script parameters and call an indent utility
+# depending of file's extension
+#-------------------------------------------------------------
+
+BASEDIR=$(dirname "$0")
+
+for arg in "$@"
+    do case "$arg" in
+    *.m )
+    #OCL language
+    uncrustify_indent $BASEDIR $arg
+    ;;
+    *)
+    #Any other   
+    gnu_indent $arg
+    ;;
+    esac
+    if [[ $? != 0 ]]; then exit $?; fi
+done
