@@ -243,6 +243,16 @@ gst_query_copy (const GstQuery * q)
 }
 
 /**
+ * gst_query_is_writable:
+ * @q: (transfer full): a #GstQuery to check if it is writable or not
+ *
+ * Checks if the given query is writable or not.
+ *
+ * Returns: TRUE if it is writable, FALSE otherwise
+ */
+#define gst_query_is_writable(q)     gst_mini_object_is_writable (GST_MINI_OBJECT_CAST (q))
+
+/**
  * gst_query_make_writable:
  * @q: (transfer full): a #GstQuery to make writable
  *
@@ -335,6 +345,10 @@ gboolean        gst_query_parse_nth_buffering_range (GstQuery *query,
 GstQuery *      gst_query_new_uri                 (void) G_GNUC_MALLOC;
 void            gst_query_parse_uri               (GstQuery *query, gchar **uri);
 void            gst_query_set_uri                 (GstQuery *query, const gchar *uri);
+void            gst_query_parse_uri_redirection           (GstQuery *query, const gchar **uri);
+void            gst_query_set_uri_redirection             (GstQuery *query, const gchar *uri);
+void            gst_query_parse_uri_redirection_permanent (GstQuery *query, gboolean *permanent);
+void            gst_query_set_uri_redirection_permanent   (GstQuery *query, gboolean permanent);
 
 G_END_DECLS
 

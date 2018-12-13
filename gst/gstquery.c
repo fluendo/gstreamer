@@ -1490,3 +1490,58 @@ gst_query_parse_uri (GstQuery * query, gchar ** uri)
     *uri = g_value_dup_string (gst_structure_id_get_value (query->structure,
             GST_QUARK (URI)));
 }
+
+void
+gst_query_parse_uri_redirection (GstQuery * query, const gchar ** uri)
+{
+  GstStructure *structure;
+
+  g_return_if_fail (GST_QUERY_TYPE (query) == GST_QUERY_URI);
+
+  if (uri) {
+    if (!gst_structure_id_get (query->structure, "uri-redirection",
+            G_TYPE_STRING, uri, NULL))
+      *uri = NULL;
+  }
+}
+
+void
+gst_query_set_uri_redirection (GstQuery * query, const gchar * uri)
+{
+  GstStructure *structure;
+
+  g_return_if_fail (GST_QUERY_TYPE (query) == GST_QUERY_URI);
+  g_return_if_fail (gst_query_is_writable (query));
+  g_return_if_fail (gst_uri_is_valid (uri));
+
+  gst_structure_id_set (query->structure, "uri-redirection", G_TYPE_STRING, uri,
+      NULL);
+}
+
+
+void
+gst_query_parse_uri_redirection_permanent (GstQuery * query,
+    gboolean * permanent)
+{
+  GstStructure *structure;
+
+  g_return_if_fail (GST_QUERY_TYPE (query) == GST_QUERY_URI);
+
+  if (permanent) {
+    if (!gst_structure_id_get (query->structure, "uri-redirection-permanent",
+            G_TYPE_BOOLEAN, permanent, NULL))
+      *permanent = FALSE;
+  }
+}
+
+void
+gst_query_set_uri_redirection_permanent (GstQuery * query, gboolean permanent)
+{
+  GstStructure *structure;
+
+  g_return_if_fail (GST_QUERY_TYPE (query) == GST_QUERY_URI);
+  g_return_if_fail (gst_query_is_writable (query));
+
+  gst_structure_id_set (query->structure, "uri-redirection-permanent",
+      G_TYPE_BOOLEAN, permanent, NULL);
+}
