@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\plugins\elements\gstcapsfilter.h" />
+    <ClInclude Include="..\..\plugins\elements\gstfakesink.h" />
+    <ClInclude Include="..\..\plugins\elements\gstfakesrc.h" />
+    <ClInclude Include="..\..\plugins\elements\gstfdsrc.h" />
+    <ClInclude Include="..\..\plugins\elements\gstfdsink.h" />
+    <ClInclude Include="..\..\plugins\elements\gstfilesink.h" />
+    <ClInclude Include="..\..\plugins\elements\gstfilesrc.h" />
+    <ClInclude Include="..\..\plugins\elements\gstfunnel.h" />
+    <ClInclude Include="..\..\plugins\elements\gstidentity.h" />
+    <ClInclude Include="..\..\plugins\elements\gstinputselector.h" />
+    <ClInclude Include="..\..\plugins\elements\gstoutputselector.h" />
+    <ClInclude Include="..\..\plugins\elements\gstmultiqueue.h" />
+    <ClInclude Include="..\..\plugins\elements\gstqueue.h" />
+    <ClInclude Include="..\..\plugins\elements\gstqueue2.h" />
+    <ClInclude Include="..\..\plugins\elements\gsttee.h" />
+    <ClInclude Include="..\..\plugins\elements\gsttypefindelement.h" />
+    <ClInclude Include="..\..\plugins\elements\gstvalve.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\plugins\elements\gstcapsfilter.c" />
+    <ClCompile Include="..\..\plugins\elements\gstelements.c" />
+    <ClCompile Include="..\..\plugins\elements\gstfakesink.c" />
+    <ClCompile Include="..\..\plugins\elements\gstfakesrc.c" />
+    <ClCompile Include="..\..\plugins\elements\gstfdsrc.c" />
+    <ClCompile Include="..\..\plugins\elements\gstfdsink.c" />
+    <ClCompile Include="..\..\plugins\elements\gstfilesink.c" />
+    <ClCompile Include="..\..\plugins\elements\gstfilesrc.c" />
+    <ClCompile Include="..\..\plugins\elements\gstfunnel.c" />
+    <ClCompile Include="..\..\plugins\elements\gstidentity.c" />
+    <ClCompile Include="..\..\plugins\elements\gstinputselector.c" />
+    <ClCompile Include="..\..\plugins\elements\gstoutputselector.c" />
+    <ClCompile Include="..\..\plugins\elements\gstmultiqueue.c" />
+    <ClCompile Include="..\..\plugins\elements\gstqueue.c" />
+    <ClCompile Include="..\..\plugins\elements\gstqueue2.c" />
+    <ClCompile Include="..\..\plugins\elements\gsttee.c" />
+    <ClCompile Include="..\..\plugins\elements\gsttypefindelement.c" />
+    <ClCompile Include="..\..\plugins\elements\gstvalve.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{62D7358C-6880-40EA-93FF-21B69376C7F0}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IntDirSharingDetected>
+      None
+    </IntDirSharingDetected>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(Configuration)\libgstcoreelements\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>$(Configuration)\libgstcoreelements\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(Platform)\$(Configuration)\libgstcoreelements\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(Platform)\$(Configuration)\libgstcoreelements\</IntDir>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(VS_CERBERO_PREFIX_X86)\lib\gstreamer-0.10\</OutDir>
+    <TargetName>libgstcoreelements</TargetName>
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(VS_CERBERO_PREFIX_X86)\lib\gstreamer-0.10\</OutDir>
+    <TargetName>libgstcoreelements</TargetName>
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(VS_CERBERO_PREFIX_X86_64)\lib\gstreamer-0.10\</OutDir>
+    <TargetName>libgstcoreelements</TargetName>
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(VS_CERBERO_PREFIX_X86_64)\lib\gstreamer-0.10\</OutDir>
+    <TargetName>libgstcoreelements</TargetName>
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;LIBGSTELEMENTS_EXPORTS;WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../..;../../libs;../common;$(VS_CERBERO_PREFIX_X86)/include/glib-2.0;$(VS_CERBERO_PREFIX_X86)/lib/glib-2.0/include;$(VS_CERBERO_PREFIX_X86)/include/libxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>$(VS_CERBERO_PREFIX_X86)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gthread-2.0.lib;gmodule-2.0.lib;xml2.lib;ws2_32.lib;intl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;LIBGSTELEMENTS_EXPORTS;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../..;../../libs;../common;$(VS_CERBERO_PREFIX_X86)/include/glib-2.0;$(VS_CERBERO_PREFIX_X86)/lib/glib-2.0/include;$(VS_CERBERO_PREFIX_X86)/include/libxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>$(VS_CERBERO_PREFIX_X86)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gthread-2.0.lib;gmodule-2.0.lib;xml2.lib;ws2_32.lib;intl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;LIBGSTELEMENTS_EXPORTS;WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../..;../../libs;../common;$(VS_CERBERO_PREFIX_X86_64)/include/glib-2.0;$(VS_CERBERO_PREFIX_X86_64)/lib/glib-2.0/include;$(VS_CERBERO_PREFIX_X86_64)/include/libxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>$(VS_CERBERO_PREFIX_X86_64)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gthread-2.0.lib;gmodule-2.0.lib;xml2.lib;ws2_32.lib;intl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;LIBGSTELEMENTS_EXPORTS;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../..;../../libs;../common;$(VS_CERBERO_PREFIX_X86_64)/include/glib-2.0;$(VS_CERBERO_PREFIX_X86_64)/lib/glib-2.0/include;$(VS_CERBERO_PREFIX_X86_64)/include/libxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>$(VS_CERBERO_PREFIX_X86_64)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gthread-2.0.lib;gmodule-2.0.lib;xml2.lib;ws2_32.lib;intl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="libgstbase.vcxproj">
+      <Project>{4d7bc403-583b-4725-bd87-a4a2b7fd8156}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="libgstreamer.vcxproj">
+      <Project>{f987873b-2b88-4b1b-b627-f70df4f91e49}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
