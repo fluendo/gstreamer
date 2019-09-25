@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\libs\gst\base\gstadapter.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstbasesink.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstbasesrc.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstbasetransform.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstbaseparse.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstbitreader.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstbytereader.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstbytewriter.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstcollectpads.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstcollectpads2.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstdataqueue.h" />
+    <ClInclude Include="..\..\libs\gst\base\gstpushsrc.h" />
+    <ClInclude Include="..\..\libs\gst\base\gsttypefindhelper.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\libs\gst\base\gstadapter.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstbasesink.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstbasesrc.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstbasetransform.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstbaseparse.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstbitreader.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstbytereader.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstbytewriter.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstcollectpads.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstcollectpads2.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstdataqueue.c" />
+    <ClCompile Include="..\..\libs\gst\base\gstpushsrc.c" />
+    <ClCompile Include="..\..\libs\gst\base\gsttypefindhelper.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\common\libgstbase.def" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4D7BC403-583B-4725-BD87-A4A2B7FD8156}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IntDirSharingDetected>
+      None
+    </IntDirSharingDetected>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(Configuration)\libgstbase\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>$(Configuration)\libgstbase\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(Platform)\$(Configuration)\libgstbase\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(Platform)\$(Configuration)\libgstbase\</IntDir>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(VS_CERBERO_PREFIX_X86)\bin\</OutDir>
+    <TargetName>libgstbase-0.10-0</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(VS_CERBERO_PREFIX_X86)\bin\</OutDir>
+    <TargetName>libgstbase-0.10-0</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(VS_CERBERO_PREFIX_X86_64)\bin\</OutDir>
+    <TargetName>libgstbase-0.10-0</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(VS_CERBERO_PREFIX_X86_64)\bin\</OutDir>
+    <TargetName>libgstbase-0.10-0</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;LIBGSTBASE_EXPORTS;WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../..;../../libs;../common;$(VS_CERBERO_PREFIX_X86)/include/glib-2.0;$(VS_CERBERO_PREFIX_X86)/lib/glib-2.0/include;$(VS_CERBERO_PREFIX_X86)/include/libxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+      <DisableSpecificWarnings>4028</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <ModuleDefinitionFile>..\common\libgstbase.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(VS_CERBERO_PREFIX_X86)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gthread-2.0.lib;gmodule-2.0.lib;xml2.lib;ws2_32.lib;intl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(VS_CERBERO_PREFIX_X86)\lib\gstbase-0.10.lib</ImportLibrary>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;LIBGSTBASE_EXPORTS;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../..;../../libs;../common;$(VS_CERBERO_PREFIX_X86)/include/glib-2.0;$(VS_CERBERO_PREFIX_X86)/lib/glib-2.0/include;$(VS_CERBERO_PREFIX_X86)/include/libxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+      <DisableSpecificWarnings>4028</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <ModuleDefinitionFile>..\common\libgstbase.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(VS_CERBERO_PREFIX_X86)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gthread-2.0.lib;gmodule-2.0.lib;xml2.lib;ws2_32.lib;intl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(VS_CERBERO_PREFIX_X86)\lib\gstbase-0.10.lib</ImportLibrary>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;LIBGSTBASE_EXPORTS;WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../..;../../libs;../common;$(VS_CERBERO_PREFIX_X86_64)/include/glib-2.0;$(VS_CERBERO_PREFIX_X86_64)/lib/glib-2.0/include;$(VS_CERBERO_PREFIX_X86_64)/include/libxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+      <DisableSpecificWarnings>4028</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <ModuleDefinitionFile>..\common\libgstbase.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(VS_CERBERO_PREFIX_X86_64)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gthread-2.0.lib;gmodule-2.0.lib;xml2.lib;ws2_32.lib;intl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(VS_CERBERO_PREFIX_X86_64)\lib\gstbase-0.10.lib</ImportLibrary>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;LIBGSTBASE_EXPORTS;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../..;../../libs;../common;$(VS_CERBERO_PREFIX_X86_64)/include/glib-2.0;$(VS_CERBERO_PREFIX_X86_64)/lib/glib-2.0/include;$(VS_CERBERO_PREFIX_X86_64)/include/libxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+      <DisableSpecificWarnings>4028</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <ModuleDefinitionFile>..\common\libgstbase.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(VS_CERBERO_PREFIX_X86_64)/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gthread-2.0.lib;gmodule-2.0.lib;xml2.lib;ws2_32.lib;intl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(VS_CERBERO_PREFIX_X86_64)\lib\gstbase-0.10.lib</ImportLibrary>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="libgstreamer.vcxproj">
+      <Project>{f987873b-2b88-4b1b-b627-f70df4f91e49}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

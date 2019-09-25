@@ -1,3 +1,13 @@
+win32/vs*/x64/
+win32/vs*/Debug/
+win32/vs*/Release/
+win32/vs*/*.log
+win32/vs*/*.VC.db
+win32/vs*/*.VC.opendb
+*.vcxproj.user
+.vs/
+*.userprefs
+gst/parse/lex._gst_parse_yy.c
 Android.mk
 ABOUT-NLS
 Makefile

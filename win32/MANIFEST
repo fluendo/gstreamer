@@ -39,3 +39,17 @@ win32/vs8/libgstbase.vcproj
 win32/vs8/libgstcontroller.vcproj
 win32/vs8/libgstcoreelements.vcproj
 win32/vs8/libgstreamer.vcproj
+win32/vs16/gstreamer.sln
+win32/vs16/grammar.vcxproj
+win32/vs16/gst-inspect.vcxproj
+win32/vs16/gst-inspect.vcxproj.filters
+win32/vs16/gst-launch.vcxproj
+win32/vs16/gst-launch.vcxproj.filters
+win32/vs16/libgstbase.vcxproj
+win32/vs16/libgstbase.vcxproj.filters
+win32/vs16/libgstcontroller.vcxproj
+win32/vs16/libgstcontroller.vcxproj.filters
+win32/vs16/libgstcoreelements.vcxproj
+win32/vs16/libgstcoreelements.vcxproj.filters
+win32/vs16/libgstreamer.vcxproj
+win32/vs16/libgstreamer.vcxproj.filters
