@@ -87,6 +87,8 @@ struct _GstBaseSink {
   gboolean       sync;
   gboolean       flushing;
 
+  GstClockTime   buffer_sheduled_render_time;
+
   /*< private >*/
   union {
     struct {

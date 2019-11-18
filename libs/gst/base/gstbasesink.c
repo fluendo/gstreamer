@@ -2480,6 +2480,8 @@ gst_base_sink_do_sync (GstBaseSink * basesink, GstPad * pad,
 
   priv = basesink->priv;
 
+  basesink->buffer_sheduled_render_time = GST_CLOCK_TIME_NONE;
+
 do_step:
   sstart = sstop = rstart = rstop = GST_CLOCK_TIME_NONE;
   do_sync = TRUE;
@@ -2594,6 +2596,11 @@ again:
   /* check if the object should be dropped */
   *late = gst_base_sink_is_too_late (basesink, obj, rstart, rstop,
       status, jitter);
+
+  if (!*late) {
+    basesink->buffer_sheduled_render_time =
+        stime + GST_ELEMENT (basesink->base_time) - basesink->ts_offset;
+  }
 
 done:
   return GST_FLOW_OK;
@@ -2955,6 +2962,7 @@ gst_base_sink_render_object (GstBaseSink * basesink, GstPad * pad,
   GstBaseSinkPrivate *priv;
 
   priv = basesink->priv;
+  basesink->buffer_sheduled_render_time = GST_CLOCK_TIME_NONE;
 
   if (OBJ_IS_BUFFERLIST (obj_type)) {
     /*
