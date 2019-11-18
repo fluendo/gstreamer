@@ -36,6 +36,8 @@ G_BEGIN_DECLS
 #define GST_IS_BASE_SINK_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_BASE_SINK))
 #define GST_BASE_SINK_CAST(obj)         ((GstBaseSink *) (obj))
 
+#define GST_BASESINK_NO_SHEDULED_TIME G_GINT64_CONSTANT(-1)
+
 /**
  * GST_BASE_SINK_PAD:
  * @obj: base sink instance
@@ -87,7 +89,7 @@ struct _GstBaseSink {
   gboolean       sync;
   gboolean       flushing;
 
-  GstClockTime   buffer_sheduled_render_time;
+  gint64         buffer_sheduled_render_time;
 
   /*< private >*/
   union {

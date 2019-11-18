@@ -2480,7 +2480,7 @@ gst_base_sink_do_sync (GstBaseSink * basesink, GstPad * pad,
 
   priv = basesink->priv;
 
-  basesink->buffer_sheduled_render_time = GST_CLOCK_TIME_NONE;
+  basesink->buffer_sheduled_render_time = GST_BASESINK_NO_SHEDULED_TIME;
 
 do_step:
   sstart = sstop = rstart = rstop = GST_CLOCK_TIME_NONE;
@@ -2962,7 +2962,7 @@ gst_base_sink_render_object (GstBaseSink * basesink, GstPad * pad,
   GstBaseSinkPrivate *priv;
 
   priv = basesink->priv;
-  basesink->buffer_sheduled_render_time = GST_CLOCK_TIME_NONE;
+  basesink->buffer_sheduled_render_time = GST_BASESINK_NO_SHEDULED_TIME;
 
   if (OBJ_IS_BUFFERLIST (obj_type)) {
     /*
