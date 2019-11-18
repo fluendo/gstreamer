@@ -2599,7 +2599,7 @@ again:
 
   if (!*late) {
     basesink->buffer_sheduled_render_time =
-        stime + GST_ELEMENT (basesink->base_time) - basesink->priv->ts_offset;
+        stime + GST_ELEMENT (basesink)->base_time - basesink->priv->ts_offset;
   }
 
 done:
