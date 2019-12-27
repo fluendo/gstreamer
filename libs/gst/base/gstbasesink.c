@@ -2220,9 +2220,13 @@ gst_base_sink_wait_clock (GstBaseSink * sink, GstClockTime time,
   /* release the preroll lock while waiting */
   GST_PAD_PREROLL_UNLOCK (sink->sinkpad);
 
+  GST_ERROR ("&&& entering gst_clock_id_wait ()");
   ret = gst_clock_id_wait (sink->priv->cached_clock_id, jitter);
+  GST_ERROR ("&&& gst_clock_id_wait () have quit");
 
+  GST_ERROR ("&&& locking GST_PAD_PREROLL_LOCK");
   GST_PAD_PREROLL_LOCK (sink->sinkpad);
+  GST_ERROR ("&&& GST_PAD_PREROLL_LOCK locked");
   sink->clock_id = NULL;
 
   return ret;
