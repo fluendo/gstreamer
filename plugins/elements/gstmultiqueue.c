@@ -1849,6 +1849,12 @@ single_queue_overrun_cb (GstDataQueue * dq, GstSingleQueue * sq)
             "Another queue is empty, bumping single queue %d max visible to %d",
             sq->id, sq->max_size.visible);
       }
+      if (IS_FILLED (sq, bytes, size.bytes)) {
+        sq->max_size.bytes = size.bytes + 100 * 1024;
+        GST_DEBUG_OBJECT (mq,
+            "Another queue is empty, bumping single queue %d max bytes to %d",
+            sq->id, sq->max_size.bytes);
+      }
     }
     /* check if we reached the hard time/bytes limits */
     gst_data_queue_get_level (oq->queue, &ssize);
@@ -1908,6 +1914,13 @@ single_queue_underrun_cb (GstDataQueue * dq, GstSingleQueue * sq)
         GST_DEBUG_OBJECT (mq,
             "queue %d is filled, bumping its max visible to %d", oq->id,
             oq->max_size.visible);
+        gst_data_queue_limits_changed (oq->queue);
+      }
+      if (IS_FILLED (oq, bytes, size.bytes)) {
+        oq->max_size.bytes = size.bytes + 100 * 1024;
+        GST_DEBUG_OBJECT (mq,
+            "queue %d is filled, bumping its max bytes to %d", oq->id,
+            oq->max_size.bytes);
         gst_data_queue_limits_changed (oq->queue);
       }
     }
