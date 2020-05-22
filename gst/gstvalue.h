@@ -27,6 +27,17 @@
 G_BEGIN_DECLS
 
 /**
+ * GST_PRINTABLE_CHAR_ARGS:
+ * @c: a char value to output
+ *
+ * To be used with %c when chars may be invalid. Ensures that c is printable by
+ * substituting invalid chars by '?'. This avoids producing invalid strings,
+ * glib warnings and assertions.
+ */
+#define GST_PRINTABLE_CHAR_ARGS(c) \
+    (G_UNLIKELY((c) < ' ' || ((unsigned char)(c)) > 0x7E) ? '?' : ((gchar)(c)))
+
+/**
  * GST_MAKE_FOURCC:
  * @a: the first character
  * @b: the second character
@@ -78,12 +89,13 @@ G_BEGIN_DECLS
  *
  * Can be used together with #GST_FOURCC_FORMAT to properly output a
  * #guint32 fourcc value in a printf()-style text message.
+ * For invalid fourcc substitutes non ascii chars by '?'.
  */
 #define GST_FOURCC_ARGS(fourcc) \
-        ((gchar) ((fourcc)     &0xff)), \
-        ((gchar) (((fourcc)>>8 )&0xff)), \
-        ((gchar) (((fourcc)>>16)&0xff)), \
-        ((gchar) (((fourcc)>>24)&0xff))
+        GST_PRINTABLE_CHAR_ARGS((fourcc) & 0xff), \
+        GST_PRINTABLE_CHAR_ARGS((fourcc) >> 8 & 0xff), \
+        GST_PRINTABLE_CHAR_ARGS((fourcc) >> 16 & 0xff), \
+        GST_PRINTABLE_CHAR_ARGS((fourcc) >> 24 & 0xff)
 
 /**
  * GST_VALUE_HOLDS_FOURCC:
@@ -529,7 +541,7 @@ gboolean	gst_value_fraction_multiply	(GValue		*product,
 						 const GValue	*factor1,
 						 const GValue	*factor2);
 gboolean 	gst_value_fraction_subtract (GValue * dest,
-					     const GValue * minuend, 
+					     const GValue * minuend,
 					     const GValue * subtrahend);
 
 /* fraction range */
@@ -537,9 +549,9 @@ void		gst_value_set_fraction_range	(GValue		*value,
 						 const GValue 	*start,
 						 const GValue	*end);
 void		gst_value_set_fraction_range_full (GValue	*value,
-						 gint numerator_start, 
+						 gint numerator_start,
 						 gint denominator_start,
-						 gint numerator_end, 
+						 gint numerator_end,
 						 gint denominator_end);
 const GValue 	*gst_value_get_fraction_range_min (const GValue	*value);
 const GValue 	*gst_value_get_fraction_range_max (const GValue	*value);
