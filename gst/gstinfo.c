@@ -1505,6 +1505,7 @@ gst_debug_category_reset_threshold (GstDebugCategory * category)
 GstDebugLevel
 gst_debug_category_get_threshold (GstDebugCategory * category)
 {
+  g_return_val_if_fail (category != NULL, GST_LEVEL_NONE);
   return (GstDebugLevel) g_atomic_int_get (&category->threshold);
 }
 
