@@ -808,6 +808,25 @@ gst_element_factory_list_is_type (GstElementFactory * factory,
         || ((type & GST_ELEMENT_FACTORY_TYPE_MEDIA_IMAGE)
         && (strstr (klass, "Image") != NULL));
 
+  /* Check if feature requested */
+  if (res && (type & GST_ELEMENT_FACTORY_TYPE_FEATURE_TUNNELED)) {
+    res = (strstr (klass, "Tunneled") != NULL);
+  } else if (res) {             /* The feature was not requested and is not optional */
+    res = (strstr (klass, "TunneledRequired") == NULL);
+  }
+
+  if (res && (type & GST_ELEMENT_FACTORY_TYPE_FEATURE_SECURE)) {
+    res = (strstr (klass, "Secure") != NULL);
+  } else if (res) {
+    res = (strstr (klass, "SecureRequired") == NULL);
+  }
+
+  if (res && (type & GST_ELEMENT_FACTORY_TYPE_FEATURE_ADAPTIVE)) {
+    res = (strstr (klass, "Adaptive") != NULL);
+  } else if (res) {
+    res = (strstr (klass, "AdaptiveRequired") == NULL);
+  }
+
   return res;
 }
 
