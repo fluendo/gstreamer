@@ -26,6 +26,7 @@
 
 #include <gst/gst.h>
 #include <stdio.h>
+#include "gstq2tmpfile.h"
 
 G_BEGIN_DECLS
 
@@ -135,7 +136,7 @@ struct _GstQueue2
   gboolean temp_location_set;
   gchar *temp_location;
   gboolean temp_remove;
-  FILE *temp_file;
+  GstQueue2TmpFile *temp_file;
   /* list of downloaded areas and the current area */
   GstQueue2Range *ranges;
   GstQueue2Range *current;

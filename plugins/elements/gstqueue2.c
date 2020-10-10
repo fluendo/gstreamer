@@ -60,22 +60,10 @@
 
 #include "gstqueue2.h"
 
-#include <glib/gstdio.h>
-
 #include "gst/gst-i18n-lib.h"
 #include "gst/glib-compat-private.h"
 
 #include <string.h>
-
-#ifdef G_OS_WIN32
-#include <io.h>                 /* lseek, open, close, read */
-#undef lseek
-#define lseek _lseeki64
-#undef off_t
-#define off_t guint64
-#else
-#include <unistd.h>
-#endif
 
 static GstStaticPadTemplate sinktemplate = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
@@ -1185,31 +1173,24 @@ gst_queue2_have_data (GstQueue2 * queue, guint64 offset, guint length)
   return FALSE;
 }
 
-#ifdef HAVE_FSEEKO
-#define FSEEK_FILE(file,offset)  (fseeko (file, (off_t) offset, SEEK_SET) != 0)
-#elif defined (G_OS_UNIX) || defined (G_OS_WIN32)
-#define FSEEK_FILE(file,offset)  (lseek (fileno (file), (off_t) offset, SEEK_SET) == (off_t) -1)
-#else
-#define FSEEK_FILE(file,offset)  (fseek (file, offset, SEEK_SET) != 0)
-#endif
-
 static gint64
 gst_queue2_read_data_at_offset (GstQueue2 * queue, guint64 offset, guint length,
     guint8 * dst)
 {
   guint8 *ring_buffer;
-  size_t res;
+  gsize res;
 
   ring_buffer = queue->ring_buffer;
 
-  if (QUEUE_IS_USING_TEMP_FILE (queue) && FSEEK_FILE (queue->temp_file, offset))
+  if (QUEUE_IS_USING_TEMP_FILE (queue)
+      && gst_queue2_tmp_file_seek (queue->temp_file, offset))
     goto seek_failed;
 
   /* this should not block */
   GST_LOG_OBJECT (queue, "Reading %d bytes from offset %" G_GUINT64_FORMAT,
       length, offset);
   if (QUEUE_IS_USING_TEMP_FILE (queue)) {
-    res = fread (dst, 1, length, queue->temp_file);
+    res = gst_queue2_tmp_file_read (queue->temp_file, dst, 1, length);
   } else {
     memcpy (dst, ring_buffer + offset, length);
     res = length;
@@ -1221,9 +1202,9 @@ gst_queue2_read_data_at_offset (GstQueue2 * queue, guint64 offset, guint length,
     if (!QUEUE_IS_USING_TEMP_FILE (queue))
       goto could_not_read;
     /* check for errors or EOF */
-    if (ferror (queue->temp_file))
+    if (gst_queue2_tmp_file_error (queue->temp_file))
       goto could_not_read;
-    if (feof (queue->temp_file) && length > 0)
+    if (gst_queue2_tmp_file_eof (queue->temp_file) && length > 0)
       goto eos;
   }
 
@@ -1437,7 +1418,6 @@ gst_queue2_read_item_from_file (GstQueue2 * queue)
 static gboolean
 gst_queue2_open_temp_location_file (GstQueue2 * queue)
 {
-  gint fd = -1;
   gchar *name = NULL;
 
   if (queue->temp_file)
@@ -1451,21 +1431,23 @@ gst_queue2_open_temp_location_file (GstQueue2 * queue)
    * - temp_template was set, allocate a filename and open that filename
    */
   if (!queue->temp_location_set) {
+    GstQueue2TmpFileFdOpenError err;
+
     /* nothing to do */
     if (queue->temp_template == NULL)
       goto no_directory;
 
-    /* make copy of the template, we don't want to change this */
+    /* make copy of the template, we don't want to change this.
+     * (gst_queue2_tmp_file_fd_open will ) */
     name = g_strdup (queue->temp_template);
-    fd = g_mkstemp (name);
-    if (fd == -1)
-      goto mkstemp_failed;
+    queue->temp_file =
+        gst_queue2_tmp_file_fd_open (name, TRUE, &err);
 
-    /* open the file for update/writing */
-    queue->temp_file = fdopen (fd, "wb+");
-    /* error creating file */
-    if (queue->temp_file == NULL)
+    if (!queue->temp_file) {
+      if (err == GST_QUEUE2_TMP_FILE_FD_OPEN_ERROR_CREATE)
+        goto mkstemp_failed;
       goto open_failed;
+    }
 
     g_free (queue->temp_location);
     queue->temp_location = name;
@@ -1479,10 +1461,13 @@ gst_queue2_open_temp_location_file (GstQueue2 * queue)
   } else {
     /* open the file for update/writing, this is deprecated but we still need to
      * support it for API/ABI compatibility */
-    queue->temp_file = g_fopen (queue->temp_location, "wb+");
+    queue->temp_file =
+        gst_queue2_tmp_file_fd_open (queue->temp_location, FALSE, NULL);
     /* error creating file */
-    if (queue->temp_file == NULL)
+    if (queue->temp_file == NULL) {
+      name = g_strdup (queue->temp_location);
       goto open_failed;
+    }
   }
   GST_DEBUG_OBJECT (queue, "opened temp file %s", queue->temp_template);
 
@@ -1513,8 +1498,6 @@ open_failed:
     GST_ELEMENT_ERROR (queue, RESOURCE, OPEN_READ,
         (_("Could not open file \"%s\" for reading."), name), GST_ERROR_SYSTEM);
     g_free (name);
-    if (fd != -1)
-      close (fd);
     return FALSE;
   }
 }
@@ -1528,8 +1511,8 @@ gst_queue2_close_temp_location_file (GstQueue2 * queue)
 
   GST_DEBUG_OBJECT (queue, "closing temp file");
 
-  fflush (queue->temp_file);
-  fclose (queue->temp_file);
+  gst_queue2_tmp_file_flush (queue->temp_file);
+  gst_queue2_tmp_file_close (queue->temp_file);
 
   if (queue->temp_remove)
     remove (queue->temp_location);
@@ -1546,7 +1529,9 @@ gst_queue2_flush_temp_file (GstQueue2 * queue)
 
   GST_DEBUG_OBJECT (queue, "flushing temp file");
 
-  queue->temp_file = g_freopen (queue->temp_location, "wb+", queue->temp_file);
+  queue->temp_file =
+      gst_queue2_tmp_file_reopen (queue->temp_file,
+      queue->temp_location, "wb+");
 }
 
 static void
@@ -1764,7 +1749,7 @@ gst_queue2_create_write (GstQueue2 * queue, GstBuffer * buffer)
     }
 
     if (QUEUE_IS_USING_TEMP_FILE (queue)
-        && FSEEK_FILE (queue->temp_file, writing_pos))
+        && gst_queue2_tmp_file_seek (queue->temp_file, writing_pos))
       goto seek_failed;
 
     if (new_writing_pos > writing_pos) {
@@ -1774,7 +1759,8 @@ gst_queue2_create_write (GstQueue2 * queue, GstBuffer * buffer)
           queue->current->writing_pos, queue->current->rb_writing_pos);
       /* either not using ring buffer or no wrapping, just write */
       if (QUEUE_IS_USING_TEMP_FILE (queue)) {
-        if (fwrite (data, to_write, 1, queue->temp_file) != 1)
+        if (gst_queue2_tmp_file_write (queue->temp_file,
+                data, to_write, 1) != 1)
           goto handle_error;
       } else {
         memcpy (ring_buffer + writing_pos, data, to_write);
@@ -1815,20 +1801,23 @@ gst_queue2_create_write (GstQueue2 * queue, GstBuffer * buffer)
         GST_INFO_OBJECT (queue, "writing %u bytes", block_one);
         /* write data to end of ring buffer */
         if (QUEUE_IS_USING_TEMP_FILE (queue)) {
-          if (fwrite (data, block_one, 1, queue->temp_file) != 1)
+          if (gst_queue2_tmp_file_write (queue->temp_file,
+                  data, block_one, 1) != 1)
             goto handle_error;
         } else {
           memcpy (ring_buffer + writing_pos, data, block_one);
         }
       }
 
-      if (QUEUE_IS_USING_TEMP_FILE (queue) && FSEEK_FILE (queue->temp_file, 0))
+      if (QUEUE_IS_USING_TEMP_FILE (queue)
+          && gst_queue2_tmp_file_seek (queue->temp_file, 0))
         goto seek_failed;
 
       if (block_two > 0) {
         GST_INFO_OBJECT (queue, "writing %u bytes", block_two);
         if (QUEUE_IS_USING_TEMP_FILE (queue)) {
-          if (fwrite (data + block_one, block_two, 1, queue->temp_file) != 1)
+          if (gst_queue2_tmp_file_write (queue->temp_file,
+                  data + block_one, block_two, 1) != 1)
             goto handle_error;
         } else {
           memcpy (ring_buffer, data + block_one, block_two);
