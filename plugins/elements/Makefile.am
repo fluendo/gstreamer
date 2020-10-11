@@ -20,6 +20,7 @@ libgstcoreelements_la_SOURCES =	\
 	gstqueue2.c		\
 	gstq2tmpfile.c		\
 	gstq2tmpfilefd.c	\
+	gstq2tmpfileram.c	\
 	gsttee.c		\
 	gsttypefindelement.c	\
 	gstvalve.c

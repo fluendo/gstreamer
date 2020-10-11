@@ -46,8 +46,7 @@ GstQueue2TmpFile * gst_queue2_tmp_file_fd_open (gchar *name,
     gboolean is_template, GstQueue2TmpFileFdOpenError * err);
 
 /* use FILE's interface, but with RAM */
-GstQueue2TmpFile *gst_queue2_tmp_file_ram_open (gsize pre_alloc,
-    gsize grow_step);
+GstQueue2TmpFile *gst_queue2_tmp_file_ram_open (gsize grow_step);
 
 /* fseek */
 gboolean gst_queue2_tmp_file_seek (GstQueue2TmpFile * file, gsize offset);
