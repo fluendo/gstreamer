@@ -148,6 +148,8 @@ struct _GstQueue2
 
   guint64 ring_buffer_max_size;
   guint8 * ring_buffer;
+
+  gboolean reverse_playback_mode;
 };
 
 struct _GstQueue2Class

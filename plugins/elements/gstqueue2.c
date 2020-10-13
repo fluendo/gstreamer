@@ -1440,8 +1440,7 @@ gst_queue2_open_temp_location_file (GstQueue2 * queue)
     /* make copy of the template, we don't want to change this.
      * (gst_queue2_tmp_file_fd_open will ) */
     name = g_strdup (queue->temp_template);
-    queue->temp_file =
-        gst_queue2_tmp_file_fd_open (name, TRUE, &err);
+    queue->temp_file = gst_queue2_tmp_file_fd_open (name, TRUE, &err);
 
     if (!queue->temp_file) {
       if (err == GST_QUEUE2_TMP_FILE_FD_OPEN_ERROR_CREATE)
@@ -2609,6 +2608,21 @@ out_flushing:
 }
 
 static gboolean
+gst_queue2_event_is_reverse_playback (GstEvent * event)
+{
+  const GstStructure *s;
+
+  if (GST_EVENT_TYPE (event) != GST_EVENT_CUSTOM_UPSTREAM)
+    return FALSE;
+
+  s = gst_event_get_structure (event);
+  if (s == NULL || !gst_structure_has_name (s, "reverse-playback"))
+    return FALSE;
+
+  return TRUE;
+}
+
+static gboolean
 gst_queue2_handle_src_event (GstPad * pad, GstEvent * event)
 {
   gboolean res = TRUE;
@@ -2654,6 +2668,29 @@ gst_queue2_handle_src_event (GstPad * pad, GstEvent * event)
         /* when using a temp file, we eat the event */
         res = TRUE;
         gst_event_unref (event);
+      }
+      break;
+    case GST_EVENT_CUSTOM_UPSTREAM:
+      if (gst_queue2_event_is_reverse_playback (event)) {
+        /* Reverse Playback Mode.
+         * From this moment queue2 starts to save last offset of first pull backwards
+         * from qtdemux, that is used as the queued size at which we block the input
+         * until the next pulling from qtdemux.
+         * Also this event disables buffering messages.
+         * ?? should qtdemux send it before each pull backwards ??
+         * At which moment should we enable buffering messages back ?*/
+
+        queue->reverse_playback_mode = TRUE;
+        queue->use_buffering = FALSE;
+
+#if 0
+        if (turn_on == TRUE) {
+          /* TODO: save offset here */
+        }
+#endif
+
+        res = TRUE;
+        break;
       }
       break;
     default:
