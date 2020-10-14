@@ -1181,8 +1181,14 @@ gst_queue2_read_data_at_offset (GstQueue2 * queue, guint64 offset, guint length,
   gsize res;
 
   ring_buffer = queue->ring_buffer;
-
-  if (QUEUE_IS_USING_TEMP_FILE (queue)
+#if 0
+  if (QUEUE_IS_USING_PULL_QUEUE (queue)) {
+    // dst is filled with some amount of bytes we could read
+    // so, we iterate buffers list and fill dst if we have this bytes
+    res = gst_queue2_pull_q_read (queue->pull_queue, dst, offset, length);
+  } else
+#endif
+    if (QUEUE_IS_USING_TEMP_FILE (queue)
       && gst_queue2_tmp_file_seek (queue->temp_file, offset))
     goto seek_failed;
 
@@ -1440,8 +1446,9 @@ gst_queue2_open_temp_location_file (GstQueue2 * queue)
     /* make copy of the template, we don't want to change this.
      * (gst_queue2_tmp_file_fd_open will ) */
     name = g_strdup (queue->temp_template);
-    queue->temp_file = gst_queue2_tmp_file_fd_open (name, TRUE, &err);
+//    queue->temp_file = gst_queue2_tmp_file_fd_open (name, TRUE, &err);
 
+    queue->temp_file = gst_queue2_tmp_file_ram_open (1024 * 1024);
     if (!queue->temp_file) {
       if (err == GST_QUEUE2_TMP_FILE_FD_OPEN_ERROR_CREATE)
         goto mkstemp_failed;
@@ -1513,8 +1520,8 @@ gst_queue2_close_temp_location_file (GstQueue2 * queue)
   gst_queue2_tmp_file_flush (queue->temp_file);
   gst_queue2_tmp_file_close (queue->temp_file);
 
-  if (queue->temp_remove)
-    remove (queue->temp_location);
+//  if (queue->temp_remove)
+//    remove (queue->temp_location);
 
   queue->temp_file = NULL;
   clean_ranges (queue);
@@ -1605,6 +1612,13 @@ gst_queue2_create_write (GstQueue2 * queue, GstBuffer * buffer)
   guint size, rb_size;
   guint64 writing_pos, new_writing_pos;
   GstQueue2Range *range, *prev, *next;
+
+#if 0
+  if (QUEUE_IS_USING_PULL_QUEUE (queue)) {
+    // insert the buffer into our queue
+    gst_queue2_pull_q_insert_buffer (queue->pull_queue, buffer);
+  }
+#endif
 
   if (QUEUE_IS_USING_RING_BUFFER (queue))
     writing_pos = queue->current->rb_writing_pos;
@@ -2608,7 +2622,7 @@ out_flushing:
 }
 
 static gboolean
-gst_queue2_upstream_event_is (GstEvent * event, const gchar *name)
+gst_queue2_upstream_event_is (GstEvent * event, const gchar * name)
 {
   const GstStructure *s;
 
@@ -2671,7 +2685,8 @@ gst_queue2_handle_src_event (GstPad * pad, GstEvent * event)
       }
       break;
     case GST_EVENT_CUSTOM_UPSTREAM:
-      if (gst_queue2_upstream_event_is (event, "reverse-playback-download-boundary")) {
+      if (gst_queue2_upstream_event_is (event,
+              "reverse-playback-download-boundary")) {
         /* Reverse Playback Mode.
          * From this moment queue2 starts to save last offset of first pull backwards
          * from qtdemux, that is used as the queued size at which we block the input
@@ -3078,8 +3093,42 @@ gst_queue2_src_activate_pull (GstPad * pad, gboolean active)
   if (active) {
     GST_QUEUE2_MUTEX_LOCK (queue);
     if (!QUEUE_IS_USING_QUEUE (queue)) {
+#if 0
+      if (QUEUE_IS_USING_PULL_QUEUE (queue)) {
+        queue->pull_queue = gst_queue2_pull_q_new ();
+      } else
+#endif
       if (QUEUE_IS_USING_TEMP_FILE (queue)) {
         /* open the temp file now */
+
+        /* Concepts of ram file.
+         * 1) "queue is full": is when from "start offset" to end of file we have >= max-bytes
+         * 2) every time upstream pulls some range, we move "start offset" to the
+         *    end of this range minus some "border1".
+         * 3) so, pulling is supposed to go forward, but still has "border1" to pull something backwards
+         * 4) when we move "start offset", we let the file know, so it cuts itself from the beginning
+         * 5) 
+
+
+
+
+         Concepts of the pull queue:
+
+         * push from upstream is appending a buffer to the list
+         * so, when we iterate the list, we go forward in bytes.
+         * 
+         * "queue is full": is when from "start offset" to "end offset" we have >= max-bytes
+         * so, it's the same as ram file with only difference that it avoids one more memcpy
+
+         so, the key points are:
+         - when queue is full
+         - empty the queue, make it non-full
+         - 
+
+         - ?? or maybe every range will have some TTL ??
+
+         */
+
         result = gst_queue2_open_temp_location_file (queue);
       } else if (!queue->ring_buffer) {
         queue->ring_buffer = g_malloc (queue->ring_buffer_max_size);
