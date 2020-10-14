@@ -1189,7 +1189,7 @@ gst_queue2_read_data_at_offset (GstQueue2 * queue, guint64 offset, guint length,
   } else
 #endif
     if (QUEUE_IS_USING_TEMP_FILE (queue)
-      && gst_queue2_tmp_file_seek (queue->temp_file, offset))
+      && !gst_queue2_tmp_file_seek (queue->temp_file, offset))
     goto seek_failed;
 
   /* this should not block */
@@ -1762,7 +1762,7 @@ gst_queue2_create_write (GstQueue2 * queue, GstBuffer * buffer)
     }
 
     if (QUEUE_IS_USING_TEMP_FILE (queue)
-        && gst_queue2_tmp_file_seek (queue->temp_file, writing_pos))
+        && !gst_queue2_tmp_file_seek (queue->temp_file, writing_pos))
       goto seek_failed;
 
     if (new_writing_pos > writing_pos) {
@@ -1823,7 +1823,7 @@ gst_queue2_create_write (GstQueue2 * queue, GstBuffer * buffer)
       }
 
       if (QUEUE_IS_USING_TEMP_FILE (queue)
-          && gst_queue2_tmp_file_seek (queue->temp_file, 0))
+          && !gst_queue2_tmp_file_seek (queue->temp_file, 0))
         goto seek_failed;
 
       if (block_two > 0) {

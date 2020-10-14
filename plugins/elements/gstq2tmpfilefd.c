@@ -63,11 +63,11 @@ gst_queue2_tmp_file_fd_seek (GstQueue2TmpFile * file, gsize offset)
   FILE *fd = gst_queue2_tmp_file_fd (file);
 
 #ifdef HAVE_FSEEKO
-  return fseeko (fd, (off_t) offset, SEEK_SET) != 0;
+  return fseeko (fd, (off_t) offset, SEEK_SET) == 0;
 #elif defined (G_OS_UNIX) || defined (G_OS_WIN32)
-  return lseek (fileno (fd), (off_t) offset, SEEK_SET) == (off_t) - 1;
+  return lseek (fileno (fd), (off_t) offset, SEEK_SET) != (off_t) - 1;
 #else
-  return fseek (fd, offset, SEEK_SET) != 0;
+  return fseek (fd, offset, SEEK_SET) == 0;
 #endif
 }
 
