@@ -134,7 +134,7 @@ gst_queue2_tmp_file_ram_read (GstQueue2TmpFile * file, gpointer dst,
 
     memcpy (cdst, chunk + offset_in_chunk, to_read_in_chunk);
 
-    dst += to_read_in_chunk;
+    cdst += to_read_in_chunk;
     bytes_to_read -= to_read_in_chunk;
     rf->cursor += to_read_in_chunk;
   }
@@ -176,7 +176,7 @@ gst_queue2_tmp_file_ram_write (GstQueue2TmpFile * file, gconstpointer src,
 
     memcpy (chunk + offset_in_chunk, csrc, to_write_in_chunk);
 
-    src += to_write_in_chunk;
+    csrc += to_write_in_chunk;
     bytes_to_write -= to_write_in_chunk;
     rf->cursor += to_write_in_chunk;
   }
