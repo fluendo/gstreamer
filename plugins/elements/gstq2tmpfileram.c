@@ -56,21 +56,36 @@ static gboolean
 gst_queue2_tmp_file_ram_seek (GstQueue2TmpFile * file, gsize offset)
 {
   GstQueue2TmpFileRAM *rf = (GstQueue2TmpFileRAM *) file;
-  gboolean ret = FALSE;
 
   RF_LOCK (rf);
 
-  /* Seek position must not point outside of the file */
-  if (rf->end >= offset) {
-    rf->cursor = offset;
-    ret = TRUE;
-  } else {
-    rf->error = -1;
+  if (rf->end < offset) {
+    /* for fseek seeking outside of the file in writing mode means
+     * extending the file */
+    gint chunks_to_have;
+
+    /* Fill chunk until the end, then pick or create next one */
+    chunks_to_have = offset / rf->chunk_size;
+
+    if (offset % rf->chunk_size != 0) {
+      /* + one more chunk that won't be completely filled */
+      chunks_to_have++;
+    }
+
+    /* Grow. Data after the extension is a garbage, but that's ok,
+     * with real fseek it will be the same */
+    while (rf->memchunks->len < chunks_to_have) {
+      g_ptr_array_add (rf->memchunks, g_malloc (rf->chunk_size));
+    }
+
+    rf->end = offset;
   }
+
+  rf->cursor = offset;
 
   RF_UNLOCK (rf);
 
-  return ret;
+  return TRUE;
 }
 
 
