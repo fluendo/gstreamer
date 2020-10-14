@@ -2608,7 +2608,7 @@ out_flushing:
 }
 
 static gboolean
-gst_queue2_event_is_reverse_playback (GstEvent * event)
+gst_queue2_upstream_event_is (GstEvent * event, const gchar *name)
 {
   const GstStructure *s;
 
@@ -2616,7 +2616,7 @@ gst_queue2_event_is_reverse_playback (GstEvent * event)
     return FALSE;
 
   s = gst_event_get_structure (event);
-  if (s == NULL || !gst_structure_has_name (s, "reverse-playback"))
+  if (s == NULL || !gst_structure_has_name (s, name))
     return FALSE;
 
   return TRUE;
@@ -2671,7 +2671,7 @@ gst_queue2_handle_src_event (GstPad * pad, GstEvent * event)
       }
       break;
     case GST_EVENT_CUSTOM_UPSTREAM:
-      if (gst_queue2_event_is_reverse_playback (event)) {
+      if (gst_queue2_upstream_event_is (event, "reverse-playback-download-boundary")) {
         /* Reverse Playback Mode.
          * From this moment queue2 starts to save last offset of first pull backwards
          * from qtdemux, that is used as the queued size at which we block the input
@@ -2680,14 +2680,7 @@ gst_queue2_handle_src_event (GstPad * pad, GstEvent * event)
          * ?? should qtdemux send it before each pull backwards ??
          * At which moment should we enable buffering messages back ?*/
 
-        queue->reverse_playback_mode = TRUE;
-        queue->use_buffering = FALSE;
-
-#if 0
-        if (turn_on == TRUE) {
-          /* TODO: save offset here */
-        }
-#endif
+        // queue->reverse_playback.download_boundary = ;
 
         res = TRUE;
         break;
