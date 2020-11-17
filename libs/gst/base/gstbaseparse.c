@@ -1970,7 +1970,8 @@ gst_base_parse_push_frame (GstBaseParse * parse, GstBaseParseFrame * frame)
       GST_LOG_OBJECT (parse, "frame (%d bytes) queued for now",
           GST_BUFFER_SIZE (buffer));
       parse->priv->buffers_queued =
-          g_slist_append (parse->priv->buffers_queued, buffer);
+          g_slist_prepend (parse->priv->buffers_queued, buffer);
+//          g_slist_append (parse->priv->buffers_queued, buffer);
       ret = GST_FLOW_OK;
     }
   } else {
@@ -2155,6 +2156,7 @@ push:
         if (ret != GST_FLOW_OK) {
           parse->priv->buffers_send =
               g_slist_reverse (parse->priv->buffers_queued);
+              //              g_slist_copy (parse->priv->buffers_queued);
           parse->priv->buffers_queued = NULL;
           break;
         }
@@ -2167,6 +2169,7 @@ push:
 
     parse->priv->buffers_send =
         g_slist_prepend (parse->priv->buffers_send, buf);
+        //        g_slist_axppend (parse->priv->buffers_send, buf);
     parse->priv->buffers_queued =
         g_slist_delete_link (parse->priv->buffers_queued,
         parse->priv->buffers_queued);
