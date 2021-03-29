@@ -539,6 +539,23 @@ gst_index_entry_copy (GstIndexEntry * entry)
   GstIndexEntry *new_entry = g_slice_new (GstIndexEntry);
 
   memcpy (new_entry, entry, sizeof (GstIndexEntry));
+
+  switch (entry->type) {
+    case GST_INDEX_ENTRY_ID:
+      if (entry->data.id.description) {
+        new_entry->data.id.description = g_strdup (entry->data.id.description);
+      }
+      break;
+    case GST_INDEX_ENTRY_ASSOCIATION:
+      if (entry->data.assoc.assocs) {
+        new_entry->data.assoc.assocs = g_memdup (entry->data.assoc.assocs,
+            sizeof (GstIndexAssociation) * entry->data.assoc.nassocs);
+      }
+      break;
+    default:
+      break;
+  }
+
   return new_entry;
 }
 

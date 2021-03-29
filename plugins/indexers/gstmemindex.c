@@ -407,6 +407,8 @@ gst_mem_index_get_assoc_entry (GstIndex * index, gint id,
         if (entry->id == id && (GST_INDEX_ASSOC_FLAGS (entry) & flags) == flags)
           break;
 
+        entry = NULL;
+
         if (method == GST_INDEX_LOOKUP_BEFORE)
           l_entry = g_list_next (l_entry);
         else if (method == GST_INDEX_LOOKUP_AFTER) {
