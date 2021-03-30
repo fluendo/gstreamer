@@ -128,6 +128,8 @@ gst_proxy_pad_event_default (GstPad * pad, GstEvent * event)
   if (internal) {
     res = gst_pad_push_event (internal, event);
     gst_object_unref (internal);
+  } else {
+    gst_event_unref (event);
   }
 
   return res;
