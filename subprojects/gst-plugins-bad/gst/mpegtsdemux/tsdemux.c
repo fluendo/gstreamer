@@ -44,6 +44,7 @@
 #include "tsdemux.h"
 #include "gstmpegdesc.h"
 #include "gstmpegdefs.h"
+#include "gst/mpegts/gst-mpegtsklvmeta.h"
 #include "mpegtspacketizer.h"
 #include "pesparse.h"
 #include <gst/codecparsers/gsth264parser.h>
@@ -62,6 +63,9 @@
 
 #define CONTINUITY_UNSET 255
 #define MAX_CONTINUITY 15
+
+/* Length of metadata_AU_cell header, see ISO/IEC 13818-1:2018 Section 2.12.4 */
+#define PES_PACKET_METADATA_AU_HEADER_LEN 5
 
 /* Seeking/Scanning related variables */
 
@@ -1742,6 +1746,23 @@ create_pad_for_stream (MpegTSBase * base, MpegTSBaseStream * bstream,
           "mpegversion", G_TYPE_INT, 4,
           "systemstream", G_TYPE_BOOLEAN, FALSE, NULL);
       break;
+    case GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS:
+      desc = mpegts_get_descriptor_from_stream (bstream, GST_MTS_DESC_METADATA);
+      if (desc) {
+        int application_format = DESC_METADATA_application_format (desc->data);
+        if ((DESC_METADATA_format (desc->data) ==
+                DESC_METADATA_format_identifier_PRESENT)
+            && (DESC_METADATA_format_identifier (desc->data) == DRF_ID_KLVA)) {
+          sparse = TRUE;
+          is_private = TRUE;
+          caps = gst_caps_new_simple ("meta/x-klv",
+              "parsed", G_TYPE_BOOLEAN, TRUE,
+              "stream-type", G_TYPE_INT, bstream->stream_type,
+              "application-format", G_TYPE_INT, application_format,
+              "format", G_TYPE_INT, DESC_METADATA_format (desc->data), NULL);
+        }
+      }
+      break;
     case GST_MPEGTS_STREAM_TYPE_VIDEO_H264:
       is_video = TRUE;
       caps = gst_caps_new_simple ("video/x-h264",
@@ -3315,6 +3336,39 @@ out:
   return gst_buffer_new_wrapped (stream->data, stream->current_size);
 }
 
+static GstBuffer *
+parse_sync_klv_frame (TSDemuxStream * stream)
+{
+  GstBuffer *klv;
+  GstMpegtsKlvMeta *meta;
+
+  if (stream->current_size < PES_PACKET_METADATA_AU_HEADER_LEN) {
+    GST_DEBUG_OBJECT (stream->pad, "Not enough data for header");
+    // Use old behaviour.
+    goto out;
+  }
+  klv =
+      gst_buffer_new_wrapped_full (0, stream->data, stream->current_size,
+      PES_PACKET_METADATA_AU_HEADER_LEN,
+      stream->current_size - PES_PACKET_METADATA_AU_HEADER_LEN, stream->data,
+      g_free);
+  meta = gst_buffer_add_mpegts_klv_meta (klv);
+  meta->metadata_service_id = stream->data[0];
+  meta->sequence_number = stream->data[1];
+  meta->flags = stream->data[2];
+  meta->cell_data_length = (stream->data[3] << 8) + stream->data[4];
+  GST_DEBUG_OBJECT (stream->pad,
+      "metadata_service_id: 0x%02x, sequence_number: 0x%02x, flags: 0x%02x, cell_data_length: 0x%04x",
+      meta->metadata_service_id, meta->sequence_number, meta->flags,
+      meta->cell_data_length);
+  stream->data = NULL;
+  stream->current_size = 0;
+  return klv;
+out:
+  return gst_buffer_new_wrapped (stream->data, stream->current_size);
+}
+
+
 
 static GstFlowReturn
 gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
@@ -3376,6 +3430,13 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
         }
       } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_VIDEO_JP2K) {
         buffer = parse_jp2k_access_unit (stream);
+        if (!buffer) {
+          res = GST_FLOW_ERROR;
+          goto beach;
+        }
+      } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS
+          && bs->registration_id == DRF_ID_KLVA) {
+        buffer = parse_sync_klv_frame (stream);
         if (!buffer) {
           res = GST_FLOW_ERROR;
           goto beach;

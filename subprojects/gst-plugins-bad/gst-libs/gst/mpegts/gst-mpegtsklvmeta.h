@@ -1,0 +1,110 @@
+/* Gstreamer
+ * Copyright 2021 Brad Hards <bradh@frogmouth.net>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
+
+#ifndef __GST_MPEGTS_KLV_META_H__
+#define __GST_MPEGTS_KLV_META_H__
+
+#include <gst/gst.h>
+#include <gst/mpegts/mpegts-prelude.h>
+
+G_BEGIN_DECLS
+
+typedef struct _GstMpegtsKlvMeta GstMpegtsKlvMeta;
+
+/**
+ * gst_mpegts_klv_meta_api_get_type
+ *
+ * Return the #GType associated with #GstMpegtsKlvMeta
+ *
+ * Returns: a #GType
+ *
+ * Since: 1.22
+ */
+GST_MPEGTS_API
+GType gst_mpegts_klv_meta_api_get_type (void);
+
+/**
+ * GST_MPEGTS_KLV_META_API_TYPE:
+ *
+ * The #GType associated with #GstMpegtsKlvMeta.
+ *
+ * Since: 1.22
+ */
+#define GST_MPEGTS_KLV_META_API_TYPE  (gst_mpegts_klv_meta_api_get_type())
+
+/**
+ * GST_MPEGTS_KLV_META_INFO:
+ *
+ * The #GstMetaInfo associated with #GstMpegtsKlvMeta.
+ *
+ * Since: 1.22
+ */
+#define GST_MPEGTS_KLV_META_INFO  (gst_mpegts_klv_meta_get_info())
+
+/**
+ * gst_mpegts_klv_meta_get_info:
+ *
+ * Gets the global #GstMetaInfo describing the #GstMpegtsKlvMeta meta.
+ *
+ * Returns: (transfer none): The #GstMetaInfo
+ *
+ * Since: 1.22
+ */
+GST_MPEGTS_API
+const GstMetaInfo * gst_mpegts_klv_meta_get_info (void);
+
+/**
+ * GstMpegtsKlvMeta:
+ * @meta: parent #GstMeta
+ * @metadata_service_id: metadata service identifier
+ * @sequence_number: sequence number, increments by 1 for each successive AU cell
+ * @flags: bit flags, see spec for details
+ * @cell_data_length: number of bytes in metadata_AU_cell
+ *
+ * Extra buffer metadata describing the KLV context.
+ * This is based on the Metadata AU cell header in
+ * ISO/IEC 13818-1:2018 Section 2.12.4
+ *
+ * Since: 1.22
+ */
+struct _GstMpegtsKlvMeta {
+  GstMeta            meta;
+  guint8             metadata_service_id;
+  guint8             sequence_number;
+  guint8             flags;
+  guint              cell_data_length;
+};
+
+/**
+ * gst_buffer_add_mpegts_klv_meta:
+ * @buffer: a #GstBuffer
+ *
+ * Creates and adds a #GstMpegtsKlvMeta to a @buffer.
+ *
+ * Returns: (transfer full): a newly created #GstMpegtsKlvMeta
+ *
+ * Since: 1.22
+ */
+GST_MPEGTS_API
+GstMpegtsKlvMeta *
+gst_buffer_add_mpegts_klv_meta (GstBuffer * buffer);
+
+G_END_DECLS
+
+#endif
