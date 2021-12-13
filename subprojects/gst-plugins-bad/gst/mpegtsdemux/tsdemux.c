@@ -3504,6 +3504,13 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
         res = GST_FLOW_ERROR;
         goto beach;
       }
+    } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS
+        && bs->registration_id == DRF_ID_KLVA) {
+      buffer = parse_sync_klv_frame (stream);
+      if (!buffer) {
+        res = GST_FLOW_ERROR;
+        goto beach;
+      }
     } else {
       buffer = gst_buffer_new_wrapped (stream->data, stream->current_size);
     }
