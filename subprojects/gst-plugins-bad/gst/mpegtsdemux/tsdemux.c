@@ -1755,6 +1755,9 @@ create_pad_for_stream (MpegTSBase * base, MpegTSBaseStream * bstream,
             && (DESC_METADATA_format_identifier (desc->data) == DRF_ID_KLVA)) {
           sparse = TRUE;
           is_private = TRUE;
+          /* registration_id is not correctly set or parsed for some streams */
+          bstream->registration_id = DRF_ID_KLVA;
+
           caps = gst_caps_new_simple ("meta/x-klv",
               "parsed", G_TYPE_BOOLEAN, TRUE,
               "stream-type", G_TYPE_INT, bstream->stream_type,
