@@ -3339,39 +3339,77 @@ out:
   return gst_buffer_new_wrapped (stream->data, stream->current_size);
 }
 
-static GstBuffer *
+static GstBufferList *
 parse_sync_klv_frame (TSDemuxStream * stream)
 {
-  GstBuffer *klv;
-  GstMpegtsKlvMeta *meta;
+  GstByteReader reader;
+  GstBufferList *buffer_list = NULL;
 
-  if (stream->current_size < PES_PACKET_METADATA_AU_HEADER_LEN) {
-    GST_DEBUG_OBJECT (stream->pad, "Not enough data for header");
-    // Use old behaviour.
-    goto out;
-  }
-  klv =
-      gst_buffer_new_wrapped_full (0, stream->data, stream->current_size,
-      PES_PACKET_METADATA_AU_HEADER_LEN,
-      stream->current_size - PES_PACKET_METADATA_AU_HEADER_LEN, stream->data,
-      g_free);
-  meta = gst_buffer_add_mpegts_klv_meta (klv);
-  meta->metadata_service_id = stream->data[0];
-  meta->sequence_number = stream->data[1];
-  meta->flags = stream->data[2];
-  meta->cell_data_length = (stream->data[3] << 8) + stream->data[4];
-  GST_DEBUG_OBJECT (stream->pad,
-      "metadata_service_id: 0x%02x, sequence_number: 0x%02x, flags: 0x%02x, cell_data_length: 0x%04x",
-      meta->metadata_service_id, meta->sequence_number, meta->flags,
-      meta->cell_data_length);
+  buffer_list = gst_buffer_list_new ();
+  gst_byte_reader_init (&reader, stream->data, stream->current_size);
+
+  do {
+    GstBuffer *buffer;
+    GstMpegtsKlvMeta *meta;
+    guint8 *au_data;
+    guint16 au_size;
+    guint8 service_id;
+    guint8 sequence_number;
+    guint8 flags;
+
+    if (gst_byte_reader_get_remaining (&reader) <
+        PES_PACKET_METADATA_AU_HEADER_LEN)
+      goto error;
+
+    if (!gst_byte_reader_get_uint8 (&reader, &service_id))
+      goto error;
+
+    if (!gst_byte_reader_get_uint8 (&reader, &sequence_number))
+      goto error;
+
+    if (!gst_byte_reader_get_uint8 (&reader, &flags))
+      goto error;
+
+    if (!gst_byte_reader_get_uint16_be (&reader, &au_size))
+      goto error;
+
+    if (gst_byte_reader_get_remaining (&reader) < au_size)
+      goto error;
+
+    if (!gst_byte_reader_dup_data (&reader, au_size, &au_data))
+      goto error;
+
+    buffer = gst_buffer_new_wrapped (au_data, au_size);
+    meta = gst_buffer_add_mpegts_klv_meta (buffer);
+    meta->metadata_service_id = service_id;
+    meta->sequence_number = sequence_number;
+    meta->flags = flags;
+    meta->cell_data_length = au_size;
+    GST_DEBUG_OBJECT (stream->pad,
+        "metadata_service_id: 0x%02x, sequence_number: 0x%02x, flags: 0x%02x, cell_data_length: 0x%04x",
+        meta->metadata_service_id, meta->sequence_number, meta->flags,
+        meta->cell_data_length);
+
+    gst_buffer_list_add (buffer_list, buffer);
+  } while (gst_byte_reader_get_remaining (&reader) > 0);
+
+  g_free (stream->data);
   stream->data = NULL;
   stream->current_size = 0;
-  return klv;
-out:
-  return gst_buffer_new_wrapped (stream->data, stream->current_size);
+
+  return buffer_list;
+
+error:
+  {
+    GST_ERROR ("Failed to parse KLV metadata access units");
+    g_free (stream->data);
+    stream->data = NULL;
+    stream->current_size = 0;
+    if (buffer_list)
+      gst_buffer_list_unref (buffer_list);
+    return NULL;
+  }
 }
-
-
 
 static GstFlowReturn
 gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
@@ -3425,12 +3463,6 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
           res = GST_FLOW_ERROR;
           goto beach;
         }
-
-        if (gst_buffer_list_length (buffer_list) == 1) {
-          buffer = gst_buffer_ref (gst_buffer_list_get (buffer_list, 0));
-          gst_buffer_list_unref (buffer_list);
-          buffer_list = NULL;
-        }
       } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_VIDEO_JP2K) {
         buffer = parse_jp2k_access_unit (stream);
         if (!buffer) {
@@ -3439,8 +3471,8 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
         }
       } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS
           && bs->registration_id == DRF_ID_KLVA) {
-        buffer = parse_sync_klv_frame (stream);
-        if (!buffer) {
+        buffer_list = parse_sync_klv_frame (stream);
+        if (!buffer_list) {
           res = GST_FLOW_ERROR;
           goto beach;
         }
@@ -3486,12 +3518,6 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
         res = GST_FLOW_ERROR;
         goto beach;
       }
-
-      if (gst_buffer_list_length (buffer_list) == 1) {
-        buffer = gst_buffer_ref (gst_buffer_list_get (buffer_list, 0));
-        gst_buffer_list_unref (buffer_list);
-        buffer_list = NULL;
-      }
     } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_VIDEO_JP2K) {
       buffer = parse_jp2k_access_unit (stream);
       if (!buffer) {
@@ -3506,8 +3532,8 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
       }
     } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS
         && bs->registration_id == DRF_ID_KLVA) {
-      buffer = parse_sync_klv_frame (stream);
-      if (!buffer) {
+      buffer_list = parse_sync_klv_frame (stream);
+      if (!buffer_list) {
         res = GST_FLOW_ERROR;
         goto beach;
       }
@@ -3541,6 +3567,13 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
           "Not enough information to push buffers yet, storing buffer");
       goto beach;
     }
+  }
+
+
+  if (buffer_list != NULL && gst_buffer_list_length (buffer_list) == 1) {
+    buffer = gst_buffer_ref (gst_buffer_list_get (buffer_list, 0));
+    gst_buffer_list_unref (buffer_list);
+    buffer_list = NULL;
   }
 
   if (G_UNLIKELY (stream->need_newsegment))
