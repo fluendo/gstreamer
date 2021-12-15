@@ -54,7 +54,6 @@ gst_mpegts_klv_meta_transform (GstBuffer * dest, GstMeta * meta,
       dest_meta->metadata_service_id = source_meta->metadata_service_id;
       dest_meta->sequence_number = source_meta->sequence_number;
       dest_meta->flags = source_meta->flags;
-      dest_meta->cell_data_length = source_meta->cell_data_length;
     }
   } else {
     /* return FALSE, if transform type is not supported */

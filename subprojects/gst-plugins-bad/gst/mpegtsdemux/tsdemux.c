@@ -3384,11 +3384,9 @@ parse_sync_klv_frame (TSDemuxStream * stream)
     meta->metadata_service_id = service_id;
     meta->sequence_number = sequence_number;
     meta->flags = flags;
-    meta->cell_data_length = au_size;
     GST_DEBUG_OBJECT (stream->pad,
         "metadata_service_id: 0x%02x, sequence_number: 0x%02x, flags: 0x%02x, cell_data_length: 0x%04x",
-        meta->metadata_service_id, meta->sequence_number, meta->flags,
-        meta->cell_data_length);
+        meta->metadata_service_id, meta->sequence_number, meta->flags, au_size);
 
     gst_buffer_list_add (buffer_list, buffer);
   } while (gst_byte_reader_get_remaining (&reader) > 0);

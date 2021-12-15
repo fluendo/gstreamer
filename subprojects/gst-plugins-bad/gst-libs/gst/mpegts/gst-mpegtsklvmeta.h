@@ -75,11 +75,12 @@ const GstMetaInfo * gst_mpegts_klv_meta_get_info (void);
  * @metadata_service_id: metadata service identifier
  * @sequence_number: sequence number, increments by 1 for each successive AU cell
  * @flags: bit flags, see spec for details
- * @cell_data_length: number of bytes in metadata_AU_cell
  *
  * Extra buffer metadata describing the KLV context.
  * This is based on the Metadata AU cell header in
- * ISO/IEC 13818-1:2018 Section 2.12.4
+ * ISO/IEC 13818-1:2018 Section 2.12.4.
+ *
+ * AU_cell_data_length is not provided, since it matches the length of the buffer
  *
  * Since: 1.22
  */
@@ -88,7 +89,6 @@ struct _GstMpegtsKlvMeta {
   guint8             metadata_service_id;
   guint8             sequence_number;
   guint8             flags;
-  guint              cell_data_length;
 };
 
 /**
