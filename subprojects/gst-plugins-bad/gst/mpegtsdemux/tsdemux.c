@@ -44,7 +44,7 @@
 #include "tsdemux.h"
 #include "gstmpegdesc.h"
 #include "gstmpegdefs.h"
-#include "gst/mpegts/gst-mpegtsklvmeta.h"
+#include "gst/mpegts/gst-mpegtspesmetadatameta.h"
 #include "mpegtspacketizer.h"
 #include "pesparse.h"
 #include <gst/codecparsers/gsth264parser.h>
@@ -3340,7 +3340,7 @@ out:
 }
 
 static GstBufferList *
-parse_sync_klv_frame (TSDemuxStream * stream)
+parse_pes_metadata_frame (TSDemuxStream * stream)
 {
   GstByteReader reader;
   GstBufferList *buffer_list = NULL;
@@ -3350,7 +3350,7 @@ parse_sync_klv_frame (TSDemuxStream * stream)
 
   do {
     GstBuffer *buffer;
-    GstMpegtsKlvMeta *meta;
+    GstMpegtsPESMetadataMeta *meta;
     guint8 *au_data;
     guint16 au_size;
     guint8 service_id;
@@ -3380,7 +3380,7 @@ parse_sync_klv_frame (TSDemuxStream * stream)
       goto error;
 
     buffer = gst_buffer_new_wrapped (au_data, au_size);
-    meta = gst_buffer_add_mpegts_klv_meta (buffer);
+    meta = gst_buffer_add_mpegts_pes_metadata_meta (buffer);
     meta->metadata_service_id = service_id;
     meta->sequence_number = sequence_number;
     meta->flags = flags;
@@ -3399,7 +3399,7 @@ parse_sync_klv_frame (TSDemuxStream * stream)
 
 error:
   {
-    GST_ERROR ("Failed to parse KLV metadata access units");
+    GST_ERROR ("Failed to parse PES metadata access units");
     g_free (stream->data);
     stream->data = NULL;
     stream->current_size = 0;
@@ -3469,7 +3469,7 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
         }
       } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS
           && bs->registration_id == DRF_ID_KLVA) {
-        buffer_list = parse_sync_klv_frame (stream);
+        buffer_list = parse_pes_metadata_frame (stream);
         if (!buffer_list) {
           res = GST_FLOW_ERROR;
           goto beach;
@@ -3530,7 +3530,7 @@ gst_ts_demux_push_pending_data (GstTSDemux * demux, TSDemuxStream * stream,
       }
     } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS
         && bs->registration_id == DRF_ID_KLVA) {
-      buffer_list = parse_sync_klv_frame (stream);
+      buffer_list = parse_pes_metadata_frame (stream);
       if (!buffer_list) {
         res = GST_FLOW_ERROR;
         goto beach;

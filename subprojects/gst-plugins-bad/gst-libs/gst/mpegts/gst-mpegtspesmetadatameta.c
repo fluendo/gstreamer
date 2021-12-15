@@ -21,34 +21,35 @@
 #include "config.h"
 #endif
 
-#include "gst-mpegtsklvmeta.h"
+#include "gst-mpegtspesmetadatameta.h"
 
 #define GST_CAT_DEFAULT mpegts_debug
 
 static gboolean
-gst_mpegts_klv_meta_init (GstMpegtsKlvMeta * meta, gpointer params,
-    GstBuffer * buffer)
+gst_mpegts_pes_metadata_meta_init (GstMpegtsPESMetadataMeta * meta,
+    gpointer params, GstBuffer * buffer)
 {
   return TRUE;
 }
 
 static void
-gst_mpegts_klv_meta_free (GstMpegtsKlvMeta * meta, GstBuffer * buffer)
+gst_mpegts_pes_metadata_meta_free (GstMpegtsPESMetadataMeta * meta,
+    GstBuffer * buffer)
 {
 }
 
 static gboolean
-gst_mpegts_klv_meta_transform (GstBuffer * dest, GstMeta * meta,
+gst_mpegts_pes_metadata_meta_transform (GstBuffer * dest, GstMeta * meta,
     GstBuffer * buffer, GQuark type, gpointer data)
 {
-  GstMpegtsKlvMeta *source_meta, *dest_meta;
+  GstMpegtsPESMetadataMeta *source_meta, *dest_meta;
 
-  source_meta = (GstMpegtsKlvMeta *) meta;
+  source_meta = (GstMpegtsPESMetadataMeta *) meta;
 
   if (GST_META_TRANSFORM_IS_COPY (type)) {
     GstMetaTransformCopy *copy = data;
     if (!copy->region) {
-      dest_meta = gst_buffer_add_mpegts_klv_meta (dest);
+      dest_meta = gst_buffer_add_mpegts_pes_metadata_meta (dest);
       if (!dest_meta)
         return FALSE;
       dest_meta->metadata_service_id = source_meta->metadata_service_id;
@@ -63,42 +64,44 @@ gst_mpegts_klv_meta_transform (GstBuffer * dest, GstMeta * meta,
 }
 
 GType
-gst_mpegts_klv_meta_api_get_type (void)
+gst_mpegts_pes_metadata_meta_api_get_type (void)
 {
   static GType type;
   static const gchar *tags[] = { NULL };
 
   if (g_once_init_enter (&type)) {
-    GType _type = gst_meta_api_type_register ("GstMpegtsKlvMetaAPI", tags);
+    GType _type =
+        gst_meta_api_type_register ("GstMpegtsPESMetadataMetaAPI", tags);
     g_once_init_leave (&type, _type);
   }
   return type;
 }
 
 const GstMetaInfo *
-gst_mpegts_klv_meta_get_info (void)
+gst_mpegts_pes_metadata_meta_get_info (void)
 {
-  static const GstMetaInfo *mpegts_klv_meta_info = NULL;
+  static const GstMetaInfo *mpegts_pes_metadata_meta_info = NULL;
 
-  if (g_once_init_enter ((GstMetaInfo **) & mpegts_klv_meta_info)) {
-    const GstMetaInfo *meta = gst_meta_register (GST_MPEGTS_KLV_META_API_TYPE,
-        "GstMpegtsKlvMeta", sizeof (GstMpegtsKlvMeta),
-        (GstMetaInitFunction) gst_mpegts_klv_meta_init,
-        (GstMetaFreeFunction) gst_mpegts_klv_meta_free,
-        (GstMetaTransformFunction) gst_mpegts_klv_meta_transform);
-    g_once_init_leave ((GstMetaInfo **) & mpegts_klv_meta_info,
+  if (g_once_init_enter ((GstMetaInfo **) & mpegts_pes_metadata_meta_info)) {
+    const GstMetaInfo *meta =
+        gst_meta_register (GST_MPEGTS_PES_METADATA_META_API_TYPE,
+        "GstMpegtsPESMetadataMeta", sizeof (GstMpegtsPESMetadataMeta),
+        (GstMetaInitFunction) gst_mpegts_pes_metadata_meta_init,
+        (GstMetaFreeFunction) gst_mpegts_pes_metadata_meta_free,
+        (GstMetaTransformFunction) gst_mpegts_pes_metadata_meta_transform);
+    g_once_init_leave ((GstMetaInfo **) & mpegts_pes_metadata_meta_info,
         (GstMetaInfo *) meta);
   }
 
-  return mpegts_klv_meta_info;
+  return mpegts_pes_metadata_meta_info;
 }
 
-GstMpegtsKlvMeta *
-gst_buffer_add_mpegts_klv_meta (GstBuffer * buffer)
+GstMpegtsPESMetadataMeta *
+gst_buffer_add_mpegts_pes_metadata_meta (GstBuffer * buffer)
 {
-  GstMpegtsKlvMeta *meta;
+  GstMpegtsPESMetadataMeta *meta;
   meta =
-      (GstMpegtsKlvMeta *) gst_buffer_add_meta (buffer,
-      GST_MPEGTS_KLV_META_INFO, NULL);
+      (GstMpegtsPESMetadataMeta *) gst_buffer_add_meta (buffer,
+      GST_MPEGTS_PES_METADATA_META_INFO, NULL);
   return meta;
 }
