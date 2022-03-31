@@ -343,7 +343,20 @@ guint gst_mpegts_descriptor_parse_iso_639_language_nb (const GstMpegtsDescriptor
 GST_MPEGTS_API
 GstMpegtsDescriptor * gst_mpegts_descriptor_from_iso_639_language (const gchar * language);
 
+GST_MPEGTS_API
+gboolean gst_mpegts_descriptor_parse_metadata (const GstMpegtsDescriptor *descriptor,
+                                               guint16 *metadata_application_format,
+                                               guint8 *metadata_format,
+                                               guint32 *metadata_format_identifier,
+                                               guint8 *metadata_service_id,
+                                               guint8 *decoder_config_flags,
+                                               gboolean *dsm_cc_flag);
 
+GST_MPEGTS_API
+gboolean gst_mpegts_descriptor_parse_metadata_std (const GstMpegtsDescriptor *descriptor,
+                                                   guint32 *metadata_input_leak_rate,
+                                                   guint32 *metadata_buffer_size,
+                                                   guint32 *metadata_output_leak_rate);
 
 /* GST_MTS_DESC_DTG_LOGICAL_CHANNEL (0x83) */
 typedef struct _GstMpegtsLogicalChannelDescriptor GstMpegtsLogicalChannelDescriptor;

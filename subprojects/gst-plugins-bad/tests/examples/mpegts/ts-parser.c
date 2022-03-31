@@ -779,6 +779,53 @@ dump_generic_descriptor (GstMpegtsDescriptor * desc, guint spacing)
       }
     }
       break;
+    case GST_MTS_DESC_METADATA:
+    {
+      guint16 metadata_application_format;
+      guint8 metadata_format;
+      guint32 metadata_format_identifier;
+      guint8 metadata_service_id;
+      guint8 decoder_config_flags;
+      gboolean dsm_cc_flag;
+      if (gst_mpegts_descriptor_parse_metadata (desc,
+              &metadata_application_format, &metadata_format,
+              &metadata_format_identifier, &metadata_service_id,
+              &decoder_config_flags, &dsm_cc_flag)) {
+        g_printf ("%*s   metadata application format : 0x%04x\n", spacing, "",
+            metadata_application_format);
+        g_printf ("%*s   metadata format             : 0x%02x\n", spacing, "",
+            metadata_format);
+        if (metadata_format == 0xFF) {
+          g_printf ("%*s   metadata format identifier  : 0x%08x\n", spacing, "",
+              metadata_format_identifier);
+        }
+        g_printf ("%*s   metadata service id         : 0x%02x\n", spacing, "",
+            metadata_service_id);
+        g_printf ("%*s   decoder config flags        : 0x%x\n", spacing, "",
+            decoder_config_flags);
+        g_printf ("%*s   DSM-CC flag                 : %s\n", spacing, "",
+            dsm_cc_flag ? "Set" : "Not set");
+      }
+    }
+      break;
+    case GST_MTS_DESC_METADATA_STD:
+    {
+      guint32 metadata_input_leak_rate;
+      guint32 metadata_buffer_size;
+      guint32 metadata_output_leak_rate;
+
+      if (gst_mpegts_descriptor_parse_metadata_std (desc,
+              &metadata_input_leak_rate, &metadata_buffer_size,
+              &metadata_output_leak_rate)) {
+        g_printf ("%*s   metadata input leak rate  : %i\n", spacing, "",
+            metadata_input_leak_rate);
+        g_printf ("%*s   metadata buffer size      : %i\n", spacing, "",
+            metadata_buffer_size);
+        g_printf ("%*s   metadata output leak rate : %i\n", spacing, "",
+            metadata_output_leak_rate);
+      }
+    }
+      break;
     default:
       break;
   }
