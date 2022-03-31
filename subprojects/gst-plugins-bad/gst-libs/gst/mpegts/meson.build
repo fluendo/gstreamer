@@ -6,7 +6,7 @@ mpegts_sources = files(
   'gst-dvb-section.c',
   'gst-atsc-section.c',
   'gst-scte-section.c',
-  'gst-mpegtsklvmeta.c'
+  'gst-mpegtspesmetadatameta.c'
 )
 
 mpegts_headers = files(
@@ -19,7 +19,7 @@ mpegts_headers = files(
   'gst-atsc-descriptor.h',
   'gst-dvb-descriptor.h',
   'gst-isdb-descriptor.h',
-  'gst-mpegtsklvmeta.h',
+  'gst-mpegtspesmetadatameta.h',
   'mpegts-prelude.h',
   'mpegts.h',
 )
