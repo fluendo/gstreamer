@@ -1267,6 +1267,8 @@ gst_mpegts_descriptor_from_custom_with_extension (guint8 tag,
  * provided in Table 2-85.
  *
  * Returns: %TRUE if parsing succeeded, else %FALSE.
+ *
+ * Since: 1.22
  */
 gboolean
 gst_mpegts_descriptor_parse_metadata (const GstMpegtsDescriptor * descriptor,
@@ -1319,6 +1321,8 @@ gst_mpegts_descriptor_parse_metadata (const GstMpegtsDescriptor * descriptor,
  * See ISO/IEC 13818-1:2018 Section 2.6.62 and 2.6.63 for details.
  *
  * Returns: %TRUE if parsing succeeded, else %FALSE.
+ *
+ * Since: 1.22
  */
 gboolean
 gst_mpegts_descriptor_parse_metadata_std (const GstMpegtsDescriptor *

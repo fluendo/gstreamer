@@ -92,7 +92,7 @@ struct _GstMpegtsPESMetadataMeta {
 };
 
 /**
- * gst_buffer_add_mpegts_klv_meta:
+ * gst_buffer_add_mpegts_pes_metadata_meta:
  * @buffer: a #GstBuffer
  *
  * Creates and adds a #GstMpegtsPESMetadataMeta to a @buffer.
