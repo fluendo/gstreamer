@@ -72,17 +72,7 @@
 #define ST_BD_SECONDARY_DTS_HD          0xa2
 
 /* metadata_descriptor - ISO/IEC 13818-1:2018(E) Section 2.6.60 */
-/* Extract metadata_application_format field - 2 bytes */
-#define DESC_METADATA_application_format(desc)                  (GST_READ_UINT16_BE ((desc)+2))
-/* Extract metadata_application_format_identifier - 4 bytes, only present if metadata_application_format is 0xFFFF */
-#define DESC_METADATA_application_format_identifier_PRESENT     0xFFFF
-#define DESC_METADATA_application_format_identifier(desc)       (GST_READ_UINT16_BE ((desc)+4))
-/* Extract metadata_application_format value - 1 byte */
-#define DESC_METADATA_format(desc)                              ((desc)[4 + (DESC_METADATA_application_format(desc) == DESC_METADATA_application_format_identifier_PRESENT? 4 : 0)])
-/** Extract metadata_format_identifier - 4 bytes, only present if metadata_application_format is 0xFF */
-#define DESC_METADATA_format_identifier_PRESENT                 0xFF
-#define DESC_METADATA_format_identifier(desc)                   (GST_READ_UINT32_BE ((desc)+5+(DESC_METADATA_application_format(desc) == DESC_METADATA_application_format_identifier_PRESENT? 4 : 0)))
-
+#define DESC_METADATA_format_identifier_PRESENT  0xFF
 
 /* defined for VC1 extension in RP227 */
 #define ST_PRIVATE_EA                   0xea

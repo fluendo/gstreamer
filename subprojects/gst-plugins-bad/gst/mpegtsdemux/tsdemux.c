@@ -1749,20 +1749,29 @@ create_pad_for_stream (MpegTSBase * base, MpegTSBaseStream * bstream,
     case GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS:
       desc = mpegts_get_descriptor_from_stream (bstream, GST_MTS_DESC_METADATA);
       if (desc) {
-        int application_format = DESC_METADATA_application_format (desc->data);
-        if ((DESC_METADATA_format (desc->data) ==
-                DESC_METADATA_format_identifier_PRESENT)
-            && (DESC_METADATA_format_identifier (desc->data) == DRF_ID_KLVA)) {
-          sparse = TRUE;
-          is_private = TRUE;
-          /* registration_id is not correctly set or parsed for some streams */
-          bstream->registration_id = DRF_ID_KLVA;
+        guint16 metadata_application_format;
+        guint8 metadata_format;
+        guint32 metadata_format_identifier;
+        guint8 metadata_service_id;
+        guint8 decoder_config_flags;
+        gboolean dsm_cc_flag;
+        if (gst_mpegts_descriptor_parse_metadata (desc,
+                &metadata_application_format, &metadata_format,
+                &metadata_format_identifier, &metadata_service_id,
+                &decoder_config_flags, &dsm_cc_flag)) {
+          if ((metadata_format == DESC_METADATA_format_identifier_PRESENT)
+              && (metadata_format_identifier == DRF_ID_KLVA)) {
+            sparse = TRUE;
+            is_private = TRUE;
+            /* registration_id is not correctly set or parsed for some streams */
+            bstream->registration_id = DRF_ID_KLVA;
 
-          caps = gst_caps_new_simple ("meta/x-klv",
-              "parsed", G_TYPE_BOOLEAN, TRUE,
-              "stream-type", G_TYPE_INT, bstream->stream_type,
-              "application-format", G_TYPE_INT, application_format,
-              "format", G_TYPE_INT, DESC_METADATA_format (desc->data), NULL);
+            caps = gst_caps_new_simple ("meta/x-klv",
+                "parsed", G_TYPE_BOOLEAN, TRUE,
+                "stream-type", G_TYPE_INT, bstream->stream_type,
+                "application-format", G_TYPE_INT, metadata_application_format,
+                "format", G_TYPE_INT, metadata_format, NULL);
+          }
         }
       }
       break;
