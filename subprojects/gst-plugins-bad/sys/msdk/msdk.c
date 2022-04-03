@@ -32,6 +32,9 @@
 #include "msdk.h"
 #include "gstmsdkvideomemory.h"
 #include "gstmsdksystemmemory.h"
+#if defined(_MSC_VER)
+#include <stdint.h>
+#endif
 
 GST_DEBUG_CATEGORY_EXTERN (gst_msdk_debug);
 #define GST_CAT_DEFAULT gst_msdk_debug
