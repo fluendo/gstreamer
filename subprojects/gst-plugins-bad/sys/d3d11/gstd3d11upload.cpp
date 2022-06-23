@@ -276,6 +276,7 @@ gst_d3d11_upload_propose_allocation (GstBaseTransform * trans,
   GstBufferPool *pool;
   GstCaps *caps;
   guint size;
+  gboolean is_d3d11 = FALSE;
 
   if (!GST_BASE_TRANSFORM_CLASS (parent_class)->propose_allocation (trans,
           decide_query, query))
@@ -313,6 +314,10 @@ gst_d3d11_upload_propose_allocation (GstBaseTransform * trans,
 
     gst_buffer_pool_config_add_option (config,
         GST_BUFFER_POOL_OPTION_VIDEO_META);
+    if (!is_d3d11) {
+      gst_buffer_pool_config_add_option (config,
+          GST_BUFFER_POOL_OPTION_VIDEO_ALIGNMENT);
+    }
 
     /* d3d11 pool does not support video alignment */
     if (!is_d3d11) {

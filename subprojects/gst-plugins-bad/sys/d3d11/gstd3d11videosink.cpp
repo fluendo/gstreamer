@@ -855,7 +855,7 @@ gst_d3d11_video_sink_propose_allocation (GstBaseSink * sink, GstQuery * query)
   if (need_pool) {
     GstCapsFeatures *features;
     GstStructure *config;
-    gboolean is_d3d11 = false;
+    gboolean is_d3d11 = FALSE;
 
     features = gst_caps_get_features (caps, 0);
     if (features
@@ -863,7 +863,7 @@ gst_d3d11_video_sink_propose_allocation (GstBaseSink * sink, GstQuery * query)
             GST_CAPS_FEATURE_MEMORY_D3D11_MEMORY)) {
       GST_DEBUG_OBJECT (self, "upstream support d3d11 memory");
       pool = gst_d3d11_buffer_pool_new (self->device);
-      is_d3d11 = true;
+      is_d3d11 = TRUE;
     } else {
       pool = gst_video_buffer_pool_new ();
     }
@@ -871,6 +871,10 @@ gst_d3d11_video_sink_propose_allocation (GstBaseSink * sink, GstQuery * query)
     config = gst_buffer_pool_get_config (pool);
     gst_buffer_pool_config_add_option (config,
         GST_BUFFER_POOL_OPTION_VIDEO_META);
+    if (!is_d3d11) {
+      gst_buffer_pool_config_add_option (config,
+          GST_BUFFER_POOL_OPTION_VIDEO_ALIGNMENT);
+    }
 
     /* d3d11 pool does not support video alignment */
     if (!is_d3d11) {
