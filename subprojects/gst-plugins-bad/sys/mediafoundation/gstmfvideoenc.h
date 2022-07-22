@@ -114,6 +114,7 @@ struct _GstMFVideoEnc
   IMFDXGIDeviceManager *device_manager;
   UINT reset_token;
   IMFVideoSampleAllocatorEx *mf_allocator;
+  GstD3D11Fence *fence;
 #endif
 };
 
