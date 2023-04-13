@@ -77,6 +77,7 @@ if not meson.is_subproject() and cc.get_id() == 'msvc'
 endif
 
 building_full = get_option('default_library') == 'static'
+building_full = false
 tools_option = []
 if building_full and not get_option('tools').disabled()
   # Do not build subprojects tools when we build them against gst-full

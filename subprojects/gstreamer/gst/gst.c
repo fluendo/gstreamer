@@ -628,6 +628,7 @@ init_static_plugins (void)
 
   /* Call gst_init_static_plugins() defined in libgstreamer-full-1.0 in the case
    * libgstreamer is static linked with some plugins. */
+#if 0
   module = g_module_open (NULL, G_MODULE_BIND_LOCAL);
   if (module) {
     void (*func) (void);
@@ -637,6 +638,7 @@ init_static_plugins (void)
     }
     g_module_close (module);
   }
+#endif
 }
 
 /*

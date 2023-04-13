@@ -253,6 +253,7 @@ static void
 gst_registry_init (GstRegistry * registry)
 {
   registry->priv = gst_registry_get_instance_private (registry);
+  registry->priv->plugins = NULL;
   registry->priv->feature_hash = g_hash_table_new (g_str_hash, g_str_equal);
   registry->priv->basename_hash = g_hash_table_new (g_str_hash, g_str_equal);
 }
