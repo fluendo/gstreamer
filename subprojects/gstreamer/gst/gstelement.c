@@ -122,8 +122,9 @@ enum
       /* FILL ME */
 };
 
-static void gst_element_class_init (GstElementClass * klass);
-static void gst_element_init (GstElement * element);
+static void gst_element_class_init (GstElementClass * klass,
+    gpointer class_data);
+static void gst_element_init (GstElement * element, gpointer g_class);
 static void gst_element_base_class_init (gpointer g_class);
 
 static void gst_element_constructed (GObject * object);
@@ -219,7 +220,7 @@ gst_element_setup_thread_pool (void)
 }
 
 static void
-gst_element_class_init (GstElementClass * klass)
+gst_element_class_init (GstElementClass * klass, gpointer class_data)
 {
   GObjectClass *gobject_class;
 
@@ -317,7 +318,7 @@ gst_element_base_class_init (gpointer g_class)
 }
 
 static void
-gst_element_init (GstElement * element)
+gst_element_init (GstElement * element, gpointer g_class)
 {
   GST_STATE (element) = GST_STATE_NULL;
   GST_STATE_TARGET (element) = GST_STATE_NULL;

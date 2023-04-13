@@ -1,28 +1,5 @@
-exe = executable('gst-plugin-scanner',
-  'gst-plugin-scanner.c',
-  c_args : gst_c_args,
-  include_directories : [configinc],
-  dependencies : [gst_dep, mathlib, gmodule_dep,],
-  install_dir : helpers_install_dir,
-  install: true,
-)
-
-meson.add_devenv({'GST_PLUGIN_SCANNER': exe.full_path()})
-
 # Used in test env setup to make tests find plugin scanner in build tree
 gst_scanner_dir = meson.current_build_dir()
-
-if bashcomp_found
-  executable('gst-completion-helper',
-    'gst-completion-helper.c',
-    c_args : gst_c_args,
-    include_directories : [configinc],
-    dependencies : [gst_dep],
-    install_dir : helpers_install_dir,
-    install_tag : 'bin',
-    install: true,
-  )
-endif
 
 # Check PTP support
 have_ptp = false

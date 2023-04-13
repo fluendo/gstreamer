@@ -1140,9 +1140,11 @@ gst_gl_context_egl_create_context (GstGLContext * context,
     surface_attrib[j++] = EGL_TRUE;
     surface_attrib[j++] = EGL_NONE;
 
+#if 0
     egl->egl_surface =
         eglCreatePbufferSurface (egl->egl_display, egl->egl_config,
         surface_attrib);
+#endif
   } else {
     GST_DEBUG ("No surface/handle !");
     egl->egl_surface = EGL_NO_SURFACE;

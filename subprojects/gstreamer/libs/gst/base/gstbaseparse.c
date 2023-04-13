@@ -372,7 +372,8 @@ enum
 static GstElementClass *parent_class = NULL;
 static gint base_parse_private_offset = 0;
 
-static void gst_base_parse_class_init (GstBaseParseClass * klass);
+static void gst_base_parse_class_init (GstBaseParseClass * klass,
+    gpointer class_data);
 static void gst_base_parse_init (GstBaseParse * parse,
     GstBaseParseClass * klass);
 
@@ -535,7 +536,7 @@ gst_base_parse_finalize (GObject * object)
 }
 
 static void
-gst_base_parse_class_init (GstBaseParseClass * klass)
+gst_base_parse_class_init (GstBaseParseClass * klass, gpointer class_data)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
