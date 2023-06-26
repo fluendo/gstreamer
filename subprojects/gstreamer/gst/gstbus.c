@@ -75,7 +75,6 @@
 
 #include "gstatomicqueue.h"
 #include "gstinfo.h"
-#include "gstpoll.h"
 
 #include "gstbus.h"
 #include "glib-compat-private.h"
@@ -142,6 +141,7 @@ struct _GstBusPrivate
 {
   GstAtomicQueue *queue;
   GMutex queue_lock;
+  GCond cond;
 
   SyncHandler *sync_handler;
 
@@ -151,8 +151,6 @@ struct _GstBusPrivate
   GSource *gsource;
 
   gboolean enable_async;
-  GstPoll *poll;
-  GPollFD pollfd;
 };
 
 #define gst_bus_parent_class parent_class
@@ -175,19 +173,6 @@ gst_bus_set_property (GObject * object,
 }
 
 static void
-gst_bus_constructed (GObject * object)
-{
-  GstBus *bus = GST_BUS_CAST (object);
-
-  if (bus->priv->enable_async) {
-    bus->priv->poll = gst_poll_new_timer ();
-    gst_poll_get_read_gpollfd (bus->priv->poll, &bus->priv->pollfd);
-  }
-
-  G_OBJECT_CLASS (gst_bus_parent_class)->constructed (object);
-}
-
-static void
 gst_bus_class_init (GstBusClass * klass)
 {
   GObjectClass *gobject_class = (GObjectClass *) klass;
@@ -195,7 +180,6 @@ gst_bus_class_init (GstBusClass * klass)
   gobject_class->dispose = gst_bus_dispose;
   gobject_class->finalize = gst_bus_finalize;
   gobject_class->set_property = gst_bus_set_property;
-  gobject_class->constructed = gst_bus_constructed;
 
   /**
    * GstBus:enable-async:
@@ -250,8 +234,9 @@ static void
 gst_bus_init (GstBus * bus)
 {
   bus->priv = gst_bus_get_instance_private (bus);
-  bus->priv->enable_async = DEFAULT_ENABLE_ASYNC;
+  bus->priv->enable_async = FALSE;
   g_mutex_init (&bus->priv->queue_lock);
+  g_cond_init (&bus->priv->cond);
   bus->priv->queue = gst_atomic_queue_new (32);
 
   GST_DEBUG_OBJECT (bus, "created");
@@ -275,10 +260,7 @@ gst_bus_dispose (GObject * object)
     bus->priv->queue = NULL;
     g_mutex_unlock (&bus->priv->queue_lock);
     g_mutex_clear (&bus->priv->queue_lock);
-
-    if (bus->priv->poll)
-      gst_poll_free (bus->priv->poll);
-    bus->priv->poll = NULL;
+    g_cond_clear (&bus->priv->cond);
   }
 
   G_OBJECT_CLASS (parent_class)->dispose (object);
@@ -369,7 +351,7 @@ gst_bus_post (GstBus * bus, GstMessage * message)
   /* If this is a bus without async message delivery always drop the message.
    * If the sync handler returned GST_BUS_DROP it is responsible of unreffing
    * the message, otherwise do it ourself. */
-  if (!bus->priv->poll && reply != GST_BUS_DROP) {
+  if (!bus->priv->enable_async && reply != GST_BUS_DROP) {
     reply = GST_BUS_DROP;
     gst_message_unref (message);
   }
@@ -390,9 +372,11 @@ gst_bus_post (GstBus * bus, GstMessage * message)
       }
       /* pass the message to the async queue, refcount passed in the queue */
       GST_DEBUG_OBJECT (bus, "[msg %p] pushing on async queue", message);
+      g_mutex_lock (&bus->priv->queue_lock);
       gst_atomic_queue_push (bus->priv->queue, message);
-      gst_poll_write_control (bus->priv->poll);
+      g_cond_signal (&bus->priv->cond);
       GST_DEBUG_OBJECT (bus, "[msg %p] pushed on async queue", message);
+      g_mutex_unlock (&bus->priv->queue_lock);
 
       break;
     }
@@ -415,8 +399,11 @@ gst_bus_post (GstBus * bus, GstMessage * message)
        * the cond will be signalled and we can continue */
       g_mutex_lock (lock);
 
+      g_mutex_lock (&bus->priv->queue_lock);
       gst_atomic_queue_push (bus->priv->queue, message);
-      gst_poll_write_control (bus->priv->poll);
+      g_cond_signal (&bus->priv->cond);
+      g_mutex_unlock (&bus->priv->queue_lock);
+
 
       /* now block till the message is freed */
       g_cond_wait (cond, lock);
@@ -540,7 +527,7 @@ gst_bus_timed_pop_filtered (GstBus * bus, GstClockTime timeout,
 
   g_return_val_if_fail (GST_IS_BUS (bus), NULL);
   g_return_val_if_fail (types != 0, NULL);
-  g_return_val_if_fail (timeout == 0 || bus->priv->poll != NULL, NULL);
+  /* g_return_val_if_fail (timeout == 0 || bus->priv->poll != NULL, NULL); */
 
   g_mutex_lock (&bus->priv->queue_lock);
 
@@ -551,24 +538,24 @@ gst_bus_timed_pop_filtered (GstBus * bus, GstClockTime timeout,
         gst_atomic_queue_length (bus->priv->queue));
 
     while ((message = gst_atomic_queue_pop (bus->priv->queue))) {
-      if (bus->priv->poll) {
-        while (!gst_poll_read_control (bus->priv->poll)) {
-          if (errno == EWOULDBLOCK) {
-            /* Retry, this can happen if pushing to the queue has finished,
-             * popping here succeeded but writing control did not finish
-             * before we got to this line. */
-            /* Give other threads the chance to do something */
-            g_thread_yield ();
-            continue;
-          } else {
-            /* This is a real error and means that either the bus is in an
-             * inconsistent state, or the GstPoll is invalid. GstPoll already
-             * prints a critical warning about this, no need to do that again
-             * ourselves */
-            break;
-          }
-        }
-      }
+      /* if (0 && bus->priv->poll) { */
+      /*   while (!gst_poll_read_control (bus->priv->poll)) { */
+      /*     if (errno == EWOULDBLOCK) { */
+      /*       /\* Retry, this can happen if pushing to the queue has finished, */
+      /*        * popping here succeeded but writing control did not finish */
+      /*        * before we got to this line. *\/ */
+      /*       /\* Give other threads the chance to do something *\/ */
+      /*       g_thread_yield (); */
+      /*       continue; */
+      /*     } else { */
+      /*       /\* This is a real error and means that either the bus is in an */
+      /*        * inconsistent state, or the GstPoll is invalid. GstPoll already */
+      /*        * prints a critical warning about this, no need to do that again */
+      /*        * ourselves *\/ */
+      /*       break; */
+      /*     } */
+      /*   } */
+      /* } */
 
       GST_DEBUG_OBJECT (bus, "got message %p, %s from %s, type mask is %u",
           message, GST_MESSAGE_TYPE_NAME (message),
@@ -604,19 +591,24 @@ gst_bus_timed_pop_filtered (GstBus * bus, GstClockTime timeout,
         if (elapsed > timeout)
           break;
       }
+
     }
 
     /* only here in timeout case */
-    g_assert (bus->priv->poll);
-    g_mutex_unlock (&bus->priv->queue_lock);
-    ret = gst_poll_wait (bus->priv->poll, timeout - elapsed);
-    g_mutex_lock (&bus->priv->queue_lock);
+    /* g_assert (bus->priv->poll); */
+    /* g_mutex_unlock (&bus->priv->queue_lock); */
+    /* ret = gst_poll_wait (bus->priv->poll, timeout - elapsed); */
 
-    if (ret == 0) {
-      GST_DEBUG_OBJECT (bus, "timed out, breaking loop");
-      break;
+    if (timeout != GST_CLOCK_TIME_NONE) {
+      ret = g_cond_wait_until (&bus->priv->cond, &bus->priv->queue_lock, then + timeout);
+      if (ret == 0) {
+        GST_DEBUG_OBJECT (bus, "timed out, breaking loop");
+        break;
+      } else {
+        GST_DEBUG_OBJECT (bus, "we got woken up, recheck for message");
+      }
     } else {
-      GST_DEBUG_OBJECT (bus, "we got woken up, recheck for message");
+      g_cond_wait (&bus->priv->cond, &bus->priv->queue_lock);
     }
   }
 
@@ -781,9 +773,9 @@ void
 gst_bus_get_pollfd (GstBus * bus, GPollFD * fd)
 {
   g_return_if_fail (GST_IS_BUS (bus));
-  g_return_if_fail (bus->priv->poll != NULL);
+  /* g_return_if_fail (bus->priv->poll != NULL); */
 
-  *fd = bus->priv->pollfd;
+  /* *fd = {0}; */
 }
 
 /* GSource for the bus
@@ -799,7 +791,7 @@ gst_bus_source_check (GSource * source)
 {
   GstBusSource *bsrc = (GstBusSource *) source;
 
-  return bsrc->bus->priv->pollfd.revents & (G_IO_IN | G_IO_HUP | G_IO_ERR);
+  return FALSE; /* bsrc->bus->priv->pollfd.revents & (G_IO_IN | G_IO_HUP | G_IO_ERR); */
 }
 
 static gboolean
@@ -898,7 +890,7 @@ gst_bus_create_watch_unlocked (GstBus * bus)
   g_source_set_dispose_function ((GSource *) source, gst_bus_source_dispose);
 
   source->bus = gst_object_ref (bus);
-  g_source_add_poll ((GSource *) source, &bus->priv->pollfd);
+  /* g_source_add_poll ((GSource *) source, &bus->priv->pollfd); */
 
   return (GSource *) source;
 }
@@ -922,7 +914,7 @@ gst_bus_create_watch (GstBus * bus)
   GSource *source;
 
   g_return_val_if_fail (GST_IS_BUS (bus), NULL);
-  g_return_val_if_fail (bus->priv->poll != NULL, NULL);
+  /* g_return_val_if_fail (bus->priv->poll != NULL, NULL); */
 
   GST_OBJECT_LOCK (bus);
   source = gst_bus_create_watch_unlocked (bus);
