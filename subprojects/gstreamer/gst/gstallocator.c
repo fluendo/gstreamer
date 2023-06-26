@@ -463,10 +463,9 @@ _sysmem_map (GstMemorySystem * mem, gsize maxsize, GstMapFlags flags)
   return mem->data;
 }
 
-static gboolean
+static void
 _sysmem_unmap (GstMemorySystem * mem)
 {
-  return TRUE;
 }
 
 static GstMemorySystem *
