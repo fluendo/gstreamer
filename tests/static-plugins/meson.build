@@ -1,5 +1,5 @@
 
-dep = dependency('gstreamer-full-1.0', required: get_option('default_library') == 'static')
+dep = dependency('gstreamer-full-1.0', required: get_option('default_library') == 'static' and host_machine.system() != 'emscripten')
 if dep.found()
 	test_gst_full_features = executable('test-gst-full-features', 'test-gst-full-features.c', dependencies : gst_full_dep)
 	test('test-gst-full-features', test_gst_full_features)
