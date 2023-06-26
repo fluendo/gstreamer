@@ -333,7 +333,7 @@ gst_audio_decoder_finish_frame_or_subframe (GstAudioDecoder * dec,
 static GstElementClass *parent_class = NULL;
 static gint private_offset = 0;
 
-static void gst_audio_decoder_class_init (GstAudioDecoderClass * klass);
+static void gst_audio_decoder_class_init (GstAudioDecoderClass * klass, gpointer class_data);
 static void gst_audio_decoder_init (GstAudioDecoder * dec,
     GstAudioDecoderClass * klass);
 
@@ -374,7 +374,7 @@ gst_audio_decoder_get_instance_private (GstAudioDecoder * self)
 }
 
 static void
-gst_audio_decoder_class_init (GstAudioDecoderClass * klass)
+gst_audio_decoder_class_init (GstAudioDecoderClass * klass, gpointer class_data)
 {
   GObjectClass *gobject_class;
   GstElementClass *element_class;
@@ -1337,6 +1337,13 @@ gst_audio_decoder_finish_frame (GstAudioDecoder * dec, GstBuffer * buf,
   return gst_audio_decoder_finish_frame_or_subframe (dec, buf, frames);
 }
 
+static void
+_tmp_buffer_unref (gpointer data,
+          gpointer user_data)
+{
+  gst_buffer_unref (data);
+}
+
 /* frames == 0 indicates that this is a sub-frame and further sub-frames may
  * follow for the current input frame. */
 static GstFlowReturn
@@ -1567,7 +1574,7 @@ gst_audio_decoder_finish_frame_or_subframe (GstAudioDecoder * dec,
   ret = gst_audio_decoder_output (dec, buf);
 
 exit:
-  g_queue_foreach (&inbufs, (GFunc) gst_buffer_unref, NULL);
+  g_queue_foreach (&inbufs, _tmp_buffer_unref, NULL);
   g_queue_clear (&inbufs);
 
   if (is_subframe)
