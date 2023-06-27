@@ -65,6 +65,14 @@ check_list_create (void)
   return lp;
 }
 
+bool
+check_list_is_empty (List * lp)
+{
+  if (lp == NULL)
+    return true;
+  return lp->n_elts == 0 ? true : false;
+}
+
 void
 check_list_add_front (List * lp, void *val)
 {

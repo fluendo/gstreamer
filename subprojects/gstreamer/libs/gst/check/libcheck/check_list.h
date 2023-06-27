@@ -28,6 +28,9 @@ typedef struct List List;
 /* Create an empty list */
 List *check_list_create (void);
 
+/* Check if a list is empty */
+bool check_list_is_empty(List * lp);
+
 /* Is list at end? */
 int check_list_at_end (List * lp);
 
