@@ -57,7 +57,7 @@ base_tests = [
   [ 'pipelines/simple-launch-lines.c' ],
   [ 'pipelines/basetime.c' ],
   [ 'pipelines/capsfilter-renegotiation.c' ],
-  [ 'pipelines/gio.c' ],
+  [ 'pipelines/gio.c', host_machine.system() == 'emscripten'],
   [ 'pipelines/streamsynchronizer.c' ],
 ]
 
@@ -65,19 +65,19 @@ base_tests = [
 if host_machine.system() != 'windows'
   base_tests += [
     [ 'libs/allocators.c', host_machine.system() != 'linux' ],
-    [ 'libs/rtspconnection.c' ],
+    [ 'libs/rtspconnection.c', host_machine.system() == 'emscripten' ],
     [ 'elements/libvisual.c', not is_variable('libvisual_dep') or not libvisual_dep.found() ],
     [ 'elements/encodebin.c', not theoraenc_dep.found() or not vorbisenc_dep.found() ],
     [ 'elements/multifdsink.c', not core_conf.has('HAVE_SYS_SOCKET_H') or not core_conf.has('HAVE_UNISTD_H') ],
     # FIXME: multisocketsink test on windows/msvc
-    [ 'elements/multisocketsink.c', not core_conf.has('HAVE_SYS_SOCKET_H') or not core_conf.has('HAVE_UNISTD_H') ],
+    [ 'elements/multisocketsink.c', not core_conf.has('HAVE_SYS_SOCKET_H') or not core_conf.has('HAVE_UNISTD_H') or host_machine.system() == 'emscripten'],
     [ 'elements/playbin-complex.c', not ogg_dep.found() ],
     [ 'elements/textoverlay.c', not pango_dep.found() ],
     [ 'elements/vorbisdec.c', not vorbis_dep.found(), [ vorbis_dep, vorbisenc_dep ] ],
     [ 'elements/vorbistag.c', not vorbisenc_dep.found(), [ vorbis_dep, vorbisenc_dep ] ],
     [ 'pipelines/oggmux.c', not ogg_dep.found(), [ ogg_dep, ] ],
     # FIXME: tcp test on windows/msvc
-    [ 'pipelines/tcp.c', not core_conf.has('HAVE_SYS_SOCKET_H') or not core_conf.has('HAVE_UNISTD_H'), [giounix_dep] ],
+    [ 'pipelines/tcp.c', not core_conf.has('HAVE_SYS_SOCKET_H') or not core_conf.has('HAVE_UNISTD_H') or host_machine.system() == 'emscripten', [giounix_dep] ],
     [ 'pipelines/theoraenc.c', not theoraenc_dep.found(), [ theoraenc_dep ] ],
     [ 'pipelines/vorbisenc.c', not vorbisenc_dep.found() ],
     [ 'pipelines/vorbisdec.c', not vorbisenc_dep.found() ],
