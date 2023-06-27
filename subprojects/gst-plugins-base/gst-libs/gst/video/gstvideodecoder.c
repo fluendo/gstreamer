@@ -475,7 +475,7 @@ static gint private_offset = 0;
 #define META_TAG_VIDEO meta_tag_video_quark
 static GQuark meta_tag_video_quark;
 
-static void gst_video_decoder_class_init (GstVideoDecoderClass * klass);
+static void gst_video_decoder_class_init (GstVideoDecoderClass * klass, gpointer data);
 static void gst_video_decoder_init (GstVideoDecoder * dec,
     GstVideoDecoderClass * klass);
 
@@ -588,7 +588,7 @@ gst_video_decoder_get_instance_private (GstVideoDecoder * self)
 }
 
 static void
-gst_video_decoder_class_init (GstVideoDecoderClass * klass)
+gst_video_decoder_class_init (GstVideoDecoderClass * klass, gpointer data)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;

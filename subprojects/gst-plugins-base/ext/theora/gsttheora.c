@@ -33,7 +33,7 @@ plugin_init (GstPlugin * plugin)
   gboolean ret = FALSE;
 
   ret |= GST_ELEMENT_REGISTER (theoradec, plugin);
-  ret |= GST_ELEMENT_REGISTER (theoraenc, plugin);
+  /* ret |= GST_ELEMENT_REGISTER (theoraenc, plugin); */
   ret |= GST_ELEMENT_REGISTER (theoraparse, plugin);
 
   return ret;
