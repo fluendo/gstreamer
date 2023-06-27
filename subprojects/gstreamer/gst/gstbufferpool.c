@@ -71,7 +71,8 @@
 #include <sys/types.h>
 
 #include "gstatomicqueue.h"
-#include "gstpoll.h"
+// #include "gstpoll.h"
+
 #include "gstinfo.h"
 #include "gstquark.h"
 #include "gstvalue.h"
@@ -93,7 +94,7 @@ GST_DEBUG_CATEGORY_STATIC (gst_buffer_pool_debug);
 struct _GstBufferPoolPrivate
 {
   GstAtomicQueue *queue;
-  GstPoll *poll;
+  GAsyncQueue *read_write_controller;
 
   GRecMutex rec_lock;
 
@@ -111,6 +112,53 @@ struct _GstBufferPoolPrivate
   GstAllocator *allocator;
   GstAllocationParams params;
 };
+
+#define USE_EMPTY_IMPL 0
+
+#if USE_EMPTY_IMPL
+
+// Empty implementation
+#define AVAILABLE_DATA_TRY_DECREASE (TRUE)
+#define AVAILABLE_DATA_WAIT do { } while (0)
+#define AVAILABLE_DATA_INCREASE  do { } while (0)
+
+#else
+
+// gst_poll_read_control (priv->poll)
+//  Returns – TRUE on success. FALSE when when there was no byte to read
+//
+// GLib AsyncQueue try_pop
+//      Tries to pop data from the queue. If no data is available, NULL is returned.
+//      Returns – Data from the queue or NULL, when no data is available immediately.
+#define AVAILABLE_DATA_TRY_DECREASE (g_async_queue_try_pop (pool->priv->read_write_controller))
+
+// gst_poll_write_control (pool->priv->poll)
+// Returns – TRUE on success. FALSE when when the byte could not be written.
+// FALSE always signals a critical error.
+// It will make any current and future gst_poll_wait function return with 1,
+// meaning the control socket is set.
+// After an equal amount of calls to gst_poll_read_control have been performed,
+// calls to gst_poll_wait will block again until their timeout expired.
+//
+// GLib AsyncQueue push
+//      Pushes the data into the queue.
+#define AVAILABLE_DATA_INCREASE g_async_queue_push (pool->priv->read_write_controller, (gpointer)0xADeadBeef)
+
+// gst_poll_wait (priv->poll, GST_CLOCK_TIME_NONE)
+// Wait for activity on the file descriptors in set.
+// Returns – The number of GstPollFD in set that have activity
+//      or 0 when no activity was detected after timeout.
+//      If an error occurs, -1 is returned and errno is set.
+//
+// GLib AsyncQueue pop
+// Pops data from the queue. If queue is empty, this function blocks until data becomes available.
+#define AVAILABLE_DATA_WAIT \
+    do { \
+      g_async_queue_pop (pool->priv->read_write_controller); \
+      AVAILABLE_DATA_INCREASE; /* Compensate! */ \
+    } while (0)
+
+#endif // AVAILABLE_DATA_*
 
 static void gst_buffer_pool_dispose (GObject * object);
 static void gst_buffer_pool_finalize (GObject * object);
@@ -159,7 +207,7 @@ gst_buffer_pool_init (GstBufferPool * pool)
 
   g_rec_mutex_init (&priv->rec_lock);
 
-  priv->poll = gst_poll_new_timer ();
+  priv->read_write_controller = g_async_queue_new ();
   priv->queue = gst_atomic_queue_new (16);
   pool->flushing = 1;
   priv->active = FALSE;
@@ -172,9 +220,9 @@ gst_buffer_pool_init (GstBufferPool * pool)
   gst_buffer_pool_config_set_allocator (priv->config, priv->allocator,
       &priv->params);
   /* 1 control write for flushing - the flush token */
-  gst_poll_write_control (priv->poll);
+  AVAILABLE_DATA_INCREASE;
   /* 1 control write for marking that we are not waiting for poll - the wait token */
-  gst_poll_write_control (priv->poll);
+  AVAILABLE_DATA_INCREASE;
 
   GST_DEBUG_OBJECT (pool, "created");
 }
@@ -208,7 +256,7 @@ gst_buffer_pool_finalize (GObject * object)
   GST_DEBUG_OBJECT (pool, "%p finalize", pool);
 
   gst_atomic_queue_unref (priv->queue);
-  gst_poll_free (priv->poll);
+  g_async_queue_unref (priv->read_write_controller);
   gst_structure_free (priv->config);
   g_rec_mutex_clear (&priv->rec_lock);
 
@@ -408,7 +456,7 @@ default_stop (GstBufferPool * pool)
 
   /* clear the pool */
   while ((buffer = gst_atomic_queue_pop (priv->queue))) {
-    while (!gst_poll_read_control (priv->poll)) {
+    while (!AVAILABLE_DATA_TRY_DECREASE) {
       if (errno == EWOULDBLOCK) {
         /* We put the buffer into the queue but did not finish writing control
          * yet, let's wait a bit and retry */
@@ -460,7 +508,7 @@ do_set_flushing (GstBufferPool * pool, gboolean flushing)
   if (flushing) {
     g_atomic_int_set (&pool->flushing, 1);
     /* Write the flush token to wake up any waiters */
-    gst_poll_write_control (priv->poll);
+    AVAILABLE_DATA_INCREASE;
 
     if (pclass->flush_start)
       pclass->flush_start (pool);
@@ -468,7 +516,7 @@ do_set_flushing (GstBufferPool * pool, gboolean flushing)
     if (pclass->flush_stop)
       pclass->flush_stop (pool);
 
-    while (!gst_poll_read_control (priv->poll)) {
+    while (!AVAILABLE_DATA_TRY_DECREASE) {
       if (errno == EWOULDBLOCK) {
         /* This should not really happen unless flushing and unflushing
          * happens on different threads. Let's wait a bit to get back flush
@@ -1119,7 +1167,7 @@ default_acquire_buffer (GstBufferPool * pool, GstBuffer ** buffer,
     /* try to get a buffer from the queue */
     *buffer = gst_atomic_queue_pop (priv->queue);
     if (G_LIKELY (*buffer)) {
-      while (!gst_poll_read_control (priv->poll)) {
+      while (!AVAILABLE_DATA_TRY_DECREASE) {
         if (errno == EWOULDBLOCK) {
           /* We put the buffer into the queue but did not finish writing control
            * yet, let's wait a bit and retry */
@@ -1154,7 +1202,7 @@ default_acquire_buffer (GstBufferPool * pool, GstBuffer ** buffer,
 
     /* now we release the control socket, we wait for a buffer release or
      * flushing */
-    if (!gst_poll_read_control (pool->priv->poll)) {
+    if (!AVAILABLE_DATA_TRY_DECREASE) {
       if (errno == EWOULDBLOCK) {
         /* This means that we have two threads trying to allocate buffers
          * already, and the other one already got the wait token. This
@@ -1162,7 +1210,7 @@ default_acquire_buffer (GstBufferPool * pool, GstBuffer ** buffer,
          * token afterwards: we will be woken up once the other thread is
          * woken up and that one will write the wait token it removed */
         GST_LOG_OBJECT (pool, "waiting for free buffers or flushing");
-        gst_poll_wait (priv->poll, GST_CLOCK_TIME_NONE);
+        AVAILABLE_DATA_WAIT;
       } else {
         /* This is a critical error, GstPoll already gave a warning */
         result = GST_FLOW_ERROR;
@@ -1177,9 +1225,9 @@ default_acquire_buffer (GstBufferPool * pool, GstBuffer ** buffer,
        * immediately */
       if (!GST_BUFFER_POOL_IS_FLUSHING (pool)) {
         GST_LOG_OBJECT (pool, "waiting for free buffers or flushing");
-        gst_poll_wait (priv->poll, GST_CLOCK_TIME_NONE);
+        AVAILABLE_DATA_WAIT;
       }
-      gst_poll_write_control (pool->priv->poll);
+      AVAILABLE_DATA_INCREASE;
     }
   }
 
@@ -1332,7 +1380,7 @@ default_release_buffer (GstBufferPool * pool, GstBuffer * buffer)
 
   /* keep it around in our queue */
   gst_atomic_queue_push (pool->priv->queue, buffer);
-  gst_poll_write_control (pool->priv->poll);
+  AVAILABLE_DATA_INCREASE;
 
   return;
 
@@ -1358,7 +1406,7 @@ not_writable:
 discard:
   {
     do_free_buffer (pool, buffer);
-    gst_poll_write_control (pool->priv->poll);
+    AVAILABLE_DATA_INCREASE;
     return;
   }
 }
