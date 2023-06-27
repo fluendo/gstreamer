@@ -93,7 +93,7 @@ _ogg_packet_copy (const ogg_packet * packet)
 }
 
 static void
-_ogg_packet_free (ogg_packet * packet)
+_ogg_packet_free (ogg_packet * packet, gpointer bla)
 {
   g_free (packet->packet);
   g_slice_free (ogg_packet, packet);
@@ -114,7 +114,7 @@ gst_ogg_page_copy (ogg_page * page)
 }
 
 static void
-gst_ogg_page_free (ogg_page * page)
+gst_ogg_page_free (ogg_page * page, gpointer bla)
 {
   g_free (page->header);
   g_free (page->body);
@@ -204,10 +204,10 @@ gst_ogg_pad_dispose (GObject * object)
   pad->chain = NULL;
   pad->ogg = NULL;
 
-  g_list_foreach (pad->map.headers, (GFunc) _ogg_packet_free, NULL);
+  g_list_foreach (pad->map.headers, (GFunc)_ogg_packet_free, NULL);
   g_list_free (pad->map.headers);
   pad->map.headers = NULL;
-  g_list_foreach (pad->map.queued, (GFunc) _ogg_packet_free, NULL);
+  g_list_foreach (pad->map.queued, (GFunc)_ogg_packet_free, NULL);
   g_list_free (pad->map.queued);
   pad->map.queued = NULL;
 
@@ -215,7 +215,7 @@ gst_ogg_pad_dispose (GObject * object)
   pad->map.index = NULL;
 
   /* clear continued pages */
-  g_list_foreach (pad->continued, (GFunc) gst_ogg_page_free, NULL);
+  g_list_foreach (pad->continued, (GFunc)gst_ogg_page_free, NULL);
   g_list_free (pad->continued);
   pad->continued = NULL;
 
@@ -1091,7 +1091,7 @@ gst_ogg_pad_submit_packet (GstOggPad * pad, ogg_packet * packet)
     pad->map.n_header_packets_seen = 0;
     if (!pad->map.have_headers) {
       GST_DEBUG_OBJECT (ogg, "clearing header packets");
-      g_list_foreach (pad->map.headers, (GFunc) _ogg_packet_free, NULL);
+      g_list_foreach (pad->map.headers, (GFunc)_ogg_packet_free, NULL);
       g_list_free (pad->map.headers);
       pad->map.headers = NULL;
     }
@@ -2086,7 +2086,7 @@ gst_ogg_pad_submit_page (GstOggPad * pad, ogg_page * page)
       pad->continued = g_list_delete_link (pad->continued, pad->continued);
 
       /* free the page */
-      gst_ogg_page_free (p);
+      gst_ogg_page_free (p, NULL);
     }
 
     GST_LOG_OBJECT (ogg, "flushing last continued packet");
@@ -2963,7 +2963,7 @@ gst_ogg_demux_push_queued_buffers (GstOggDemux * ogg, GstOggPad * pad)
     ogg_packet *p = walk->data;
 
     gst_ogg_demux_chain_peer (pad, p, TRUE);
-    _ogg_packet_free (p);
+    _ogg_packet_free (p, NULL);
   }
   /* and free the queued buffers */
   g_list_free (pad->map.queued);
