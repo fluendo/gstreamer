@@ -278,6 +278,9 @@ srunner_run_setup (List * fixture_list, enum fork_status fork_usage,
 
   if (fork_usage == CK_FORK) {
     send_ctx_info (CK_CTX_SETUP);
+  } else if (check_list_is_empty(fixture_list)) {
+    /* For test functions without fixtures, the setup is never done */
+    send_ctx_info (CK_CTX_SETUP);
   }
 
   for (check_list_front (fixture_list); !check_list_at_end (fixture_list);
