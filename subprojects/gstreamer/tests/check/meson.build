@@ -143,12 +143,19 @@ foreach t : core_tests
   skip_test = t.get(1, false)
   link_with_libs = t.get(2, [])
 
+  if host_machine.system() != 'emscripten'
+    link_args = []
+  else
+    link_args = ['--pre-js', join_paths(meson.current_source_dir(), 'pre-js.js')]
+  endif
+
   if not skip_test
     exe = executable(test_name, fname,
         c_args : gst_c_args + test_defines,
         cpp_args : gst_c_args + test_defines,
         include_directories : [configinc],
         link_with : link_with_libs,
+        link_args : link_args,
         dependencies : gst_deps + test_deps,
     )
 
