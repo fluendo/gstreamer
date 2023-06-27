@@ -1902,7 +1902,7 @@ struct test_entry
   GstClockTime expect_external;
   guint64 expect_num;
   guint64 expect_denom;
-} times[] = {
+} entries[] = {
   {
   32, times1, 257154512360784, 120670380469753, 4052622913376634109,
         4052799313904261962}, {
@@ -1921,8 +1921,8 @@ GST_START_TEST (test_regression)
   gdouble r_squared, rate, expect_rate;
   gint i;
 
-  for (i = 0; i < G_N_ELEMENTS (times); i++) {
-    fail_unless (gst_calculate_linear_regression (times[i].v, NULL, times[i].n,
+  for (i = 0; i < G_N_ELEMENTS (entries); i++) {
+    fail_unless (gst_calculate_linear_regression (entries[i].v, NULL, entries[i].n,
             &m_num, &m_den, &external, &internal, &r_squared));
 
     GST_LOG ("xbase %" G_GUINT64_FORMAT " ybase %" G_GUINT64_FORMAT " rate = %"
@@ -1933,21 +1933,21 @@ GST_START_TEST (test_regression)
     /* Require high correlation */
     fail_unless (r_squared >= 0.9);
 
-    fail_unless (internal == times[i].expect_internal,
+    fail_unless (internal == entries[i].expect_internal,
         "Regression params %d fail. internal %" G_GUINT64_FORMAT
         " != expected %" G_GUINT64_FORMAT, i, internal,
-        times[i].expect_internal);
+        entries[i].expect_internal);
     /* Rate must be within 1% tolerance */
-    expect_rate = ((gdouble) (times[i].expect_num) / times[i].expect_denom);
+    expect_rate = ((gdouble) (entries[i].expect_num) / entries[i].expect_denom);
     rate = ((gdouble) (m_num) / m_den);
     fail_unless ((expect_rate - rate) >= -0.1 && (expect_rate - rate) <= 0.1,
         "Regression params %d fail. Rate out of range. Expected %f, got %f",
         i, expect_rate, rate);
-    fail_unless (external >= times[i].expect_external * 0.99 &&
-        external <= times[i].expect_external * 1.01,
+    fail_unless (external >= entries[i].expect_external * 0.99 &&
+        external <= entries[i].expect_external * 1.01,
         "Regression params %d fail. external %" G_GUINT64_FORMAT
         " != expected %" G_GUINT64_FORMAT, i, external,
-        times[i].expect_external);
+        entries[i].expect_external);
   }
 }
 
