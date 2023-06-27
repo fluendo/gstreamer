@@ -702,7 +702,7 @@ srunner_run_tagged (SRunner * sr, const char *sname, const char *tcname,
     const char *include_tags, const char *exclude_tags,
     enum print_output print_mode)
 {
-#if defined(HAVE_SIGACTION) && defined(HAVE_FORK)
+#if defined(HAVE_SIGACTION) && defined(HAVE_FORK) && HAVE_FORK==1
   static struct sigaction sigalarm_old_action;
   static struct sigaction sigalarm_new_action;
   static struct sigaction sigint_new_action;
