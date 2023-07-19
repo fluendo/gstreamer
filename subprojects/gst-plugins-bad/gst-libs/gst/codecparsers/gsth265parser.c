@@ -4147,6 +4147,19 @@ error:
 }
 
 static gboolean
+gst_h265_write_sei_user_data_unregistered (NalWriter * nw,
+    GstH265UserDataUnregistered * udu)
+{
+  WRITE_BYTES (nw, udu->uuid, 16);
+  WRITE_BYTES (nw, udu->data, udu->size);
+
+  return TRUE;
+
+error:
+  return FALSE;
+}
+
+static gboolean
 gst_h265_write_sei_time_code (NalWriter * nw, GstH265TimeCode * tc)
 {
   gint i;
@@ -4276,6 +4289,14 @@ gst_h265_create_sei_memory_internal (guint8 layer_id, guint8 temporal_id_plus1,
         payload_size_data += rud->size;
         break;
       }
+      case GST_H265_SEI_USER_DATA_UNREGISTERED:{
+        GstH265UserDataUnregistered *udu = &msg->payload.user_data_unregistered;
+
+        payload_size_data = 0;
+        payload_size_data += G_N_ELEMENTS (udu->uuid);
+        payload_size_data += udu->size;
+        break;
+      }
       case GST_H265_SEI_TIME_CODE:{
         gint j;
         GstH265TimeCode *tc = &msg->payload.time_code;
@@ -4385,6 +4406,15 @@ gst_h265_create_sei_memory_internal (guint8 layer_id, guint8 temporal_id_plus1,
         if (!gst_h265_write_sei_registered_user_data (&nw,
                 &msg->payload.registered_user_data)) {
           GST_WARNING ("Failed to write \"Registered user data\"");
+          goto error;
+        }
+        have_written_data = TRUE;
+        break;
+      case GST_H265_SEI_USER_DATA_UNREGISTERED:
+        GST_DEBUG ("Writing \"Unregistered user data\" done");
+        if (!gst_h265_write_sei_user_data_unregistered (&nw,
+                &msg->payload.user_data_unregistered)) {
+          GST_WARNING ("Failed to write \"Unregistered user data\"");
           goto error;
         }
         have_written_data = TRUE;
