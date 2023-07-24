@@ -25,6 +25,7 @@
 #include <gst/video/video.h>
 #include <gst/d3d11/gstd3d11_fwd.h>
 #include <gst/d3d11/gstd3d11format.h>
+#include <d2d1.h>
 
 G_BEGIN_DECLS
 
@@ -270,6 +271,9 @@ gboolean                          gst_d3d11_memory_get_nt_handle  (GstD3D11Memor
  *
  * Since: 1.22
  */
+ID2D1RenderTarget* gst_d3d11_memory_get_d2d1_render_target (GstD3D11Memory * mem,
+                                                            ID2D1Factory * factory);
+
 struct _GstD3D11Allocator
 {
   GstAllocator parent;
