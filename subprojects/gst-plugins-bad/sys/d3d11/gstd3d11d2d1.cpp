@@ -232,7 +232,8 @@ gst_d3d11_d2d1_transform(GstBaseTransform* trans, GstBuffer* inbuf,
             }
         }
 
-        ID2D1RenderTarget* render_target = gst_d3d11_memory_get_d2d1_render_target(mem, direct2DFactory);
+        ID2D1RenderTarget* render_target = nullptr;
+        gst_d3d11_memory_get_d2d1_render_target(nullptr, nullptr);
         if (render_target == NULL) {
             GST_ERROR("Could not get ID2D1RenderTarget from d3d11memory");
             goto cleanup;
@@ -264,7 +265,7 @@ gst_d3d11_d2d1_decide_allocation(GstBaseTransform* trans, GstQuery* query)
     guint size, min, max;
     GstStructure* config;
     GstVideoInfo vinfo;
-    const GstD3D11Format* d3d11_format;
+    GstD3D11Format* d3d11_format = nullptr;
     GstD3D11AllocationParams* d3d11_params;
     const guint bind_flags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
     DXGI_FORMAT dxgi_format = DXGI_FORMAT_UNKNOWN;
@@ -287,9 +288,7 @@ gst_d3d11_d2d1_decide_allocation(GstBaseTransform* trans, GstQuery* query)
         return FALSE;
     }
 
-    d3d11_format = gst_d3d11_device_format_from_gst(filter->device,
-        GST_VIDEO_INFO_FORMAT(&vinfo));
-    if (!d3d11_format) {
+    if (!gst_d3d11_device_get_format(filter->device, GST_VIDEO_INFO_FORMAT(&vinfo), d3d11_format)) {
         GST_ERROR_OBJECT(filter, "Unknown format caps %" GST_PTR_FORMAT, outcaps);
         return FALSE;
     }
@@ -365,7 +364,7 @@ gst_d3d11_d2d1_decide_allocation(GstBaseTransform* trans, GstQuery* query)
         gst_buffer_pool_config_get_d3d11_allocation_params(config));
 
     d3d11_params = gst_d3d11_allocation_params_new(filter->device, &vinfo,
-            (GstD3D11AllocationFlags)0, bind_flags);
+            (GstD3D11AllocationFlags)0, bind_flags, 0);
 
     gst_buffer_pool_config_set_d3d11_allocation_params(config, d3d11_params);
     gst_d3d11_allocation_params_free(d3d11_params);
