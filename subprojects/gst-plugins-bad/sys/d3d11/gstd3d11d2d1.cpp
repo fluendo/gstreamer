@@ -156,8 +156,8 @@ gst_d3d11_d2d1_class_init (Gstd3d11d2d1Class * klass)
 
   gst_d3d11_d2d1_signals[SIGNAL_DRAW] =
       g_signal_new("draw", G_TYPE_FROM_CLASS(klass),
-          G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE, 2,
-          G_TYPE_POINTER, G_TYPE_UINT64);
+          G_SIGNAL_RUN_FIRST, 0, NULL, NULL, NULL, G_TYPE_NONE, 3,
+          G_TYPE_POINTER, GST_TYPE_BUFFER, GST_TYPE_BUFFER);
 }
 
 static GstFlowReturn
@@ -239,7 +239,7 @@ gst_d3d11_d2d1_transform(GstBaseTransform* trans, GstBuffer* inbuf,
         }
 
         GST_DEBUG_OBJECT(d2d1, "Emit signal to the user");
-        g_signal_emit(d2d1, gst_d3d11_d2d1_signals[SIGNAL_DRAW], 0, render_target, GST_BUFFER_PTS (inbuf));
+        g_signal_emit(d2d1, gst_d3d11_d2d1_signals[SIGNAL_DRAW], 0, render_target, inbuf, outbuf);
     }
 
     ret = GST_FLOW_OK;
@@ -264,7 +264,7 @@ gst_d3d11_d2d1_decide_allocation(GstBaseTransform* trans, GstQuery* query)
     guint size, min, max;
     GstStructure* config;
     GstVideoInfo vinfo;
-    const GstD3D11Format* d3d11_format;
+    GstD3D11Format d3d11_format;
     GstD3D11AllocationParams* d3d11_params;
     const guint bind_flags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
     DXGI_FORMAT dxgi_format = DXGI_FORMAT_UNKNOWN;
@@ -287,18 +287,16 @@ gst_d3d11_d2d1_decide_allocation(GstBaseTransform* trans, GstQuery* query)
         return FALSE;
     }
 
-    d3d11_format = gst_d3d11_device_format_from_gst(filter->device,
-        GST_VIDEO_INFO_FORMAT(&vinfo));
-    if (!d3d11_format) {
+    if (!gst_d3d11_device_get_format(filter->device, GST_VIDEO_INFO_FORMAT(&vinfo), &d3d11_format)) {
         GST_ERROR_OBJECT(filter, "Unknown format caps %" GST_PTR_FORMAT, outcaps);
         return FALSE;
     }
 
-    if (d3d11_format->dxgi_format == DXGI_FORMAT_UNKNOWN) {
-        dxgi_format = d3d11_format->resource_format[0];
+    if (d3d11_format.dxgi_format == DXGI_FORMAT_UNKNOWN) {
+        dxgi_format = d3d11_format.resource_format[0];
     }
     else {
-        dxgi_format = d3d11_format->dxgi_format;
+        dxgi_format = d3d11_format.dxgi_format;
     }
 
     device_handle = gst_d3d11_device_get_device_handle(filter->device);
@@ -365,7 +363,7 @@ gst_d3d11_d2d1_decide_allocation(GstBaseTransform* trans, GstQuery* query)
         gst_buffer_pool_config_get_d3d11_allocation_params(config));
 
     d3d11_params = gst_d3d11_allocation_params_new(filter->device, &vinfo,
-            (GstD3D11AllocationFlags)0, bind_flags);
+            (GstD3D11AllocationFlags)0, bind_flags, 0);
 
     gst_buffer_pool_config_set_d3d11_allocation_params(config, d3d11_params);
     gst_d3d11_allocation_params_free(d3d11_params);

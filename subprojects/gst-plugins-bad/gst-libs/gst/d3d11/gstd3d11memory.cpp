@@ -379,8 +379,8 @@ struct _GstD3D11MemoryPrivate
   GDestroyNotify notify = nullptr;
   gpointer user_data = nullptr;
 
-  IDXGISurface* dxgi_surface;
-  ID2D1RenderTarget* d2d1_render_target;
+  IDXGISurface* dxgi_surface = nullptr;
+  ID2D1RenderTarget* d2d1_render_target = nullptr;
 };
 
 static inline D3D11_MAP
@@ -1492,7 +1492,6 @@ ID2D1RenderTarget* gst_d3d11_memory_get_d2d1_render_target (GstD3D11Memory* mem,
             0.0,
             0.0);
 
-    ID2D1RenderTarget* pRenderTarget = NULL;
     IDXGISurface* dxgi_surface = NULL;
 
     HRESULT hr = ((ID3D11Resource*)mem->priv->texture)->QueryInterface(&dxgi_surface);
