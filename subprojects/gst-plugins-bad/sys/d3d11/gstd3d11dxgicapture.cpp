@@ -282,7 +282,7 @@ public:
   }
 
   GstFlowReturn
-  Capture ()
+  Capture (GstBuffer * buffer)
   {
     GstFlowReturn ret;
     bool timeout = false;
@@ -310,7 +310,7 @@ public:
     }
 
     ret = ProcessFrame (texture.Get(), shared_texture_.Get(),
-        &output_desc_, move_count, dirty_count, &frame_info);
+        &output_desc_, move_count, dirty_count, &frame_info, buffer);
 
     if (ret != GST_FLOW_OK) {
       dupl_->ReleaseFrame ();
@@ -1222,7 +1222,7 @@ private:
   GstFlowReturn
   ProcessFrame(ID3D11Texture2D * acquired_texture, ID3D11Texture2D* SharedSurf,
       DXGI_OUTDUPL_DESC* DeskDesc, UINT move_count, UINT dirty_count,
-      DXGI_OUTDUPL_FRAME_INFO * frame_info)
+      DXGI_OUTDUPL_FRAME_INFO * frame_info, GstBuffer * buffer)
   {
     GstFlowReturn ret = GST_FLOW_OK;
 
@@ -1231,18 +1231,40 @@ private:
     /* Process dirties and moves */
     if (frame_info->TotalMetadataBufferSize) {
       if (move_count) {
-        ret = CopyMove(SharedSurf, (DXGI_OUTDUPL_MOVE_RECT *) metadata_buffer_,
-            move_count, DeskDesc);
+        auto* move_buffer = (DXGI_OUTDUPL_MOVE_RECT *) metadata_buffer_;
+        ret = CopyMove(SharedSurf, move_buffer, move_count, DeskDesc);
 
         if (ret != GST_FLOW_OK)
           return ret;
+
+        for(int i=0; i < move_count; i++) {
+          auto* meta_info = gst_buffer_add_video_region_of_interest_meta( buffer, "move",
+            move_buffer[i].DestinationRect.left, move_buffer[i].DestinationRect.top,
+            move_buffer[i].DestinationRect.right - move_buffer[i].DestinationRect.left,
+            move_buffer[i].DestinationRect.bottom - move_buffer[i].DestinationRect.top);
+          if(meta_info != nullptr)
+          {
+            auto point = gst_structure_new ("source_point", "x", G_TYPE_INT, move_buffer[i].SourcePoint.x, "y", G_TYPE_INT, move_buffer[i].SourcePoint.y, NULL);
+            gst_video_region_of_interest_meta_add_param (meta_info, point);
+          }
+          GST_TRACE("move_buffer[%d]: %d, %d, %d, %d", i, meta_info->x, meta_info->y,
+            meta_info->w, meta_info->h);
+        }
       }
 
       if (dirty_count) {
-        ret = CopyDirty(acquired_texture, SharedSurf,
-            (RECT *)(metadata_buffer_ +
-                (move_count * sizeof(DXGI_OUTDUPL_MOVE_RECT))),
+        RECT* dirty_buffer = (RECT *)(metadata_buffer_ +
+                (move_count * sizeof(DXGI_OUTDUPL_MOVE_RECT)));
+        ret = CopyDirty(acquired_texture, SharedSurf, dirty_buffer,
             dirty_count, DeskDesc);
+        for(int i=0; i < dirty_count; i++) {
+          auto* meta_info = gst_buffer_add_video_region_of_interest_meta( buffer, "dirty",
+            dirty_buffer[i].left, dirty_buffer[i].top,
+            dirty_buffer[i].right - dirty_buffer[i].left,
+            dirty_buffer[i].bottom - dirty_buffer[i].top);
+          GST_TRACE("dirty_buffer[%d]: %d, %d, %d, %d", i, meta_info->x, meta_info->y,
+            meta_info->w, meta_info->h);
+        }
       }
     } else {
       GST_TRACE ("No metadata");
@@ -1470,7 +1492,7 @@ static GstFlowReturn
 gst_d3d11_dxgi_capture_do_capture (GstD3D11ScreenCapture * capture,
     GstD3D11Device * device, ID3D11Texture2D * texture,
     ID3D11RenderTargetView * rtv, ShaderResource * resource,
-    D3D11_BOX * crop_box, gboolean draw_mouse);
+    D3D11_BOX * crop_box, gboolean draw_mouse, GstBuffer * buffer);
 
 #define gst_d3d11_dxgi_capture_parent_class parent_class
 G_DEFINE_TYPE (GstD3D11DxgiCapture, gst_d3d11_dxgi_capture,
@@ -1787,7 +1809,7 @@ static GstFlowReturn
 gst_d3d11_dxgi_capture_do_capture (GstD3D11ScreenCapture * capture,
     GstD3D11Device * device, ID3D11Texture2D * texture,
     ID3D11RenderTargetView * rtv, ShaderResource * resource,
-    D3D11_BOX * crop_box, gboolean draw_mouse)
+    D3D11_BOX * crop_box, gboolean draw_mouse, GstBuffer * buffer)
 {
   GstD3D11DxgiCapture *self = GST_D3D11_DXGI_CAPTURE (capture);
   GstFlowReturn ret = GST_FLOW_OK;
@@ -1830,7 +1852,7 @@ gst_d3d11_dxgi_capture_do_capture (GstD3D11ScreenCapture * capture,
   }
 
   gst_d3d11_device_lock (self->device);
-  ret = self->dupl_obj->Capture ();
+  ret = self->dupl_obj->Capture (buffer);
   if (ret != GST_FLOW_OK) {
     gst_d3d11_device_unlock (self->device);
 

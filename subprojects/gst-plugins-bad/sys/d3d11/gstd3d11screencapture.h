@@ -79,7 +79,8 @@ struct _GstD3D11ScreenCaptureClass
                                     ID3D11RenderTargetView * rtv,
                                     ShaderResource * resource,
                                     D3D11_BOX * crop_box,
-                                    gboolean draw_mouse);
+                                    gboolean draw_mouse,
+                                    GstBuffer * buffer);
 };
 
 GType           gst_d3d11_screen_capture_get_type (void);
@@ -103,7 +104,8 @@ GstFlowReturn   gst_d3d11_screen_capture_do_capture  (GstD3D11ScreenCapture * ca
                                                       ID3D11RenderTargetView * rtv,
                                                       ShaderResource * resource,
                                                       D3D11_BOX * crop_box,
-                                                      gboolean draw_mouse);
+                                                      gboolean draw_mouse,
+                                                      GstBuffer * buffer);
 
 HRESULT         gst_d3d11_screen_capture_find_output_for_monitor (HMONITOR monitor,
                                                                   IDXGIAdapter1 ** adapter,
