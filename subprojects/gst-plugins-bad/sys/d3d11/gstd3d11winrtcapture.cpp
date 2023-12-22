@@ -269,7 +269,7 @@ static GstFlowReturn
 gst_d3d11_winrt_capture_do_capture (GstD3D11ScreenCapture * capture,
     GstD3D11Device * device, ID3D11Texture2D * texture,
     ID3D11RenderTargetView * rtv, ShaderResource * resource,
-    D3D11_BOX * crop_box, gboolean draw_mouse);
+    D3D11_BOX * crop_box, gboolean draw_mouse, GstBuffer * buffer);
 static gpointer
 gst_d3d11_winrt_capture_thread_func (GstD3D11WinRTCapture * self);
 
@@ -835,7 +835,7 @@ static GstFlowReturn
 gst_d3d11_winrt_capture_do_capture (GstD3D11ScreenCapture * capture,
     GstD3D11Device * device, ID3D11Texture2D * texture,
     ID3D11RenderTargetView * rtv, ShaderResource * resource,
-    D3D11_BOX * crop_box, gboolean draw_mouse)
+    D3D11_BOX * crop_box, gboolean draw_mouse, GstBuffer * buffer)
 {
   GstD3D11WinRTCapture *self = GST_D3D11_WINRT_CAPTURE (capture);
   GstD3D11WinRTCaptureInner *inner = self->inner;

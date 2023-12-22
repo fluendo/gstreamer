@@ -123,7 +123,7 @@ GstFlowReturn
 gst_d3d11_screen_capture_do_capture (GstD3D11ScreenCapture * capture,
     GstD3D11Device * device, ID3D11Texture2D * texture,
     ID3D11RenderTargetView * rtv, ShaderResource * resource,
-    D3D11_BOX * crop_box, gboolean draw_mouse)
+    D3D11_BOX * crop_box, gboolean draw_mouse, GstBuffer * buffer)
 {
   GstD3D11ScreenCaptureClass *klass;
 
@@ -134,7 +134,7 @@ gst_d3d11_screen_capture_do_capture (GstD3D11ScreenCapture * capture,
   g_assert (klass->do_capture);
 
   return klass->do_capture (capture, device, texture, rtv,
-      resource, crop_box, draw_mouse);
+      resource, crop_box, draw_mouse, buffer);
 }
 
 HRESULT

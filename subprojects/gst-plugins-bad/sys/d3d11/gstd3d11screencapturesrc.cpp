@@ -1325,7 +1325,7 @@ again:
   texture = (ID3D11Texture2D *) info.data;
   before_capture = gst_clock_get_time (clock);
   ret = gst_d3d11_screen_capture_do_capture (self->capture, self->device,
-      texture, rtv, &self->resource, &self->crop_box, draw_mouse);
+      texture, rtv, &self->resource, &self->crop_box, draw_mouse, buffer);
   gst_memory_unmap (mem, &info);
 
   switch (ret) {
