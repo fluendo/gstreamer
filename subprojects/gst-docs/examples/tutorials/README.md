@@ -11,3 +11,4 @@ Follow these steps to build the tutorials using Meson:
 3. ```bash
    ninja
    ```
+The Meson add-on for VSCode must be installed for the code to run properly.
