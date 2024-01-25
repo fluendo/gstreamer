@@ -1,0 +1,197 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      
+      {
+        "name": "Tutorial 1",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-1",
+        "preLaunchTask": "Meson: Build all targets", 
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 2",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-2",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 3",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-3",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 4",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-4",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 5",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-5",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 6",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-6",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 7",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-7",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 8",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-8",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 9",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-9",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 12",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-12",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 13",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-13",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Tutorial 15",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/basic-tutorial-15",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Playback Tutorial 1",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/playback-tutorial-1",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Playback Tutorial 2",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/playback-tutorial-2",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Playback Tutorial 3",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/playback-tutorial-3",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Playback Tutorial 4",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/playback-tutorial-4",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Playback Tutorial 5",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/playback-tutorial-5",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Playback Tutorial 6",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/playback-tutorial-6",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+
+      {
+        "name": "Playback Tutorial 7",
+        "request": "launch",
+        "type": "cppdbg",
+        "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+        "program": "${workspaceFolder}/${config:mesonbuild.buildFolder}/playback-tutorial-7",
+        "preLaunchTask": "Meson: Build all targets",
+        "cwd": "${workspaceFolder}/${config:mesonbuild.buildFolder}"
+      },
+      
+    ]
+  }
+  
