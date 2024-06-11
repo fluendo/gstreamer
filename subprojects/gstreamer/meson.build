@@ -396,11 +396,11 @@ if not cc.has_type('timer_t', prefix : '#include <time.h>')
   cdata.set('timer_t', 'int')
 endif
 if not cc.has_members('struct timespec', 'tv_sec', 'tv_nsec',
-		      prefix : '#include <time.h>')
+              prefix : '#include <time.h>')
   cdata.set('STRUCT_TIMESPEC_DEFINITION_MISSING', 1)
 endif
 if not cc.has_members('struct itimerspec', 'it_interval', 'it_value',
-		      prefix : '#include <time.h>')
+              prefix : '#include <time.h>')
   cdata.set('STRUCT_ITIMERSPEC_DEFINITION_MISSING', 1)
 endif
 if host_system != 'windows'
@@ -572,7 +572,7 @@ glib_dep = dependency('glib-2.0', version: glib_req,
   fallback: ['glib', 'libglib_dep'])
 gobject_dep = dependency('gobject-2.0')
 gmodule_dep = dependency('gmodule-no-export-2.0')
-if host_system == 'windows'
+if host_system in ['windows', 'emscripten']
     gio_dep = dependency('gio-2.0')
 else
     gio_dep = [dependency('gio-2.0'),
@@ -674,7 +674,7 @@ pkgconfig_variables = [
   'pluginscannerdir=${libexecdir}/gstreamer-1.0'
 ]
 pkgconfig_uninstalled_variables = ['exec_prefix=${prefix}',
-	'gstreamerdir=${prefix}/subprojects/gstreamer',
+    'gstreamerdir=${prefix}/subprojects/gstreamer',
     'bashhelpersdir=${gstreamerdir}/data/bash-completion/helpers',
     'helpersdir=${gstreamerdir}/libs/gst/helpers']
 pkgconfig_subdirs = ['gstreamer-1.0']
