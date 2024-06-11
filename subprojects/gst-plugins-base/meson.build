@@ -100,7 +100,6 @@ if cc.has_link_argument('-Wl,-z,nodelete')
 endif
 
 core_conf = configuration_data()
-core_conf.set('ENABLE_NLS', 1)
 
 # Symbol visibility
 if cc.has_argument('-fvisibility=hidden')
@@ -487,6 +486,7 @@ subdir('tests')
 
 # xgettext is optional (on Windows for instance)
 if find_program('xgettext', required : get_option('nls')).found()
+  core_conf.set('ENABLE_NLS', 1)
   subdir('po')
 endif
 subdir('docs')
