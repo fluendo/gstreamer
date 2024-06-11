@@ -91,7 +91,7 @@ struct _GstAudioSrcRingBufferClass
 };
 
 static void gst_audio_src_ring_buffer_class_init (GstAudioSrcRingBufferClass *
-    klass);
+    klass, gpointer class_data);
 static void gst_audio_src_ring_buffer_init (GstAudioSrcRingBuffer * ringbuffer,
     GstAudioSrcRingBufferClass * klass);
 static void gst_audio_src_ring_buffer_dispose (GObject * object);
@@ -138,7 +138,7 @@ gst_audio_src_ring_buffer_get_type (void)
 }
 
 static void
-gst_audio_src_ring_buffer_class_init (GstAudioSrcRingBufferClass * klass)
+gst_audio_src_ring_buffer_class_init (GstAudioSrcRingBufferClass * klass, gpointer class_data)
 {
   GObjectClass *gobject_class;
   GstAudioRingBufferClass *gstringbuffer_class;
