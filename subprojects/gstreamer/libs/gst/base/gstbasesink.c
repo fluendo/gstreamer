@@ -330,7 +330,8 @@ enum
 static GstElementClass *parent_class = NULL;
 static gint private_offset = 0;
 
-static void gst_base_sink_class_init (GstBaseSinkClass * klass);
+static void gst_base_sink_class_init (GstBaseSinkClass * klass,
+    gpointer class_data);
 static void gst_base_sink_init (GstBaseSink * trans, gpointer g_class);
 static void gst_base_sink_finalize (GObject * object);
 
@@ -429,7 +430,7 @@ static gboolean gst_base_sink_is_too_late (GstBaseSink * basesink,
     GstClockReturn status, GstClockTimeDiff jitter, gboolean render);
 
 static void
-gst_base_sink_class_init (GstBaseSinkClass * klass)
+gst_base_sink_class_init (GstBaseSinkClass * klass, gpointer class_data)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
