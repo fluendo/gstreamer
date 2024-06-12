@@ -970,7 +970,8 @@ enum
  * seems to be no way of getting the real class being initialized */
 static void gst_video_aggregator_init (GstVideoAggregator * self,
     GstVideoAggregatorClass * klass);
-static void gst_video_aggregator_class_init (GstVideoAggregatorClass * klass);
+static void gst_video_aggregator_class_init (GstVideoAggregatorClass * klass,
+    gpointer class_data);
 static gpointer gst_video_aggregator_parent_class = NULL;
 static gint video_aggregator_private_offset = 0;
 
@@ -3048,7 +3049,8 @@ gst_video_aggregator_set_property (GObject * object,
 
 /* GObject boilerplate */
 static void
-gst_video_aggregator_class_init (GstVideoAggregatorClass * klass)
+gst_video_aggregator_class_init (GstVideoAggregatorClass * klass,
+    gpointer class_data)
 {
   GObjectClass *gobject_class = (GObjectClass *) klass;
   GstElementClass *gstelement_class = (GstElementClass *) klass;

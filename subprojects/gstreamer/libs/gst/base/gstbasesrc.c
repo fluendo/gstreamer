@@ -276,7 +276,8 @@ struct _GstBaseSrcPrivate
 static GstElementClass *parent_class = NULL;
 static gint private_offset = 0;
 
-static void gst_base_src_class_init (GstBaseSrcClass * klass);
+static void gst_base_src_class_init (GstBaseSrcClass * klass,
+    gpointer class_data);
 static void gst_base_src_init (GstBaseSrc * src, gpointer g_class);
 static void gst_base_src_finalize (GObject * object);
 
@@ -372,7 +373,7 @@ static gboolean gst_base_src_update_length (GstBaseSrc * src, guint64 offset,
     guint * length, gboolean force);
 
 static void
-gst_base_src_class_init (GstBaseSrcClass * klass)
+gst_base_src_class_init (GstBaseSrcClass * klass, gpointer class_data)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
