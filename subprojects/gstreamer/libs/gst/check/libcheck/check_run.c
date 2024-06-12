@@ -728,7 +728,7 @@ srunner_run_tagged (SRunner * sr, const char *sname, const char *tcname,
     eprintf ("Bad print_mode argument to srunner_run_all: %d",
         __FILE__, __LINE__, print_mode);
   }
-#if defined(HAVE_SIGACTION) && defined(HAVE_FORK)
+#if defined(HAVE_SIGACTION) && defined(HAVE_FORK) && HAVE_FORK==1
   memset (&sigalarm_new_action, 0, sizeof (sigalarm_new_action));
   sigalarm_new_action.sa_handler = sig_handler;
   sigaction (SIGALRM, &sigalarm_new_action, &sigalarm_old_action);
@@ -745,7 +745,7 @@ srunner_run_tagged (SRunner * sr, const char *sname, const char *tcname,
   srunner_iterate_suites (sr, sname, tcname, include_tags, exclude_tags,
       print_mode);
   srunner_run_end (sr, print_mode);
-#if defined(HAVE_SIGACTION) && defined(HAVE_FORK)
+#if defined(HAVE_SIGACTION) && defined(HAVE_FORK) && HAVE_FORK==1
   sigaction (SIGALRM, &sigalarm_old_action, NULL);
   sigaction (SIGINT, &sigint_old_action, NULL);
   sigaction (SIGTERM, &sigterm_old_action, NULL);
