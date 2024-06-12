@@ -122,6 +122,19 @@ static GstStaticPadTemplate openalsink_factory =
     )
     );
 
+#if __EMSCRIPTEN__
+static inline ALCcontext *
+pushContext (ALCcontext * context)
+{
+  alcMakeContextCurrent(context);
+  return NULL;
+}
+
+static inline void
+popContext (ALCcontext * old, ALCcontext * context)
+{
+}
+#else
 static PFNALCSETTHREADCONTEXTPROC palcSetThreadContext;
 static PFNALCGETTHREADCONTEXTPROC palcGetThreadContext;
 
@@ -147,6 +160,7 @@ popContext (ALCcontext * old, ALCcontext * context)
   if (old != context)
     palcSetThreadContext (old);
 }
+#endif
 
 static inline ALenum
 checkALError (const char *fname, unsigned int fline)
@@ -183,10 +197,12 @@ gst_openal_sink_class_init (GstOpenALSinkClass * klass)
   GstBaseSinkClass *gstbasesink_class = (GstBaseSinkClass *) klass;
   GstAudioSinkClass *gstaudiosink_class = (GstAudioSinkClass *) klass;
 
+#ifndef __EMSCRIPTEN__
   if (alcIsExtensionPresent (NULL, "ALC_EXT_thread_local_context")) {
     palcSetThreadContext = alcGetProcAddress (NULL, "alcSetThreadContext");
     palcGetThreadContext = alcGetProcAddress (NULL, "alcGetThreadContext");
   }
+#endif
 
   gobject_class->dispose = GST_DEBUG_FUNCPTR (gst_openal_sink_dispose);
   gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_openal_sink_finalize);
@@ -240,7 +256,8 @@ gst_openal_sink_class_init (GstOpenALSinkClass * klass)
 static void
 gst_openal_sink_init (GstOpenALSink * sink)
 {
-  GST_DEBUG_OBJECT (sink, "initializing");
+  GST_INFO_OBJECT (sink, "OpenAL [%s][%s][%s]",
+      alGetString(AL_VERSION), alGetString(AL_VENDOR), alGetString(AL_RENDERER));
 
   sink->device_name = g_strdup (OPENAL_DEFAULT_DEVICE);
 
