@@ -1,0 +1,40 @@
+[[remotes]]
+name = "origin"
+url = "git@github.com:fluendo/gstreamer.git"
+
+[[remotes]]
+name = "freedesktop"
+url = "git@gitlab.freedesktop.org:gstreamer/gstreamer.git"
+
+[target]
+remote = "origin"
+branch = "final-rgonzalaez"
+
+[source]
+remote = "origin"
+branch = "wasm-1.22-base"
+
+[[features]]
+remote = "origin"
+name = "wasm-1.22-to-split"
+status = "pending"
+
+[[features]]
+remote = "origin"
+name = "wasm-1.22-test"
+status = "pending"
+
+[[features]]
+remote = "origin"
+name = "wasm-1.22-wip"
+status = "pending"
+
+[[features]]
+remote = "origin"
+name = "wasm-1.22-function-pointer"
+status = "pending"
+
+[[features]]
+remote = "origin"
+name = "wasm-1.22-openal"
+status = "pending"
