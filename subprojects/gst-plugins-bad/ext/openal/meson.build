@@ -1,4 +1,9 @@
-openal_dep = dependency('openal', method: 'pkg-config', version: '>= 1.14', required: get_option('openal'))
+if cc.get_id() == 'emscripten'
+  openal_dep = declare_dependency()
+else
+  openal_dep = dependency('openal', method: 'pkg-config', version: '>= 1.14', required: get_option('openal'))
+endif
+
 
 openal_sources = [
   'gstopenal.c',
