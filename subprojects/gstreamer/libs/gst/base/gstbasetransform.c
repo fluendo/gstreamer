@@ -206,7 +206,8 @@ struct _GstBaseTransformPrivate
 static GstElementClass *parent_class = NULL;
 static gint private_offset = 0;
 
-static void gst_base_transform_class_init (GstBaseTransformClass * klass);
+static void gst_base_transform_class_init (GstBaseTransformClass * klass,
+    gpointer class_data);
 static void gst_base_transform_init (GstBaseTransform * trans,
     GstBaseTransformClass * klass);
 static GstFlowReturn default_submit_input_buffer (GstBaseTransform * trans,
@@ -318,7 +319,8 @@ gst_base_transform_finalize (GObject * object)
 }
 
 static void
-gst_base_transform_class_init (GstBaseTransformClass * klass)
+gst_base_transform_class_init (GstBaseTransformClass * klass,
+    gpointer class_data)
 {
   GObjectClass *gobject_class;
 
