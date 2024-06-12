@@ -39,11 +39,13 @@ openal_element_init (GstPlugin * plugin)
 {
   static gsize res = FALSE;
   if (g_once_init_enter (&res)) {
+#ifndef __EMSCRIPTEN__
 #ifdef ENABLE_NLS
     GST_DEBUG ("binding text domain %s to locale dir %s", GETTEXT_PACKAGE,
         LOCALEDIR);
     bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
     bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+#endif
 #endif
     GST_DEBUG_CATEGORY_INIT (openal_debug, "openal", 0, "openal plugins");
     g_once_init_leave (&res, TRUE);
