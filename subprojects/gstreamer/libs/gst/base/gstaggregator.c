@@ -2967,7 +2967,7 @@ gst_aggregator_get_property (GObject * object, guint prop_id,
 
 /* GObject vmethods implementations */
 static void
-gst_aggregator_class_init (GstAggregatorClass * klass)
+gst_aggregator_class_init (GstAggregatorClass * klass, gpointer class_data)
 {
   GObjectClass *gobject_class = (GObjectClass *) klass;
   GstElementClass *gstelement_class = (GstElementClass *) klass;

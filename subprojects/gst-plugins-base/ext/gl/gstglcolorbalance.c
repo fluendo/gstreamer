@@ -124,7 +124,7 @@ enum
 };
 
 static void gst_gl_color_balance_colorbalance_init (GstColorBalanceInterface *
-    iface);
+    iface, gpointer iface_data);
 
 static void gst_gl_color_balance_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec);
@@ -604,7 +604,8 @@ gst_gl_color_balance_colorbalance_get_balance_type (GstColorBalance * balance)
 }
 
 static void
-gst_gl_color_balance_colorbalance_init (GstColorBalanceInterface * iface)
+gst_gl_color_balance_colorbalance_init (GstColorBalanceInterface * iface,
+    gpointer iface_data)
 {
   iface->list_channels = gst_gl_color_balance_colorbalance_list_channels;
   iface->set_value = gst_gl_color_balance_colorbalance_set_value;
