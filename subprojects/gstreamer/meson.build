@@ -338,7 +338,8 @@ posix_timers_src = time_prefix + '''
 #error Either _POSIX_TIMERS or CLOCK_REALTIME not defined
 #endif
 '''
-if cc.compiles(posix_timers_src, name : 'posix timers from time.h')
+# Emscripten declares _POSIX_TIMERS but it does not link
+if host_machine.system() != 'emscripten' and cc.compiles(posix_timers_src, name : 'posix timers from time.h')
   cdata.set('HAVE_POSIX_TIMERS', 1)
 endif
 
@@ -379,7 +380,7 @@ if cc.has_function('strdup')
 elif host_system == 'windows' and cc.has_function('_strdup')
   cdata.set('HAVE__STRDUP', 1) # Windows (MSVC)
 endif
-if host_system != 'windows'
+if host_system not in ['windows','emscripten']
   cdata.set('HAVE_FORK', 1)
 else
   # libcheck requires HAVE_FORK to be 0 when fork() is not available
