@@ -47,6 +47,13 @@ status = "pending"
 
 [[features]]
 remote = "origin"
+name = "wasm-main-sdl2"
+summary = "Add emscripten helper and sdl2sink"
+status = "pending"
+
+
+[[features]]
+remote = "origin"
 name = "wasm-main-wip"
 summary = "Commits in progress"
 status = "pending"
