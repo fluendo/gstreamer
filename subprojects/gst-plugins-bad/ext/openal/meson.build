@@ -1,5 +1,7 @@
 if cc.get_id() == 'emscripten'
-  openal_dep = declare_dependency()
+  openal_dep = declare_dependency(
+    link_args: ['-lopenal'],
+  )
 else
   openal_dep = dependency('openal', method: 'pkg-config', version: '>= 1.14', required: get_option('openal'))
 endif
