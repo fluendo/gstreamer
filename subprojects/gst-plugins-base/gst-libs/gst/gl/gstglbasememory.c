@@ -90,6 +90,7 @@ _mem_create_gl (GstGLContext * context, struct create_data *transfer)
   GstGLBaseMemoryAllocatorClass *alloc_class;
   GError *error = NULL;
 
+  GST_ERROR ("_mem_create_gl 0");
   GST_CAT_TRACE (GST_CAT_GL_BASE_MEMORY, "Create memory %p", transfer->mem);
 
   alloc_class =
@@ -97,17 +98,22 @@ _mem_create_gl (GstGLContext * context, struct create_data *transfer)
 
   g_return_if_fail (alloc_class->create != NULL);
 
+  GST_ERROR ("_mem_create_gl 1");
   /* Don't do expensive queries when debugging is disabled */
   transfer->mem->query = NULL;
   if (_gst_gl_context_debug_is_enabled (context))
     transfer->mem->query =
         gst_gl_query_new (context, GST_GL_QUERY_TIME_ELAPSED);
 
-  if ((transfer->result = alloc_class->create (transfer->mem, &error)))
+  GST_ERROR ("_mem_create_gl 2");
+  if ((transfer->result = alloc_class->create (transfer->mem, &error))) {
+    GST_ERROR ("_mem_create_gl done");
     return;
+  }
 
   g_assert (error != NULL);
 
+  GST_ERROR ("_mem_create_gl 3");
   GST_CAT_ERROR (GST_CAT_GL_BASE_MEMORY, "Failed to create GL buffer: %s",
       error->message);
   g_clear_error (&error);
@@ -169,6 +175,7 @@ gst_gl_base_memory_init (GstGLBaseMemory * mem, GstAllocator * allocator,
     mem->alloc_size = maxsize + align;
   }
 
+  GST_ERROR ("memory init 1");
   gst_memory_init (GST_MEMORY_CAST (mem), flags, allocator, parent, maxsize,
       align, offset, size);
 
@@ -180,6 +187,7 @@ gst_gl_base_memory_init (GstGLBaseMemory * mem, GstAllocator * allocator,
 
   data.mem = mem;
 
+  GST_ERROR ("memory init 2 >>>>>>>>>> HERE!");
   gst_gl_context_thread_add (context,
       (GstGLContextThreadFunc) _mem_create_gl, &data);
   if (!data.result) {
@@ -187,6 +195,7 @@ gst_gl_base_memory_init (GstGLBaseMemory * mem, GstAllocator * allocator,
         "Could not create GL buffer with context:%p", context);
   }
 
+  GST_ERROR ("memory init 3");
   GST_CAT_DEBUG (GST_CAT_GL_BASE_MEMORY, "new GL buffer memory:%p size:%"
       G_GSIZE_FORMAT, mem, maxsize);
 }
@@ -768,5 +777,6 @@ gst_gl_base_memory_alloc (GstGLBaseMemoryAllocator * allocator,
   g_return_val_if_fail (alloc_class != NULL, NULL);
   g_return_val_if_fail (alloc_class->alloc != NULL, NULL);
 
+  GST_ERROR ("about to alloc %s", ((GstAllocator *)allocator)->mem_type);
   return alloc_class->alloc (allocator, params);
 }

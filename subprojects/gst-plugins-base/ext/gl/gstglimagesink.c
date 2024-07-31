@@ -1685,9 +1685,11 @@ prepare_next_buffer (GstGLImageSink * glimage_sink)
   GstGLViewConvert *convert_views = NULL;
   GstVideoInfo *info;
 
+  GST_ERROR ("prepare next buffer 0");
   if (glimage_sink->input_buffer == NULL)
     return TRUE;                /* No input buffer to process */
 
+  GST_ERROR ("prepare next buffer 1");
   if (GST_VIDEO_INFO_MULTIVIEW_MODE (&glimage_sink->in_info) ==
       GST_VIDEO_MULTIVIEW_MODE_FRAME_BY_FRAME) {
     if (glimage_sink->input_buffer2 == NULL)
@@ -1695,6 +1697,7 @@ prepare_next_buffer (GstGLImageSink * glimage_sink)
     in_buffer2 = gst_buffer_ref (glimage_sink->input_buffer2);
   }
 
+  GST_ERROR ("prepare next buffer 2");
   in_buffer = gst_buffer_ref (glimage_sink->input_buffer);
   if (glimage_sink->convert_views &&
       (GST_VIDEO_INFO_MULTIVIEW_MODE (&glimage_sink->in_info) !=
@@ -1705,6 +1708,7 @@ prepare_next_buffer (GstGLImageSink * glimage_sink)
 
   GST_GLIMAGE_SINK_UNLOCK (glimage_sink);
 
+  GST_ERROR ("prepare next buffer 3");
   if (convert_views) {
     info = &glimage_sink->out_info;
 
@@ -1742,6 +1746,7 @@ prepare_next_buffer (GstGLImageSink * glimage_sink)
     info = &glimage_sink->in_info;
   }
 
+  GST_ERROR ("prepare next buffer 4");
   if (!glimage_sink->overlay_compositor) {
     if (!(glimage_sink->overlay_compositor =
             gst_gl_overlay_compositor_new (glimage_sink->context))) {
@@ -1750,6 +1755,7 @@ prepare_next_buffer (GstGLImageSink * glimage_sink)
     }
   }
 
+  GST_ERROR ("prepare next buffer 5");
   gst_gl_overlay_compositor_upload_overlays (glimage_sink->overlay_compositor,
       next_buffer);
 
@@ -1769,6 +1775,7 @@ prepare_next_buffer (GstGLImageSink * glimage_sink)
     goto fail;
   }
 
+  GST_ERROR ("prepare next buffer 6");
   GST_GLIMAGE_SINK_LOCK (glimage_sink);
   glimage_sink->next_tex = *(guint *) gl_frame.data[0];
 
@@ -1825,10 +1832,12 @@ gst_glimage_sink_prepare (GstBaseSink * bsink, GstBuffer * buf)
   if (!_ensure_gl_setup (glimage_sink))
     return GST_FLOW_NOT_NEGOTIATED;
 
+  GST_ERROR ("1");
   sync_meta = gst_buffer_get_gl_sync_meta (buf);
   if (sync_meta)
     gst_gl_sync_meta_wait (sync_meta, glimage_sink->context);
 
+  GST_ERROR ("2");
   GST_GLIMAGE_SINK_LOCK (glimage_sink);
   if (glimage_sink->window_resized) {
     glimage_sink->window_resized = FALSE;
@@ -1839,6 +1848,7 @@ gst_glimage_sink_prepare (GstBaseSink * bsink, GstBuffer * buf)
     GST_GLIMAGE_SINK_LOCK (glimage_sink);
   }
 
+  GST_ERROR ("3");
   target = &glimage_sink->input_buffer;
   if (GST_VIDEO_INFO_MULTIVIEW_MODE (&glimage_sink->in_info) ==
       GST_VIDEO_MULTIVIEW_MODE_FRAME_BY_FRAME &&
@@ -1848,9 +1858,11 @@ gst_glimage_sink_prepare (GstBaseSink * bsink, GstBuffer * buf)
   old_input = *target;
   *target = gst_buffer_ref (buf);
 
+  GST_ERROR ("4");
   if (glimage_sink->output_mode_changed)
     update_output_format (glimage_sink);
 
+  GST_ERROR ("5");
   if (!prepare_next_buffer (glimage_sink)) {
     GST_GLIMAGE_SINK_UNLOCK (glimage_sink);
     if (old_input)
@@ -1859,9 +1871,11 @@ gst_glimage_sink_prepare (GstBaseSink * bsink, GstBuffer * buf)
   }
   GST_GLIMAGE_SINK_UNLOCK (glimage_sink);
 
+  GST_ERROR ("6");
   if (old_input)
     gst_buffer_unref (old_input);
 
+  GST_ERROR ("7");
   if (glimage_sink->window_id != glimage_sink->new_window_id) {
     GstGLWindow *window = gst_gl_context_get_window (glimage_sink->context);
 
@@ -1870,6 +1884,8 @@ gst_glimage_sink_prepare (GstBaseSink * bsink, GstBuffer * buf)
 
     gst_object_unref (window);
   }
+
+  GST_ERROR ("!!!!!!preparing done");
 
   return GST_FLOW_OK;
 convert_views_failed:
@@ -2392,6 +2408,7 @@ gst_glimage_sink_on_draw (GstGLImageSink * gl_sink)
         gl_sink->display_rect.x, gl_sink->display_rect.y,
         gl_sink->display_rect.w, gl_sink->display_rect.h);
   }
+  GST_ERROR ("Drawing 0");
 
   sample = gst_sample_new (gl_sink->stored_buffer[0],
       gl_sink->out_caps, &GST_BASE_SINK (gl_sink)->segment, NULL);
@@ -2406,10 +2423,12 @@ gst_glimage_sink_on_draw (GstGLImageSink * gl_sink)
         gl_sink->context, sample, &do_redisplay);
     gst_sample_unref (sample);
   }
-
   if (!do_redisplay) {
     gfloat alpha = gl_sink->ignore_alpha ? 1.0f : 0.0f;
 
+  GST_ERROR ("Drawing 1");
+
+#if 0
     gl->ClearColor (0.0, 0.0, 0.0, alpha);
     gl->Clear (GL_COLOR_BUFFER_BIT);
 
@@ -2426,20 +2445,26 @@ gst_glimage_sink_on_draw (GstGLImageSink * gl_sink)
       gl->BlendEquation (GL_FUNC_ADD);
       gl->Enable (GL_BLEND);
     }
-
+#endif
+  GST_ERROR ("Drawing 2");
     gst_gl_shader_use (gl_sink->redisplay_shader);
 
     if (gl->GenVertexArrays)
       gl->BindVertexArray (gl_sink->vao);
     _bind_buffer (gl_sink);
 
+  GST_ERROR ("Drawing 3");
+
     gl->ActiveTexture (GL_TEXTURE0);
+  GST_ERROR ("Drawing 3.1");
     gl->BindTexture (gl_target, gl_sink->redisplay_texture);
+  GST_ERROR ("Drawing 3.2");
     gst_gl_shader_set_uniform_1i (gl_sink->redisplay_shader, "tex", 0);
     {
       GstVideoAffineTransformationMeta *af_meta;
       gfloat matrix[16];
 
+  GST_ERROR ("Drawing 3.3");
       af_meta =
           gst_buffer_get_video_affine_transformation_meta
           (gl_sink->stored_buffer[0]);
@@ -2447,20 +2472,25 @@ gst_glimage_sink_on_draw (GstGLImageSink * gl_sink)
       if (gl_sink->transform_matrix) {
         gfloat tmp[16];
 
+  GST_ERROR ("Drawing 3.4");
         gst_gl_get_affine_transformation_meta_as_ndc (af_meta, tmp);
         gst_gl_multiply_matrix4 (tmp, gl_sink->transform_matrix, matrix);
       } else {
         gst_gl_get_affine_transformation_meta_as_ndc (af_meta, matrix);
       }
 
+  GST_ERROR ("Drawing 3.5");
       gst_gl_shader_set_uniform_matrix_4fv (gl_sink->redisplay_shader,
           "u_transformation", 1, FALSE, matrix);
     }
+  GST_ERROR ("Drawing 4");
 
     gl->DrawElements (GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 
     gl->BindTexture (gl_target, 0);
     gst_gl_context_clear_shader (gl_sink->context);
+
+  GST_ERROR ("Drawing 5");
 
     if (gl->GenVertexArrays)
       gl->BindVertexArray (0);
@@ -2472,6 +2502,7 @@ gst_glimage_sink_on_draw (GstGLImageSink * gl_sink)
 
     gst_gl_overlay_compositor_draw_overlays (gl_sink->overlay_compositor);
   }
+  GST_ERROR ("Drawing done");
   /* end default opengl scene */
   window->is_drawing = FALSE;
   gst_object_unref (window);

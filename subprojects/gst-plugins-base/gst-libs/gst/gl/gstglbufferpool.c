@@ -277,9 +277,11 @@ gst_gl_buffer_pool_alloc (GstBufferPool * pool, GstBuffer ** buffer,
     goto no_buffer;
   }
 
+  GST_ERROR ("gl buffer pool alloc 1");
   alloc = GST_GL_MEMORY_ALLOCATOR (priv->allocator);
   if (!gst_gl_memory_setup_buffer (alloc, buf, priv->gl_params, NULL, NULL, 0))
     goto mem_create_failed;
+  GST_ERROR ("gl buffer pool alloc 2");
 
   if (priv->add_glsyncmeta)
     gst_buffer_add_gl_sync_meta (glpool->context, buf);

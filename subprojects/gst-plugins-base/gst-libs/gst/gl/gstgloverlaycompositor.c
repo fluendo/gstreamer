@@ -546,11 +546,14 @@ gst_gl_overlay_compositor_init_gl (GstGLContext * context,
   GError *error = NULL;
   const gchar *frag_strs[2];
 
+  GST_ERROR (">>>>>>>>> compositor init gl 0");
   frag_strs[0] =
       gst_gl_shader_string_get_highest_precision (context,
       GST_GLSL_VERSION_NONE,
       GST_GLSL_PROFILE_ES | GST_GLSL_PROFILE_COMPATIBILITY);
   frag_strs[1] = fragment_shader;
+
+  GST_ERROR (">>>>>>>>> compositor init gl 1");
 
   if (!(compositor->shader =
           gst_gl_shader_new_link_with_stages (context, &error,
@@ -564,10 +567,12 @@ gst_gl_overlay_compositor_init_gl (GstGLContext * context,
     return;
   }
 
+  GST_ERROR (">>>>>>>>> compositor init gl 2");
   compositor->position_attrib =
       gst_gl_shader_get_attribute_location (compositor->shader, "a_position");
   compositor->texcoord_attrib =
       gst_gl_shader_get_attribute_location (compositor->shader, "a_texcoord");
+  GST_ERROR (">>>>>>>>> compositor init gl 3");
 }
 
 GstGLOverlayCompositor *

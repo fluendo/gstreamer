@@ -4,7 +4,7 @@ theora_sources = [
 ]
 
 theoradec_dep = dependency('theoradec', version : '>=1.1', required : get_option('theora'))
-# theoraenc_dep = dependency('theoraenc', version : '>=1.1', required : get_option('theora'))
+theoraenc_dep = dependency('theoraenc', version : '>=1.1', required : get_option('theora'))
 theora_deps = []
 
 if theoradec_dep.found() # or theoraenc_dep.found()

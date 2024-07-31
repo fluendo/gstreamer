@@ -129,12 +129,14 @@ glconf_options = [
     'GST_GL_HAVE_WINDOW_EAGL',
     'GST_GL_HAVE_WINDOW_VIV_FB',
     'GST_GL_HAVE_WINDOW_GBM',
+    'GST_GL_HAVE_WINDOW_HTML5',
 
     'GST_GL_HAVE_PLATFORM_EGL',
     'GST_GL_HAVE_PLATFORM_GLX',
     'GST_GL_HAVE_PLATFORM_WGL',
     'GST_GL_HAVE_PLATFORM_CGL',
     'GST_GL_HAVE_PLATFORM_EAGL',
+    'GST_GL_HAVE_PLATFORM_WEBGL',
 
     'GST_GL_HAVE_DMABUF',
     'GST_GL_HAVE_VIV_DIRECTVIV',
@@ -215,12 +217,14 @@ if gl_platforms.contains('auto')
   need_platform_cgl = 'auto'
   need_platform_wgl = 'auto'
   need_platform_eagl = 'auto'
+  need_platform_webgl = 'auto'
 else
   need_platform_egl = 'no'
   need_platform_glx = 'no'
   need_platform_cgl = 'no'
   need_platform_wgl = 'no'
   need_platform_eagl = 'no'
+  need_platform_webgl = 'no'
   foreach platform : gl_platforms
     if platform == 'egl'
       need_platform_egl = 'yes'
@@ -232,6 +236,8 @@ else
       need_platform_wgl = 'yes'
     elif platform == 'eagl'
       need_platform_eagl = 'yes'
+    elif platform == 'webgl'
+      need_platform_webgl = 'yes'
     else
       error('Unsupported GL platform provided ' + platform)
     endif
@@ -251,6 +257,7 @@ if gl_winsys.contains('auto')
   need_win_viv_fb = 'auto'
   need_win_gbm = 'auto'
   need_win_android = 'auto'
+  need_win_html5 = 'auto'
 else
   need_win_x11 = 'no'
   need_win_wayland = 'no'
@@ -263,6 +270,7 @@ else
   need_win_viv_fb = 'no'
   need_win_gbm = 'no'
   need_win_android = 'no'
+  need_win_html5 = 'no'
   foreach winsys : gl_winsys
     if winsys == 'x11'
       need_win_x11 = 'yes'
@@ -286,6 +294,8 @@ else
       need_win_gbm = 'yes'
     elif winsys == 'android'
       need_win_android = 'yes'
+    elif winsys == 'html5'
+      need_win_html5 = 'yes'
     else
       error('Unsupported GL winsys provided ' + winsys)
     endif
@@ -951,6 +961,17 @@ if host_system == 'android' and need_win_android != 'no' and need_platform_egl !
       'android/gstglwindow_android_egl.c'
     ]
   endif
+endif
+
+if host_system == 'emscripten' and need_platform_webgl != 'no'
+  gl_priv_sources += [
+    'web/gstglcontext_webgl.c',
+    'web/gstglwindow_html5.c',
+  ]
+  enabled_gl_winsys += 'html5'
+  enabled_gl_platforms += 'webgl'
+  glconf.set('GST_GL_HAVE_WINDOW_HTML5', 1)
+  glconf.set('GST_GL_HAVE_PLATFORM_WEBGL', 1)
 endif
 
 gl_nvmm = false

@@ -95,6 +95,7 @@ _gl_buffer_create (GstGLBuffer * gl_mem, GError ** error)
 {
   const GstGLFuncs *gl = gl_mem->mem.context->gl_vtable;
 
+  GST_ERROR ("Creating gl buffer 1/3");
   gl->GenBuffers (1, &gl_mem->id);
   gl->BindBuffer (gl_mem->target, gl_mem->id);
   if (HAVE_BUFFER_STORAGE (gl_mem->mem.context)) {
@@ -119,10 +120,13 @@ _gl_buffer_create (GstGLBuffer * gl_mem, GError ** error)
 
     gl->BufferStorage (gl_mem->target, gl_mem->mem.mem.maxsize, NULL, flags);
   } else {
+    GST_ERROR ("gl_buffer_create does not have buffer storage");
     gl->BufferData (gl_mem->target, gl_mem->mem.mem.maxsize, NULL,
         gl_mem->usage_hints);
   }
+  GST_ERROR ("Creating gl buffer 2/3");
   gl->BindBuffer (gl_mem->target, 0);
+  GST_ERROR ("Creating gl buffer 3/3");
 
   return TRUE;
 }
@@ -496,6 +500,7 @@ _gl_buffer_alloc_mem (GstGLBufferAllocator * allocator,
 {
   guint alloc_flags = params->parent.alloc_flags;
 
+  GST_ERROR ("CALLED");
   g_return_val_if_fail (alloc_flags &
       GST_GL_ALLOCATION_PARAMS_ALLOC_FLAG_BUFFER, NULL);
   g_return_val_if_fail (alloc_flags & GST_GL_ALLOCATION_PARAMS_ALLOC_FLAG_ALLOC,

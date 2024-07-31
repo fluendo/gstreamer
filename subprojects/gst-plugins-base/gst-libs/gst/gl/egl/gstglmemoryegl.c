@@ -141,6 +141,7 @@ _gl_mem_egl_alloc (GstGLBaseMemoryAllocator * allocator,
   guint alloc_flags = params->parent.alloc_flags;
   GstGLMemoryEGL *mem;
 
+  GST_ERROR ("egl alloc");
   g_return_val_if_fail (alloc_flags & GST_GL_ALLOCATION_PARAMS_ALLOC_FLAG_VIDEO,
       NULL);
   g_return_val_if_fail ((alloc_flags &
@@ -171,6 +172,7 @@ _gl_mem_egl_alloc (GstGLBaseMemoryAllocator * allocator,
     gst_allocator_free (GST_ALLOCATOR_CAST (allocator), GST_MEMORY_CAST (mem));
     return NULL;
   }
+  GST_ERROR ("egl alloc done");
 
   return mem;
 }

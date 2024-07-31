@@ -261,18 +261,24 @@ _new_texture (GstGLContext * context, guint target, guint internal_format,
   const GstGLFuncs *gl = context->gl_vtable;
   guint tex_id;
 
+  GST_ERROR ("_new_texture 0 %p", gl->GenTextures);
   gl->GenTextures (1, &tex_id);
+  GST_ERROR ("_new_texture 1");
   gl->BindTexture (target, tex_id);
+  GST_ERROR ("_new_texture 2");
   if (target == GL_TEXTURE_2D || target == GL_TEXTURE_RECTANGLE)
     gl->TexImage2D (target, 0, internal_format, width, height, 0, format, type,
         NULL);
+  GST_ERROR ("_new_texture 3");
 
   gl->TexParameteri (target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   gl->TexParameteri (target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   gl->TexParameteri (target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   gl->TexParameteri (target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+  GST_ERROR ("_new_texture 4");
   gl->BindTexture (target, 0);
+  GST_ERROR ("_new_texture 5");
 
   return tex_id;
 }
@@ -285,6 +291,7 @@ _gl_tex_create (GstGLMemory * gl_mem, GError ** error)
   GstGLFormat tex_format;
   GLenum tex_type;
 
+  GST_ERROR ("text create 0");
   internal_format = gl_mem->tex_format;
   gst_gl_format_type_from_sized_gl_format (internal_format, &tex_format,
       &tex_type);
@@ -292,7 +299,9 @@ _gl_tex_create (GstGLMemory * gl_mem, GError ** error)
       gst_gl_sized_gl_format_from_gl_format_type (context, tex_format,
       tex_type);
 
+  GST_ERROR ("text create 1");
   if (!gl_mem->texture_wrapped) {
+    GST_ERROR ("text create 1.1");
     gl_mem->tex_id =
         _new_texture (context, gst_gl_texture_target_to_gl (gl_mem->tex_target),
         internal_format, tex_format, tex_type, gl_mem->tex_width,
@@ -302,6 +311,7 @@ _gl_tex_create (GstGLMemory * gl_mem, GError ** error)
         gl_mem->tex_id, tex_format, tex_type, gl_mem->tex_width,
         GL_MEM_HEIGHT (gl_mem));
   }
+  GST_ERROR ("text create 2");
 
   return TRUE;
 }
@@ -359,6 +369,7 @@ gst_gl_memory_init (GstGLMemory * mem, GstAllocator * allocator,
 
   g_return_if_fail (plane < GST_VIDEO_INFO_N_PLANES (info));
 
+ GST_ERROR ("glmem init 1");
   mem->info = *info;
   if (valign)
     mem->valign = *valign;
@@ -379,6 +390,7 @@ gst_gl_memory_init (GstGLMemory * mem, GstAllocator * allocator,
           "than the max required video alignment %u", params->align, max_align);
     }
   }
+ GST_ERROR ("glmem init 2");
 
   size = gst_gl_get_plane_data_size (info, valign, plane);
 
@@ -388,9 +400,11 @@ gst_gl_memory_init (GstGLMemory * mem, GstAllocator * allocator,
 
   _calculate_unpack_length (mem, context);
 
+ GST_ERROR ("glmem init 3");
   gst_gl_base_memory_init ((GstGLBaseMemory *) mem, allocator, parent, context,
       params, size, user_data, notify);
 
+ GST_ERROR ("glmem init 4");
   target_str = gst_gl_texture_target_to_string (target);
   GST_CAT_DEBUG (GST_CAT_GL_MEMORY, "new GL texture context:%"
       GST_PTR_FORMAT " memory:%p target:%s format:%u dimensions:%ux%u "
@@ -962,15 +976,18 @@ _default_gl_tex_alloc (GstGLMemoryAllocator * allocator,
 
   mem = g_new0 (GstGLMemory, 1);
 
+  GST_ERROR ("gl tex alloc");
   if (alloc_flags & GST_GL_ALLOCATION_PARAMS_ALLOC_FLAG_WRAP_GPU_HANDLE) {
     mem->tex_id = GPOINTER_TO_UINT (params->parent.gl_handle);
     mem->texture_wrapped = TRUE;
   }
 
+  GST_ERROR ("gl tex alloc 1");
   gst_gl_memory_init (mem, GST_ALLOCATOR_CAST (allocator), NULL,
       params->parent.context, params->target, params->tex_format,
       params->parent.alloc_params, params->v_info, params->plane,
       params->valign, params->parent.user_data, params->parent.notify);
+  GST_ERROR ("gl tex alloc 2");
 
   if (alloc_flags & GST_GL_ALLOCATION_PARAMS_ALLOC_FLAG_WRAP_GPU_HANDLE) {
     GST_MINI_OBJECT_FLAG_SET (mem, GST_GL_BASE_MEMORY_TRANSFER_NEED_DOWNLOAD);
@@ -979,6 +996,7 @@ _default_gl_tex_alloc (GstGLMemoryAllocator * allocator,
     mem->mem.data = params->parent.wrapped_data;
     GST_MINI_OBJECT_FLAG_SET (mem, GST_GL_BASE_MEMORY_TRANSFER_NEED_UPLOAD);
   }
+  GST_ERROR ("gl tex alloc done");
 
   return mem;
 }
@@ -1496,6 +1514,7 @@ gst_gl_memory_setup_buffer (GstGLMemoryAllocator * allocator,
   g_return_val_if_fail (alloc_flags & GST_GL_ALLOCATION_PARAMS_ALLOC_FLAG_VIDEO,
       FALSE);
 
+  GST_ERROR ("setup buffer 1");
   base_allocator = GST_GL_BASE_MEMORY_ALLOCATOR (allocator);
   n_mem = GST_VIDEO_INFO_N_PLANES (params->v_info);
 
@@ -1513,12 +1532,15 @@ gst_gl_memory_setup_buffer (GstGLMemoryAllocator * allocator,
   g_return_val_if_fail (!wrapped_data
       || n_mem * views == n_wrapped_pointers, FALSE);
 
+  GST_ERROR ("setup buffer 2");
   for (v = 0; v < views; v++) {
     GstVideoMeta *meta;
 
+    GST_ERROR ("setup buffer 3");
     for (i = 0; i < n_mem; i++) {
       GstGLMemory *gl_mem;
 
+      GST_ERROR ("setup buffer 4");
       if (tex_formats) {
         params->tex_format = tex_formats[i];
       } else {
@@ -1526,6 +1548,7 @@ gst_gl_memory_setup_buffer (GstGLMemoryAllocator * allocator,
             gst_gl_format_from_video_info (params->parent.context,
             params->v_info, i);
       }
+      GST_ERROR ("setup buffer 5");
 
       params->plane = i;
       if (alloc_flags & GST_GL_ALLOCATION_PARAMS_ALLOC_FLAG_WRAP_SYSMEM) {
@@ -1537,22 +1560,28 @@ gst_gl_memory_setup_buffer (GstGLMemoryAllocator * allocator,
         params->parent.gl_handle = wrapped_data[i];
       }
 
+      GST_ERROR ("setup buffer 6");
       if (!(gl_mem = (GstGLMemory *) gst_gl_base_memory_alloc (base_allocator,
                   (GstGLAllocationParams *) params)))
         return FALSE;
 
+      GST_ERROR ("setup buffer 7");
       gst_buffer_append_memory (buffer, (GstMemory *) gl_mem);
+      GST_ERROR ("setup buffer 8");
     }
 
+    GST_ERROR ("setup buffer 9");
     meta = gst_buffer_add_video_meta_full (buffer, v,
         GST_VIDEO_INFO_FORMAT (params->v_info),
         GST_VIDEO_INFO_WIDTH (params->v_info),
         GST_VIDEO_INFO_HEIGHT (params->v_info), n_mem, params->v_info->offset,
         params->v_info->stride);
+    GST_ERROR ("setup buffer 10");
 
     if (params->valign)
       gst_video_meta_set_alignment (meta, *params->valign);
   }
+  GST_ERROR ("setup buffer done");
 
   return TRUE;
 }

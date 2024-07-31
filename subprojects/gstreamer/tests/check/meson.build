@@ -146,7 +146,7 @@ foreach t : core_tests
   if host_machine.system() != 'emscripten'
     link_args = []
   else
-    link_args = ['--pre-js', join_paths(meson.current_source_dir(), 'pre-js.js')]
+    link_args = ['--pre-js', join_paths(meson.global_source_root(), 'tests', 'emscripten', 'pre-js.js'), '-sEXPORTED_FUNCTIONS=_free']
   endif
 
   if not skip_test

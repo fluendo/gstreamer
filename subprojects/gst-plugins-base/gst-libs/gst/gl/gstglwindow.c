@@ -334,6 +334,10 @@ gst_gl_window_new (GstGLDisplay * display)
   if (!window && (!user_choice || g_strstr_len (user_choice, 5, "winrt")))
     window = GST_GL_WINDOW (gst_gl_window_winrt_egl_new (display));
 #endif
+#if GST_GL_HAVE_WINDOW_HTML2
+  if (!window && (!user_choice || g_strstr_len (user_choice, 5, "html5")))
+    window = GST_GL_WINDOW (gst_gl_window_html5_new (display));
+#endif
 
   if (!window) {
     /* subclass returned a NULL window */
@@ -651,16 +655,19 @@ gst_gl_window_default_send_message (GstGLWindow * window,
   message.data = data;
   message.fired = FALSE;
 
+  GST_ERROR ("default send message 0");
   gst_gl_window_send_message_async (window, (GstGLWindowCB) _run_message_sync,
       &message, NULL);
 
   g_mutex_lock (&window->priv->sync_message_lock);
 
   /* block until opengl calls have been executed in the gl thread */
+  GST_ERROR ("default send message 1");
   while (!message.fired)
     g_cond_wait (&window->priv->sync_message_cond,
         &window->priv->sync_message_lock);
   g_mutex_unlock (&window->priv->sync_message_lock);
+  GST_ERROR ("default send message 2");
 }
 
 /**
@@ -698,13 +705,17 @@ typedef struct _GstGLAsyncMessage
 static gboolean
 _run_message_async (GstGLAsyncMessage * message)
 {
+  GST_ERROR ("Run message async 0 %p", message->callback);
   if (message->callback)
     message->callback (message->data);
+  GST_ERROR ("Run message async 1");
 
   if (message->destroy)
     message->destroy (message->data);
+  GST_ERROR ("Run message async 2");
 
   g_slice_free (GstGLAsyncMessage, message);
+  GST_ERROR ("Run message async done");
 
   return FALSE;
 }
@@ -719,8 +730,10 @@ gst_gl_window_default_send_message_async (GstGLWindow * window,
   message->data = data;
   message->destroy = destroy;
 
+  GST_ERROR ("send message async 0");
   g_main_context_invoke (window->main_context, (GSourceFunc) _run_message_async,
       message);
+  GST_ERROR ("send message async 1");
 }
 
 static gboolean

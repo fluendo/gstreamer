@@ -195,12 +195,13 @@ _gst_gl_feature_check (GstGLContext * context,
     gl_min = data->min_gles_minor;
   }
 
-  GST_DEBUG ("%s, 0x%x, %d.%d vs 0x%x, %d.%d", data->feature_name,
+  GST_ERROR ("%s, 0x%x, %d.%d vs 0x%x, %d.%d", data->feature_name,
       data->gl_availability, gl_maj, gl_min,
       gst_gl_context_get_gl_api (context), gl_major, gl_minor);
 
   /* First check whether the functions should be directly provided by
      GL */
+  GST_ERROR ("check feature 1");
   if (gst_gl_context_check_gl_version (context, data->gl_availability, gl_maj,
           gl_min)) {
     in_core = TRUE;
@@ -211,6 +212,7 @@ _gst_gl_feature_check (GstGLContext * context,
             extensions_string, &suffix))
       goto error;
   }
+  GST_ERROR ("check feature 2");
 
   /* If we couldn't find anything that provides the functions then
      give up */
@@ -218,6 +220,7 @@ _gst_gl_feature_check (GstGLContext * context,
     goto error;
 
   /* Try to get all of the entry points */
+  GST_ERROR ("check feature 3");
   for (func_num = 0; data->functions[func_num].name; func_num++) {
     void *func;
 
@@ -261,7 +264,7 @@ _gst_gl_feature_check (GstGLContext * context,
    * then set all of the functions pointers to NULL so we can safely
    * do feature testing by just looking at the function pointers */
 error:
-  GST_DEBUG ("failed to find feature %s", data->feature_name);
+  GST_ERROR ("failed to find feature %s", data->feature_name);
 
   for (func_num = 0; data->functions[func_num].name; func_num++) {
     *(void **) ((guint8 *) gst_gl +
@@ -269,7 +272,7 @@ error:
   }
 
   if (full_function_name) {
-    GST_DEBUG ("failed to find function %s", full_function_name);
+    GST_ERROR ("failed to find function %s", full_function_name);
     g_free (full_function_name);
   }
 

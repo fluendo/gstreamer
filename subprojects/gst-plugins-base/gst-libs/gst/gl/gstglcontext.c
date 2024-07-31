@@ -87,6 +87,9 @@
 #if GST_GL_HAVE_PLATFORM_EAGL
 #include "eagl/gstglcontext_eagl.h"
 #endif
+#if GST_GL_HAVE_PLATFORM_WEBGL
+#include "web/gstglcontext_webgl.h"
+#endif
 
 extern void _gst_gl_debug_enable (GstGLContext * context);
 
@@ -128,6 +131,7 @@ static GModule *module_gles2;
 static gpointer
 load_gles2_module (gpointer user_data)
 {
+  GST_ERROR (">>>>>>>> lod gles module 0");
 #ifdef GST_GL_LIBGLESV2_MODULE_NAME
   module_gles2 =
       g_module_open (GST_GL_LIBGLESV2_MODULE_NAME, G_MODULE_BIND_LAZY);
@@ -150,6 +154,7 @@ load_gles2_module (gpointer user_data)
 static gpointer
 load_self_module (gpointer user_data)
 {
+  GST_ERROR (">>>>>>>> lod self module 0");
   module_self = g_module_open (NULL, G_MODULE_BIND_LAZY);
 
   return NULL;
@@ -211,6 +216,8 @@ static gpointer gst_gl_context_create_thread (GstGLContext * context);
 static void gst_gl_context_finalize (GObject * object);
 static void gst_gl_context_default_get_gl_platform_version (GstGLContext *
     context, gint * major, gint * minor);
+static GThread * gst_gl_context_default_create_thread (GstGLContext * context,
+    const gchar * name, GThreadFunc run);
 
 struct _GstGLContextPrivate
 {
@@ -307,6 +314,8 @@ gst_gl_context_class_init (GstGLContextClass * klass)
       GST_DEBUG_FUNCPTR (gst_gl_context_default_get_proc_address);
   klass->get_gl_platform_version =
       GST_DEBUG_FUNCPTR (gst_gl_context_default_get_gl_platform_version);
+  klass->create_thread = 
+      GST_DEBUG_FUNCPTR (gst_gl_context_default_create_thread);
 
   G_OBJECT_CLASS (klass)->finalize = gst_gl_context_finalize;
 
@@ -366,6 +375,10 @@ gst_gl_context_new (GstGLDisplay * display)
 #if GST_GL_HAVE_PLATFORM_EGL
   if (!context && (!user_choice || g_strstr_len (user_choice, 3, "egl")))
     context = GST_GL_CONTEXT (gst_gl_context_egl_new (display));
+#endif
+#if GST_GL_HAVE_PLATFORM_WEBGL
+  if (!context && (!user_choice || g_strstr_len (user_choice, 5, "webgl")))
+    context = GST_GL_CONTEXT (gst_gl_context_webgl_new ());
 #endif
 
   if (!context) {
@@ -1062,6 +1075,8 @@ gst_gl_context_create (GstGLContext * context,
   g_mutex_lock (&context->priv->render_lock);
 
   if (!context->priv->created) {
+    GstGLContextClass *context_class;
+
     g_weak_ref_set (&context->priv->other_context_ref, other_context);
     context->priv->error = error;
     if (other_context == NULL)
@@ -1070,8 +1085,9 @@ gst_gl_context_create (GstGLContext * context,
       context->priv->sharegroup =
           _context_share_group_ref (other_context->priv->sharegroup);
 
-    context->priv->gl_thread = g_thread_new ("gstglcontext",
-        (GThreadFunc) gst_gl_context_create_thread, context);
+    context_class = GST_GL_CONTEXT_GET_CLASS (context);
+    context->priv->gl_thread = context_class->create_thread (context,
+        "gstglcontext", (GThreadFunc) gst_gl_context_create_thread);
 
     while (!context->priv->created)
       g_cond_wait (&context->priv->create_cond, &context->priv->render_lock);
@@ -1204,7 +1220,10 @@ static void
 fill_info (GstGLContext * context, gpointer data)
 {
   FillInfoCtx *ctx = data;
+  GST_ERROR ("1");
   ctx->ret = gst_gl_context_fill_info (context, ctx->error);
+  ctx->ret = TRUE;
+  GST_ERROR ("1 done");
 }
 
 static gpointer
@@ -1325,6 +1344,7 @@ gst_gl_context_create_thread (GstGLContext * context)
           compiled_api & user_api & display_api, other_context, error)) {
     GST_WARNING_OBJECT (context, "Failed to create context");
     g_assert (error == NULL || *error != NULL);
+    GST_WARNING_OBJECT (context, "Implementation error: %s", (*error)->message);
     g_free (compiled_api_s);
     g_free (user_api_s);
     g_free (display_api_s);
@@ -1485,6 +1505,7 @@ gst_gl_context_fill_info (GstGLContext * context, GError ** error)
   g_return_val_if_fail (context->priv->active_thread == g_thread_self (),
       FALSE);
 
+  GST_ERROR ("fill info 1");
   gl = context->gl_vtable;
   gl_api = gst_gl_context_get_gl_api (context);
 
@@ -1500,6 +1521,8 @@ gst_gl_context_fill_info (GstGLContext * context, GError ** error)
   }
 
   /* gl api specific code */
+  GST_ERROR ("fill info 2");
+#if 1
   ret = _create_context_info (context, gl_api, &context->priv->gl_major,
       &context->priv->gl_minor, error);
 
@@ -1507,11 +1530,15 @@ gst_gl_context_fill_info (GstGLContext * context, GError ** error)
     g_assert (error == NULL || *error != NULL);
     goto failure;
   }
-
+#endif
+  GST_ERROR ("fill info 3");
   /* GL core contexts and GLES3 */
+#if 0
   if (gl->GetIntegerv && gl->GetStringi && context->priv->gl_major >= 3)
     ext_g_str = _build_extension_string (context);
+#endif
 
+#if 0
   if (ext_g_str && ext_g_str->len) {
     GST_DEBUG_OBJECT (context, "GL_EXTENSIONS: %s", ext_g_str->str);
     _gst_gl_feature_check_ext_functions (context, context->priv->gl_major,
@@ -1529,7 +1556,13 @@ gst_gl_context_fill_info (GstGLContext * context, GError ** error)
 
     context->priv->gl_exts = g_strdup (ext_const_c_str);
   }
+#else
+   _gst_gl_feature_check_ext_functions (context, context->priv->gl_major,
+       context->priv->gl_minor, "");
+#endif
+  GST_ERROR ("fill info 4");
 
+#if 0
   if (gl_api & GST_GL_API_OPENGL3
       && !gst_gl_context_check_gl_version (context, GST_GL_API_OPENGL3, 4, 1)
       && !gst_gl_check_extension ("GL_ARB_ES2_compatibility",
@@ -1540,8 +1573,11 @@ gst_gl_context_fill_info (GstGLContext * context, GError ** error)
   }
 
   gst_gl_context_apply_quirks (context);
+#endif
+  GST_ERROR ("fill info 5");
 
   if (GST_IS_GL_WRAPPED_CONTEXT (context)) {
+    GST_ERROR ("wrapped");
     /* XXX: vfunc? */
 #if GST_GL_HAVE_PLATFORM_GLX
     if (gst_gl_context_get_gl_platform (context) == GST_GL_PLATFORM_GLX
@@ -1637,6 +1673,7 @@ _gst_gl_context_thread_run_generic (RunGenericData * data)
   GST_TRACE_OBJECT (data->context, "running function:%p data:%p", data->func,
       data->data);
 
+  GST_ERROR ("Running function %" GST_PTR_FORMAT, data->func);
   data->func (data->context, data->data);
 }
 
@@ -1662,10 +1699,13 @@ gst_gl_context_thread_add (GstGLContext * context,
   g_return_if_fail (GST_IS_GL_CONTEXT (context));
   g_return_if_fail (func != NULL);
 
+  GST_ERROR ("thead add 1");
   if (GST_IS_GL_WRAPPED_CONTEXT (context))
     g_return_if_fail (context->priv->active_thread == g_thread_self ());
 
+  GST_ERROR ("thead add 2");
   if (context->priv->active_thread == g_thread_self ()) {
+    GST_ERROR ("thead add same thread");
     func (context, data);
     return;
   }
@@ -1676,9 +1716,11 @@ gst_gl_context_thread_add (GstGLContext * context,
 
   window = gst_gl_context_get_window (context);
 
+  GST_ERROR ("thead add 3");
   gst_gl_window_send_message (window,
       GST_GL_WINDOW_CB (_gst_gl_context_thread_run_generic), &rdata);
 
+  GST_ERROR ("thead add 4");
   gst_object_unref (window);
 }
 
@@ -1845,6 +1887,13 @@ gst_gl_context_default_get_gl_platform_version (GstGLContext * context,
     *major = 0;
   if (minor)
     *minor = 0;
+}
+
+static GThread *
+gst_gl_context_default_create_thread (GstGLContext * context,
+    const gchar * name, GThreadFunc run)
+{
+    return g_thread_new (name, run, context);
 }
 
 /**

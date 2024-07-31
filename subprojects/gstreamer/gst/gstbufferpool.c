@@ -321,16 +321,19 @@ do_alloc_buffer (GstBufferPool * pool, GstBuffer ** buffer,
 
   pclass = GST_BUFFER_POOL_GET_CLASS (pool);
 
+  GST_ERROR ("alloc buffer 1");
   if (G_UNLIKELY (!pclass->alloc_buffer))
     goto no_function;
 
   max_buffers = priv->max_buffers;
 
+  GST_ERROR ("alloc buffer 2");
   /* increment the allocation counter */
   cur_buffers = g_atomic_int_add (&priv->cur_buffers, 1);
   if (max_buffers && cur_buffers >= max_buffers)
     goto max_reached;
 
+  GST_ERROR ("alloc buffer 3");
   result = pclass->alloc_buffer (pool, buffer, params);
   if (G_UNLIKELY (result != GST_FLOW_OK))
     goto alloc_failed;
@@ -338,6 +341,7 @@ do_alloc_buffer (GstBufferPool * pool, GstBuffer ** buffer,
   /* lock all metadata and mark as pooled, we want this to remain on
    * the buffer and we want to remove any other metadata that gets added
    * later */
+  GST_ERROR ("alloc buffer 4");
   gst_buffer_foreach_meta (*buffer, mark_meta_pooled, pool);
 
   /* un-tag memory, this is how we expect the buffer when it is
@@ -346,6 +350,7 @@ do_alloc_buffer (GstBufferPool * pool, GstBuffer ** buffer,
 
   GST_LOG_OBJECT (pool, "allocated buffer %d/%d, %p", cur_buffers,
       max_buffers, *buffer);
+  GST_ERROR ("alloc buffer 5");
 
   return result;
 
@@ -378,19 +383,23 @@ default_start (GstBufferPool * pool)
   GstBufferPoolClass *pclass;
 
   pclass = GST_BUFFER_POOL_GET_CLASS (pool);
-
+  GST_ERROR ("default start");
   /* we need to prealloc buffers */
   for (i = 0; i < priv->min_buffers; i++) {
     GstBuffer *buffer;
 
+    GST_ERROR ("alloc");
     if (do_alloc_buffer (pool, &buffer, NULL) != GST_FLOW_OK)
       goto alloc_failed;
 
     /* release to the queue, we call the vmethod directly, we don't need to do
      * the other refcount handling right now. */
+    GST_ERROR ("alloc done");
     if (G_LIKELY (pclass->release_buffer))
       pclass->release_buffer (pool, buffer);
+    GST_ERROR ("release done");
   }
+  GST_ERROR ("default start done");
   return TRUE;
 
   /* ERRORS */
@@ -559,6 +568,7 @@ gst_buffer_pool_set_active (GstBufferPool * pool, gboolean active)
 
   g_return_val_if_fail (GST_IS_BUFFER_POOL (pool), FALSE);
 
+  GST_ERROR ("1");
   GST_LOG_OBJECT (pool, "active %d", active);
 
   priv = pool->priv;
@@ -568,9 +578,13 @@ gst_buffer_pool_set_active (GstBufferPool * pool, gboolean active)
   if (priv->active == active)
     goto was_ok;
 
+  GST_ERROR ("1.1");
+
   /* we need to be configured */
   if (!priv->configured)
     goto not_configured;
+
+  GST_ERROR ("1.2");
 
   if (active) {
     if (!do_start (pool))
@@ -599,7 +613,9 @@ gst_buffer_pool_set_active (GstBufferPool * pool, gboolean active)
 
     priv->active = FALSE;
   }
+  GST_ERROR ("1.3");
   GST_BUFFER_POOL_UNLOCK (pool);
+  GST_ERROR ("2");
 
   return res;
 

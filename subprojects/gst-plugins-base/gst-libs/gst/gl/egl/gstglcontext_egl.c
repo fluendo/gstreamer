@@ -828,6 +828,7 @@ _create_context_with_flags (GstGLContextEGL * egl, EGLContext share_context,
   g_assert (n < N_ATTRIBS);
 #undef N_ATTRIBS
 
+  GST_ERROR ("Creating context");
   return eglCreateContext (egl->egl_display, egl->egl_config, share_context,
       attribs);
 }
@@ -912,12 +913,16 @@ gst_gl_context_egl_create_context (GstGLContext * context,
 
   gst_gl_context_egl_dump_all_configs (egl);
 
+  GST_ERROR_OBJECT (context, "1");
+
   if (gl_api & (GST_GL_API_OPENGL | GST_GL_API_OPENGL3)) {
     GstGLAPI chosen_gl_api = 0;
     gint i;
 
+    GST_ERROR_OBJECT (context, "1.1");
     /* egl + opengl only available with EGL 1.4+ */
     if (egl_major == 1 && egl_minor <= 3) {
+      GST_ERROR_OBJECT (context, "1.1.1");
       if ((gl_api & ~GST_GL_API_OPENGL) == GST_GL_API_NONE) {
         g_set_error (error, GST_GL_CONTEXT_ERROR, GST_GL_CONTEXT_ERROR_OLD_LIBS,
             "EGL version (%i.%i) too old for OpenGL support, (needed at least 1.4)",
@@ -938,7 +943,10 @@ gst_gl_context_egl_create_context (GstGLContext * context,
       }
     }
 
+    GST_ERROR_OBJECT (context, "1.2");
+
     if (!eglBindAPI (EGL_OPENGL_API)) {
+      GST_ERROR_OBJECT (context, "1.2.1");
       g_set_error (error, GST_GL_CONTEXT_ERROR, GST_GL_CONTEXT_ERROR_FAILED,
           "Failed to bind OpenGL API: %s",
           gst_egl_get_error_string (eglGetError ()));
@@ -1005,6 +1013,8 @@ gst_gl_context_egl_create_context (GstGLContext * context,
   } else if (gl_api & GST_GL_API_GLES2) {
     gint i;
 
+    GST_ERROR_OBJECT (context, "2.1");
+
   try_gles2:
     if (!eglBindAPI (EGL_OPENGL_ES_API)) {
       g_set_error (error, GST_GL_CONTEXT_ERROR, GST_GL_CONTEXT_ERROR_FAILED,
@@ -1051,6 +1061,8 @@ gst_gl_context_egl_create_context (GstGLContext * context,
     }
     egl->gl_api = GST_GL_API_GLES2;
   }
+
+  GST_ERROR_OBJECT (context, "2");
 
   if (egl->egl_context != EGL_NO_CONTEXT) {
     GST_INFO ("gl context created: %" G_GUINTPTR_FORMAT,
@@ -1107,7 +1119,13 @@ gst_gl_context_egl_create_context (GstGLContext * context,
   if (window)
     window_handle = gst_gl_window_get_window_handle (window);
 
+  GST_ERROR ("window handle: %p window: %p", window_handle, window);
+
+#ifdef G_PLATFORM_WASM
+  if (TRUE) {
+#else
   if (window_handle) {
+#endif
 #if GST_GL_HAVE_WINDOW_WINRT && defined (EGL_ANGLE_SURFACE_RENDER_TO_BACK_BUFFER)
     const EGLint attrs[] = {
       /* EGL_ANGLE_SURFACE_RENDER_TO_BACK_BUFFER is an optimization that can
@@ -1263,6 +1281,7 @@ gst_gl_context_egl_activate (GstGLContext * context, gboolean activate)
         goto done;
       }
     }
+    GST_ERROR (">>>>>>>>>>>>>> Make current <<<<<<<<<<<<<<<");
     result = eglMakeCurrent (egl->egl_display, egl->egl_surface,
         egl->egl_surface, egl->egl_context);
   } else {
@@ -1313,6 +1332,7 @@ static GModule *module_egl;
 static gpointer
 load_egl_module (gpointer user_data)
 {
+  GST_ERROR ("load egl module");
 #ifdef GST_GL_LIBEGL_MODULE_NAME
   module_egl = g_module_open (GST_GL_LIBEGL_MODULE_NAME, G_MODULE_BIND_LAZY);
 #else
@@ -1335,6 +1355,7 @@ gst_gl_context_egl_get_proc_address (GstGLAPI gl_api, const gchar * name)
   gpointer result = NULL;
   static GOnce g_once = G_ONCE_INIT;
 
+  GST_ERROR ("egl get proc address %s", name);
 #ifdef __APPLE__
 #if GST_GL_HAVE_OPENGL && !defined(GST_GL_LIBGL_MODULE_NAME)
   if (!result && (gl_api & (GST_GL_API_OPENGL | GST_GL_API_OPENGL3))) {
@@ -1362,6 +1383,7 @@ gst_gl_context_egl_get_proc_address (GstGLAPI gl_api, const gchar * name)
 #endif
 #endif // __APPLE__
 
+  GST_ERROR ("egl get proc address %s? %p", name, result);
   if (!result)
     result = gst_gl_context_default_get_proc_address (gl_api, name);
 
@@ -1379,6 +1401,7 @@ gst_gl_context_egl_get_proc_address (GstGLAPI gl_api, const gchar * name)
     result = eglGetProcAddress (name);
 #endif
   }
+  GST_ERROR ("egl get proc address %s = %p", name, result);
 
   return result;
 }

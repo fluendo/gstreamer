@@ -1598,7 +1598,7 @@ priv_gst_get_relocated_libgstreamer (void)
     if (!base_dir)
       return NULL;
 
-    dir = g_build_filename (base_dir, GST_PLUGIN_SUBDIR, NULL);
+    dir = g_build_filename (base_dir, ORC_PLUGIN_SUBDIR, NULL);
     GST_DEBUG ("using DLL dir %s", dir);
 
     g_free (base_dir);

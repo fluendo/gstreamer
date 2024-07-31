@@ -3147,8 +3147,10 @@ gst_base_src_set_allocation (GstBaseSrc * basesrc, GstBufferPool * pool,
 
   if (pool) {
     GST_DEBUG_OBJECT (basesrc, "activate pool");
+    GST_ERROR ("ALL GOOD 1");
     if (!gst_buffer_pool_set_active (pool, TRUE))
       goto activate_failed;
+    GST_ERROR ("ALL GOOD 2");
   }
 
   GST_OBJECT_LOCK (basesrc);
@@ -3180,6 +3182,8 @@ gst_base_src_set_allocation (GstBaseSrc * basesrc, GstBufferPool * pool,
   if (oldalloc) {
     gst_object_unref (oldalloc);
   }
+  GST_ERROR ("ALL GOOD 3");
+
   return TRUE;
 
   /* ERRORS */
