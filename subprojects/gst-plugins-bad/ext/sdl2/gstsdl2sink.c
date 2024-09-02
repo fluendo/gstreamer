@@ -387,7 +387,7 @@ gst_sdl2_sink_class_init (GstSDL2SinkClass * class)
           GST_PAD_ALWAYS,
           GST_STATIC_CAPS ("video/x-raw, "
               /* TODO: support more formats through caps negotiation */
-              "format = RGBA,"
+              "format = BGRA,"
               /* ----------------------------------------------------------- */
               "framerate = (fraction) [ 0, MAX ], "
               "width = (int) [ 1, MAX ], " "height = (int) [ 1, MAX ]"));
