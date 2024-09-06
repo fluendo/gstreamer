@@ -439,7 +439,7 @@ gst_gl_effects_init (GstGLEffects * effects)
 }
 
 static void
-gst_gl_effects_filter_init (GstGLEffects * effects)
+gst_gl_effects_filter_init (GstGLEffects * effects, gpointer class_data)
 {
   gst_gl_effects_set_effect (effects,
       GST_GL_EFFECTS_GET_CLASS (effects)->filter_descriptor->effect);
