@@ -47,6 +47,12 @@ status = "pending"
 
 [[features]]
 remote = "origin"
+name = "wasm-main-gl-support"
+summary = "Add emscripten OpenGL backend"
+status = "pending"
+
+[[features]]
+remote = "origin"
 name = "wasm-main-wip"
 summary = "Commits in progress"
 status = "pending"
