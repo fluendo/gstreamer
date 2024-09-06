@@ -8052,11 +8052,14 @@ gst_value_transform_allocation_params_string (const GValue * value1,
   GstStructure *s;
 
   s = gst_structure_new_id (GST_QUARK (ALLOCATION_PARAMS),
-      GST_QUARK (FLAGS), GST_TYPE_MEMORY_FLAGS, params->flags,
       GST_QUARK (ALIGN), G_TYPE_UINT64, params->align,
       GST_QUARK (PREFIX), G_TYPE_UINT64, params->prefix,
-      GST_QUARK (PADDING), G_TYPE_UINT64, params->padding, NULL);
-
+      GST_QUARK (PADDING), G_TYPE_UINT64, params->padding,
+      /* Keeping GST_TYPE_MEMORY_FLAGS as the first va_arg makes a function
+       * signature problem in Emscripten in G_VALUE_COLLECT_SKIP
+       */
+      GST_QUARK (FLAGS), GST_TYPE_MEMORY_FLAGS, params->flags,
+      NULL);
   res = gst_structure_to_string (s);
   gst_structure_free (s);
 
