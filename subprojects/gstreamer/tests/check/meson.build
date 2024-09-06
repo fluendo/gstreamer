@@ -71,8 +71,8 @@ core_tests = [
   [ 'libs/controller.c' ],
   [ 'libs/flowcombiner.c' ],
   [ 'libs/gstharness.c', not gst_parse ],
-  [ 'libs/gstnetclientclock.c' ],
-  [ 'libs/gstnettimeprovider.c' ],
+  [ 'libs/gstnetclientclock.c', host_machine.system() == 'emscripten'],
+  [ 'libs/gstnettimeprovider.c', host_machine.system() == 'emscripten'],
   [ 'libs/gsttestclock.c' ],
   [ 'libs/libsabi.c' ],
   [ 'libs/sparsefile.c' ],
@@ -147,12 +147,19 @@ foreach t : core_tests
   skip_test = t.get(1, false)
   link_with_libs = t.get(2, [])
 
+  if host_machine.system() != 'emscripten'
+    link_args = []
+  else
+    link_args = ['--pre-js', join_paths(meson.global_source_root(), 'tests', 'emscripten', 'pre-js.js'), '-sEXPORTED_FUNCTIONS=_free']
+  endif
+
   if not skip_test
     exe = executable(test_name, fname,
         c_args : gst_c_args + test_defines,
         cpp_args : gst_c_args + test_defines,
         include_directories : [configinc],
         link_with : link_with_libs,
+        link_args : link_args,
         dependencies : gst_deps + test_deps,
     )
 
