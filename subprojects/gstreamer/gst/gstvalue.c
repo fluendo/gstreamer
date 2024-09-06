@@ -9279,10 +9279,13 @@ gst_value_transform_allocation_params_string (const GValue * value1,
     GstStructure *s = NULL;
 
     s = gst_structure_new_static_str ("GstAllocationParams",
-        "flags", GST_TYPE_MEMORY_FLAGS, params->flags,
         "align", G_TYPE_UINT64, (guint64) params->align,
         "prefix", G_TYPE_UINT64, (guint64) params->prefix,
-        "padding", G_TYPE_UINT64, (guint64) params->padding, NULL);
+        "padding", G_TYPE_UINT64, (guint64) params->padding,
+        /* Keeping GST_TYPE_MEMORY_FLAGS as the first va_arg makes a function
+         * signature problem in Emscripten in G_VALUE_COLLECT_SKIP
+         */
+        "flags", GST_TYPE_MEMORY_FLAGS, (guint64) params->flags, NULL);
 
     res = gst_structure_to_string (s);
     gst_structure_free (s);
