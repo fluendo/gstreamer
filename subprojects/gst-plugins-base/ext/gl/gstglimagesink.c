@@ -2477,6 +2477,7 @@ gst_glimage_sink_on_draw (GstGLImageSink * gl_sink)
 
     gst_gl_overlay_compositor_draw_overlays (gl_sink->overlay_compositor);
   }
+
   /* end default opengl scene */
   window->is_drawing = FALSE;
   gst_object_unref (window);
