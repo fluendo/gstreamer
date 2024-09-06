@@ -71,6 +71,9 @@
 #if GST_GL_HAVE_WINDOW_WINRT
 #include "winrt/gstglwindow_winrt_egl.h"
 #endif
+#if GST_GL_HAVE_WINDOW_CANVAS
+#include "web/gstglwindow_canvas.h"
+#endif
 
 #define USING_OPENGL(context) (gst_gl_context_check_gl_version (context, GST_GL_API_OPENGL, 1, 0))
 #define USING_OPENGL3(context) (gst_gl_context_check_gl_version (context, GST_GL_API_OPENGL3, 3, 1))
@@ -334,6 +337,10 @@ gst_gl_window_new (GstGLDisplay * display)
   if (!window && (!user_choice || g_strstr_len (user_choice, 5, "winrt")))
     window = GST_GL_WINDOW (gst_gl_window_winrt_egl_new (display));
 #endif
+#if GST_GL_HAVE_WINDOW_CANVAS
+  if (!window && (!user_choice || g_strstr_len (user_choice, 5, "canvas")))
+    window = GST_GL_WINDOW (gst_gl_window_canvas_new (display));
+#endif
   if (!window && (!user_choice
           || g_strstr_len (user_choice, 11, "surfaceless")))
     window = GST_GL_WINDOW (gst_gl_dummy_window_new ());
@@ -443,7 +450,11 @@ gst_gl_window_set_window_handle (GstGLWindow * window, guintptr handle)
   g_return_if_fail (GST_IS_GL_WINDOW (window));
   g_return_if_fail (handle != 0);
   window_class = GST_GL_WINDOW_GET_CLASS (window);
-  g_return_if_fail (window_class->set_window_handle != NULL);
+
+  if (!window_class->set_window_handle) {
+    GST_WARNING_OBJECT (window, "Attempting to set a handle on a window is not supported");
+    return;
+  }
 
   data = g_new (GstSetWindowHandleCb, 1);
   data->window = gst_object_ref (window);

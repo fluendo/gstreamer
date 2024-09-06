@@ -119,6 +119,8 @@ _gl_buffer_create (GstGLBuffer * gl_mem, GError ** error)
 
     gl->BufferStorage (gl_mem->target, gl_mem->mem.mem.maxsize, NULL, flags);
   } else {
+    GST_CAT_ERROR (GST_CAT_GL_BUFFER, "gl_buffer_create does not have "
+        "buffer storage: %p %u", gl_mem, gl_mem->id);
     gl->BufferData (gl_mem->target, gl_mem->mem.mem.maxsize, NULL,
         gl_mem->usage_hints);
   }

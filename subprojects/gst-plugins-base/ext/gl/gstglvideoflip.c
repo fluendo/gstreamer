@@ -116,7 +116,7 @@ static GstPadProbeReturn _trans_src_probe (GstPad * pad, GstPadProbeInfo * info,
 
 static void
 gst_gl_video_flip_video_direction_interface_init (GstVideoDirectionInterface
-    * iface);
+    * iface, gpointer iface_data);
 
 #define gst_gl_video_flip_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstGLVideoFlip, gst_gl_video_flip,
@@ -129,7 +129,7 @@ GST_ELEMENT_REGISTER_DEFINE_WITH_CODE (glvideoflip, "glvideoflip",
 
 static void
 gst_gl_video_flip_video_direction_interface_init (GstVideoDirectionInterface
-    * iface)
+    * iface, gpointer iface_data)
 {
   /* We implement the video-direction property */
 }

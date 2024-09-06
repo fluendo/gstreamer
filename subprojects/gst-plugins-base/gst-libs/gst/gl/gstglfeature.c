@@ -261,7 +261,7 @@ _gst_gl_feature_check (GstGLContext * context,
    * then set all of the functions pointers to NULL so we can safely
    * do feature testing by just looking at the function pointers */
 error:
-  GST_DEBUG ("failed to find feature %s", data->feature_name);
+  GST_ERROR ("failed to find feature %s", data->feature_name);
 
   for (func_num = 0; data->functions[func_num].name; func_num++) {
     *(void **) ((guint8 *) gst_gl +
@@ -269,7 +269,7 @@ error:
   }
 
   if (full_function_name) {
-    GST_DEBUG ("failed to find function %s", full_function_name);
+    GST_ERROR ("failed to find function %s", full_function_name);
     g_free (full_function_name);
   }
 

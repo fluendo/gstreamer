@@ -62,6 +62,7 @@ typedef void (*GstGLContextThreadFunc) (GstGLContext * context, gpointer data);
 #define GST_GL_CONTEXT_TYPE_EGL "gst.gl.context.EGL"
 #define GST_GL_CONTEXT_TYPE_WGL "gst.gl.context.WGL"
 #define GST_GL_CONTEXT_TYPE_EAGL "gst.gl.context.EAGL"
+#define GST_GL_CONTEXT_TYPE_WEBGL "gst.gl.context.WEBGL"
 
 /**
  * GstGLContextError:
@@ -163,7 +164,8 @@ struct _GstGLContextClass {
   void          (*get_gl_platform_version) (GstGLContext *context, gint *major, gint *minor);
   GstStructure *(*get_config)         (GstGLContext * context);
   gboolean      (*request_config)     (GstGLContext * context, GstStructure * gl_config);
-
+  GThread      *(*create_thread)      (GstGLContext * context, const gchar * name,
+                                       GThreadFunc run);
   /*< private >*/
   gpointer _reserved[GST_PADDING-2];
 };

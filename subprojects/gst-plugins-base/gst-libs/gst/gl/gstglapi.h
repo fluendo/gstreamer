@@ -85,6 +85,7 @@ typedef enum /*< underscore_name=gst_gl_api >*/ {
  * @GST_GL_PLATFORM_WGL: the WGL platform used primarily on Windows
  * @GST_GL_PLATFORM_CGL: the CGL platform used primarily on OS X
  * @GST_GL_PLATFORM_EAGL: the EAGL platform used primarily on iOS
+ * @GST_GL_PLATFORM_EMSCRIPTEN: the WebGL platform used on most browsers through Emscripten
  * @GST_GL_PLATFORM_ANY: any OpenGL platform
  */
 typedef enum
@@ -95,6 +96,7 @@ typedef enum
   GST_GL_PLATFORM_WGL = (1 << 2),
   GST_GL_PLATFORM_CGL = (1 << 3),
   GST_GL_PLATFORM_EAGL = (1 << 4),
+  GST_GL_PLATFORM_EMSCRIPTEN = (1 << 5),
 
   GST_GL_PLATFORM_ANY = G_MAXUINT32
 } GstGLPlatform;
