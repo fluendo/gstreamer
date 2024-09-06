@@ -48,10 +48,17 @@ foreach itest : base_itests
     skip_itest = itest.get(1)
   endif
 
+  if host_machine.system() != 'emscripten'
+    link_args = []
+  else
+    link_args = ['--pre-js', join_paths(meson.global_source_root(), 'tests', 'emscripten', 'pre-js.js'), '-sEXPORTED_FUNCTIONS=_free']
+  endif
+
   if not skip_itest
     exe = executable(itest_name, fname,
       include_directories : [configinc],
       c_args : ['-DHAVE_CONFIG_H=1' ],
+      link_args : link_args,
       dependencies : itest_deps + extra_deps,
     )
     if is_bench
