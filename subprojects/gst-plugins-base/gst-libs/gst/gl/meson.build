@@ -146,12 +146,14 @@ glconf_options = [
     'GST_GL_HAVE_WINDOW_EAGL',
     'GST_GL_HAVE_WINDOW_VIV_FB',
     'GST_GL_HAVE_WINDOW_GBM',
+    'GST_GL_HAVE_WINDOW_CANVAS',
 
     'GST_GL_HAVE_PLATFORM_EGL',
     'GST_GL_HAVE_PLATFORM_GLX',
     'GST_GL_HAVE_PLATFORM_WGL',
     'GST_GL_HAVE_PLATFORM_CGL',
     'GST_GL_HAVE_PLATFORM_EAGL',
+    'GST_GL_HAVE_PLATFORM_EMSCRIPTEN',
 
     'GST_GL_HAVE_DMABUF',
     'GST_GL_HAVE_VIV_DIRECTVIV',
@@ -232,12 +234,14 @@ if gl_platforms.contains('auto')
   need_platform_cgl = 'auto'
   need_platform_wgl = 'auto'
   need_platform_eagl = 'auto'
+  need_platform_emscripten = 'auto'
 else
   need_platform_egl = 'no'
   need_platform_glx = 'no'
   need_platform_cgl = 'no'
   need_platform_wgl = 'no'
   need_platform_eagl = 'no'
+  need_platform_emscripten = 'no'
   foreach platform : gl_platforms
     if platform == 'egl'
       need_platform_egl = 'yes'
@@ -249,6 +253,8 @@ else
       need_platform_wgl = 'yes'
     elif platform == 'eagl'
       need_platform_eagl = 'yes'
+    elif platform == 'emscripten'
+      need_platform_emscripten = 'yes'
     else
       error('Unsupported GL platform provided ' + platform)
     endif
@@ -269,6 +275,7 @@ if gl_winsys.contains('auto')
   need_win_viv_fb = 'auto'
   need_win_gbm = 'auto'
   need_win_android = 'auto'
+  need_win_canvas = 'auto'
 else
   need_win_x11 = 'no'
   need_win_wayland = 'no'
@@ -282,6 +289,7 @@ else
   need_win_viv_fb = 'no'
   need_win_gbm = 'no'
   need_win_android = 'no'
+  need_win_canvas = 'no'
   foreach winsys : gl_winsys
     if winsys == 'x11'
       need_win_x11 = 'yes'
@@ -307,6 +315,8 @@ else
       need_win_gbm = 'yes'
     elif winsys == 'android'
       need_win_android = 'yes'
+    elif winsys == 'canvas'
+      need_win_canvas = 'yes'
     else
       error('Unsupported GL winsys provided ' + winsys)
     endif
@@ -1017,6 +1027,18 @@ if host_system == 'android' and need_win_android != 'no' and need_platform_egl !
       'android/gstglwindow_android_egl.c'
     ]
   endif
+endif
+
+if host_system == 'emscripten' and need_platform_emscripten != 'no'
+  gl_priv_sources += [
+    'web/gstgldisplay_web.c',
+    'web/gstglcontext_emscripten.c',
+    'web/gstglwindow_canvas.c',
+  ]
+  enabled_gl_winsys += 'canvas'
+  enabled_gl_platforms += 'emscripten'
+  glconf.set('GST_GL_HAVE_WINDOW_CANVAS', 1)
+  glconf.set('GST_GL_HAVE_PLATFORM_EMSCRIPTEN', 1)
 endif
 
 gl_nvmm = false
