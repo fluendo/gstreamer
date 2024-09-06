@@ -137,6 +137,12 @@ test_deps = [gst_dep, gst_base_dep, gst_net_dep, gst_check_dep, audio_dep,
   video_dep, pbutils_dep, rtp_dep, rtsp_dep, tag_dep, allocators_dep, app_dep,
   fft_dep, riff_dep, sdp_dep, gio_dep, valgrind_dep]
 
+if host_machine.system() != 'emscripten'
+  link_args = []
+else
+  link_args = ['--pre-js', join_paths(meson.global_source_root(), 'tests', 'emscripten', 'pre-js.js'), '-sEXPORTED_FUNCTIONS=_free']
+endif
+
 foreach t : base_tests
   fname = t.get(0)
   test_name = fname.split('.').get(0).underscorify()
@@ -156,6 +162,7 @@ foreach t : base_tests
       include_directories : [configinc],
       c_args : ['-DHAVE_CONFIG_H=1' ] + test_defines,
       cpp_args : gst_plugins_base_args,
+      link_args : link_args,
       dependencies : [libm] + test_deps + extra_deps,
     )
 
@@ -179,6 +186,7 @@ foreach group : [1, 2, 3, 4, 5, 6]
   exe = executable(vscale_test_name, join_paths('elements', 'videoscale.c'),
       include_directories : [configinc],
       c_args : ['-DHAVE_CONFIG_H=1', '-DVSCALE_TEST_GROUP=@0@'.format(group) ] + test_defines,
+      link_args : link_args,
       dependencies : [libm] + test_deps + extra_deps)
 
   # TODO Use env.copy when it is in meson
