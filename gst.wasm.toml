@@ -51,6 +51,11 @@ name = "wasm-main-sdl2"
 summary = "Add emscripten helper and sdl2sink"
 status = "pending"
 
+[[features]]
+remote = "origin"
+name = "wasm-main-gl-support"
+summary = "Add emscripten OpenGL backend"
+status = "pending"
 
 [[features]]
 remote = "origin"
