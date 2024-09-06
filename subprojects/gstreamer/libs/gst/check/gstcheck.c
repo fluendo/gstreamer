@@ -388,6 +388,7 @@ static const gchar *log_domains[] = {
  * NOTE: Needs to be called before creating the testsuite
  * so that the tests can be listed.
  * */
+
 void
 gst_check_init (int *argc, char **argv[])
 {
@@ -425,12 +426,12 @@ gst_check_init (int *argc, char **argv[])
 
   g_log_set_handler (NULL, G_LOG_LEVEL_MESSAGE, gst_check_log_message_func,
       NULL);
-  g_log_set_handler (NULL, G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING,
+  g_log_set_handler (NULL, G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
       gst_check_log_critical_func, NULL);
 
   for (i = 0; i < G_N_ELEMENTS (log_domains); ++i) {
     g_log_set_handler (log_domains[i],
-        G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING,
+        G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_LEVEL_WARNING | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
         gst_check_log_critical_func, NULL);
   }
 
@@ -1130,6 +1131,7 @@ gst_check_run_suite (Suite * suite, const gchar * name, const gchar * fname)
   }
 
   timer = g_timer_new ();
+  /* JL: start of doom */
   srunner_run_all (sr, CK_NORMAL);
   nf = srunner_ntests_failed (sr);
   g_print ("Check suite %s ran in %.3fs (tests failed: %d)\n",
