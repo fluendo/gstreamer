@@ -77,6 +77,9 @@
 #if GST_GL_HAVE_WINDOW_GBM
 #include <gst/gl/gbm/gstgldisplay_gbm.h>
 #endif
+#if GST_GL_HAVE_PLATFORM_EMSCRIPTEN
+#include <gst/gl/web/gstgldisplay_web.h>
+#endif
 
 GST_DEBUG_CATEGORY_STATIC (gst_context);
 GST_DEBUG_CATEGORY_STATIC (gst_gl_display_debug);
@@ -312,6 +315,8 @@ gst_gl_display_type_from_environment (void)
       return GST_GL_DISPLAY_TYPE_EGL;
     } else if (g_strstr_len (env, 11, "surfaceless")) {
       return GST_GL_DISPLAY_TYPE_EGL_SURFACELESS;
+    } else if (g_strstr_len (env, 3, "web")) {
+      return GST_GL_DISPLAY_TYPE_WEB;
     } else {
       return GST_GL_DISPLAY_TYPE_NONE;
     }
@@ -427,6 +432,12 @@ gst_gl_display_new_with_type (GstGLDisplayType type)
 #endif
   custom_new_types |= GST_GL_DISPLAY_TYPE_WIN32;
   custom_new_types |= GST_GL_DISPLAY_TYPE_EAGL;
+#if GST_GL_HAVE_PLATFORM_EMSCRIPTEN
+  if (!display && (type & GST_GL_DISPLAY_TYPE_WEB)) {
+    display = GST_GL_DISPLAY (gst_gl_display_web_new (NULL));
+  }
+#endif
+  custom_new_types |= GST_GL_DISPLAY_TYPE_WEB;
 
   if (!display && type != GST_GL_DISPLAY_TYPE_ANY
       && type != GST_GL_DISPLAY_TYPE_NONE) {
