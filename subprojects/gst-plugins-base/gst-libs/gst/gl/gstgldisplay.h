@@ -88,6 +88,11 @@ GType gst_gl_display_get_type (void);
  *
  * Since: 1.24
  */
+/**
+ * @GST_GL_DISPLAY_TYPE_WEB: Web (Emscripten) display
+ *
+ * Since: 1.26
+ */
 typedef enum
 {
   GST_GL_DISPLAY_TYPE_NONE = 0,
@@ -104,6 +109,7 @@ typedef enum
   GST_GL_DISPLAY_TYPE_WINRT = (1 << 10),
   GST_GL_DISPLAY_TYPE_ANDROID = (1 << 11),
   GST_GL_DISPLAY_TYPE_EGL_SURFACELESS = (1 << 12),
+  GST_GL_DISPLAY_TYPE_WEB = (1 << 13),
 
   GST_GL_DISPLAY_TYPE_ANY = G_MAXUINT32
 } GstGLDisplayType;
