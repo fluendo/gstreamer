@@ -467,7 +467,7 @@ gst_qt_mux_base_init (gpointer g_class)
 }
 
 static void
-gst_qt_mux_class_init (GstQTMuxClass * klass)
+gst_qt_mux_class_init (GstQTMuxClass * klass, gpointer klass_data)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
@@ -7605,7 +7605,7 @@ gst_qt_mux_subclass_get_property (GObject * object,
 }
 
 static void
-gst_qt_mux_subclass_class_init (GstQTMuxClass * klass)
+gst_qt_mux_subclass_class_init (GstQTMuxClass * klass, gpointer klass_data)
 {
   GObjectClass *gobject_class = (GObjectClass *) klass;
   GParamFlags streamable_flags;
@@ -7634,7 +7634,7 @@ gst_qt_mux_subclass_class_init (GstQTMuxClass * klass)
 }
 
 static void
-gst_qt_mux_subclass_init (GstQTMux * qtmux)
+gst_qt_mux_subclass_init (GstQTMux * qtmux, GstQTMuxClass * klass)
 {
 }
 
