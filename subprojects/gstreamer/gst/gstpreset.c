@@ -1269,7 +1269,7 @@ gst_preset_is_editable (GstPreset * preset)
 /* class internals */
 
 static void
-gst_preset_class_init (GstPresetInterface * iface)
+gst_preset_class_init (GstPresetInterface * iface, gpointer iface_data)
 {
   iface->get_preset_names = gst_preset_default_get_preset_names;
   iface->get_property_names = gst_preset_default_get_property_names;
