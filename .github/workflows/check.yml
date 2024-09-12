@@ -1,0 +1,24 @@
+name: Check with GUW
+
+on:
+  pull_request:
+    branches:
+      - guw
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install GUW
+        run: |
+          pip install git+https://github.com/fluendo/git-upstream-workflow.git
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: List conf files
+        run: |
+          ls *toml
+          ls *toml | xargs -I "{}" guw {} markdown

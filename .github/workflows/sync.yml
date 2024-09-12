@@ -1,0 +1,25 @@
+name: Sync with GUW
+
+on:
+  push:
+    branches:
+      - guw
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install GUW
+        run: |
+          pip install git+https://github.com/fluendo/git-upstream-workflow.git
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: List conf files
+        run: |
+          ls *toml
+          ls *toml | xargs -I "{}" guw {} markdown
