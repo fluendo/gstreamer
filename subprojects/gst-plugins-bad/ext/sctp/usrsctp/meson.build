@@ -55,7 +55,7 @@ compile_args += [
 
 # OS-specific settings
 system = host_machine.system()
-if system in ['linux', 'android']
+if system in ['linux', 'android', 'emscripten']
     compile_args += [
         '-D_GNU_SOURCE',
     ]
