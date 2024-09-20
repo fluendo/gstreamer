@@ -171,9 +171,9 @@ static GstElementClass *parent_class = NULL;
 static gint private_offset = 0;
 
 static void gst_rtp_base_depayload_class_init (GstRTPBaseDepayloadClass *
-    klass);
+    klass, gpointer ptr);
 static void gst_rtp_base_depayload_init (GstRTPBaseDepayload * rtpbasepayload,
-    GstRTPBaseDepayloadClass * klass);
+    GstRTPBaseDepayloadClass * klass, gpointer ptr);
 static GstEvent *create_segment_event (GstRTPBaseDepayload * filter,
     guint rtptime, GstClockTime position);
 
@@ -264,7 +264,7 @@ extension_accumulator (GSignalInvocationHint * ihint,
 }
 
 static void
-gst_rtp_base_depayload_class_init (GstRTPBaseDepayloadClass * klass)
+gst_rtp_base_depayload_class_init (GstRTPBaseDepayloadClass * klass, gpointer ptr)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
@@ -437,7 +437,7 @@ gst_rtp_base_depayload_class_init (GstRTPBaseDepayloadClass * klass)
 
 static void
 gst_rtp_base_depayload_init (GstRTPBaseDepayload * filter,
-    GstRTPBaseDepayloadClass * klass)
+    GstRTPBaseDepayloadClass * klass, gpointer ptr)
 {
   GstPadTemplate *pad_template;
   GstRTPBaseDepayloadPrivate *priv;
