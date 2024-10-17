@@ -37,8 +37,10 @@ plugin_init (GstPlugin * plugin)
   ret |= GST_ELEMENT_REGISTER (compare, plugin);
   ret |= GST_ELEMENT_REGISTER (debugspy, plugin);
   ret |= GST_ELEMENT_REGISTER (errorignore, plugin);
+#ifndef __EMSCRIPTEN__
   ret |= GST_ELEMENT_REGISTER (fakeaudiosink, plugin);
   ret |= GST_ELEMENT_REGISTER (fakevideosink, plugin);
+#endif
   ret |= GST_ELEMENT_REGISTER (fpsdisplaysink, plugin);
   ret |= GST_ELEMENT_REGISTER (testsrcbin, plugin);
 #ifndef __EMSCRIPTEN__
