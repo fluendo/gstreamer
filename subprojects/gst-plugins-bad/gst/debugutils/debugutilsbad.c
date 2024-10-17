@@ -41,7 +41,9 @@ plugin_init (GstPlugin * plugin)
   ret |= GST_ELEMENT_REGISTER (fakevideosink, plugin);
   ret |= GST_ELEMENT_REGISTER (fpsdisplaysink, plugin);
   ret |= GST_ELEMENT_REGISTER (testsrcbin, plugin);
+#ifndef __EMSCRIPTEN__
   ret |= GST_ELEMENT_REGISTER (videocodectestsink, plugin);
+#endif
   ret |= GST_ELEMENT_REGISTER (watchdog, plugin);
 
   return ret;
