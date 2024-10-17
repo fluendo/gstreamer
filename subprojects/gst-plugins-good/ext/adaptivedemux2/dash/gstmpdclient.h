@@ -120,6 +120,10 @@ gboolean gst_mpd_client2_active_stream_contains_subtitles (GstActiveStream * str
 guint gst_mpd_client2_get_nb_adaptationSet (GstMPDClient2 *client);
 GList * gst_mpd_client2_get_adaptation_sets (GstMPDClient2 * client);
 
+/* Preselections */
+guint gst_mpd_client2_get_nb_preselections (GstMPDClient2 *client);
+GList * gst_mpd_client2_get_preselections (GstMPDClient2 * client);
+
 /* Segment */
 gboolean gst_mpd_client2_has_next_segment (GstMPDClient2 * client, GstActiveStream * stream, gboolean forward);
 GstFlowReturn gst_mpd_client2_advance_segment (GstMPDClient2 * client, GstActiveStream * stream, gboolean forward);

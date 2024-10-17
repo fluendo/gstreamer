@@ -96,6 +96,8 @@ gst_mpd_period_node_finalize (GObject * object)
       (GDestroyNotify) gst_mpd_adaptation_set_node_free);
   g_list_free_full (self->Subsets, (GDestroyNotify) gst_mpd_subset_node_free);
   g_list_free_full (self->BaseURLs, (GDestroyNotify) gst_mpd_baseurl_node_free);
+  g_list_free_full (self->Preselections,
+      (GDestroyNotify) gst_mpd_preselection_node_free);
   if (self->xlink_href)
     xmlFree (self->xlink_href);
 
@@ -137,6 +139,8 @@ gst_mpd_period_get_xml_node (GstMPDNode * node)
       gst_mpd_representation_base_node_get_list_item, period_xml_node);
   g_list_foreach (self->Subsets, gst_mpd_node_get_list_item, period_xml_node);
   g_list_foreach (self->BaseURLs, gst_mpd_node_get_list_item, period_xml_node);
+  g_list_foreach (self->Preselections, gst_mpd_node_get_list_item,
+      period_xml_node);
 
 
   return period_xml_node;
@@ -195,6 +199,7 @@ gst_mpd_period_node_init (GstMPDPeriodNode * self)
   self->AdaptationSets = NULL;
   self->Subsets = NULL;
   self->BaseURLs = NULL;
+  self->Preselections = NULL;
   self->xlink_href = NULL;
   self->actuate = 0;
 }

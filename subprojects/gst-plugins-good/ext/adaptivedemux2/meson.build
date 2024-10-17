@@ -30,6 +30,7 @@ adaptive_sources = [
   'dash/gstmpdparser.c',
   'dash/gstmpdclient.c',
   'dash/gstmpdtextualdescriptornode.c',
+  'dash/gstmpdpreselectionnode.c',
   'mss/gstmssdemux.c',
   'mss/gstmssmanifest.c',
   'mss/gstmssfragmentparser.c',

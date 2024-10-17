@@ -60,6 +60,7 @@
 #include "gstmpdrepresentationbasenode.h"
 #include "gstmpdmultsegmentbasenode.h"
 #include "gstmpdtextualdescriptornode.h"
+#include "gstmpdpreselectionnode.h"
 
 G_BEGIN_DECLS
 

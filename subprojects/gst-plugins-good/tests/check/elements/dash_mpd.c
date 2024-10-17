@@ -48,6 +48,7 @@
 #include "../../ext/adaptivedemux2/dash/gstmpddescriptortypenode.c"
 #include "../../ext/adaptivedemux2/dash/gstmpdclient.c"
 #include "../../ext/adaptivedemux2/dash/gstmpdtextualdescriptornode.c"
+#include "../../ext/adaptivedemux2/dash/gstmpdpreselectionnode.c"
 #undef GST_CAT_DEFAULT
 
 #include <gst/check/gstcheck.h>
@@ -3418,6 +3419,135 @@ GST_START_TEST (dash_mpdparser_adaptationSet_handling)
 
 GST_END_TEST;
 
+
+/*
+ * Test handling Adaptation sets with preselection
+ *
+ */
+GST_START_TEST (dash_mpdparser_adaptationSet_preselection)
+{
+  const gchar *periodName;
+  guint adaptation_sets_count;
+
+  const gchar *xml =
+      "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+      "<MPD "
+      "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+      "    xmlns=\"urn:mpeg:dash:schema:mpd:2011\" "
+      "    xsi:schemaLocation=\"urn:mpeg:dash:schema:mpd:2011 DASH-MPD.xsd\" "
+      "    type=\"dynamic\">"
+      "  <Period id=\"Period0\" start=\"PT0S\">"
+      "    <AdaptationSet id=\"1\" mimeType=\"video/mp4\">"
+      "      <Representation id=\"1\" bandwidth=\"250000\">"
+      "      </Representation>"
+      "    </AdaptationSet>"
+      "    <AdaptationSet id=\"2\" mimeType=\"video/mp4\">"
+      "      <Representation id=\"2\" bandwidth=\"300000\">"
+      "      </Representation>"
+      "    </AdaptationSet>"
+      "    <Preselection id=\"11\" tag=\"1\" lang=\"en\" preselectionComponents=\"1 2\">"
+      "      <AudioChannelConfiguration schemeIdUri=\"AudioChannelConfigurationScheme\" value=\"2\"/>"
+      "      <Label lang=\"label_1\">Label_1</Label>"
+      "      <Role schemeIdUri=\"RoleScheme\" value=\"RoleValue\"/>"
+      "    </Preselection>"
+      "    <Preselection id=\"12\" tag=\"2\" lang=\"es\" preselectionComponents=\"1\">"
+      "      <AudioChannelConfiguration schemeIdUri=\"AudioChannelConfigurationScheme\" value=\"2\"/>"
+      "      <Label lang=\"label_2\">Label_2</Label>"
+      "      <Role schemeIdUri=\"RoleScheme\" value=\"RoleValue\"/>"
+      "    </Preselection>"
+      "    <Preselection id=\"13\" tag=\"2\" lang=\"es\" preselectionComponents=\"1\">"
+      "      <AudioChannelConfiguration schemeIdUri=\"AudioChannelConfigurationScheme\" value=\"2\"/>"
+      "      <Accessibility schemeIdUri=\"AccessibilityScheme\" value=\"AccessibilityValue\"/>"
+      "      <Label lang=\"label_3\">Label_3</Label>"
+      "      <Role schemeIdUri=\"RoleScheme\" value=\"RoleValue\"/>"
+      "      <SupplementalProperty schemeIdUri=\"SupplementalPropertyScheme\" value=\"SupplementalPropertyValue\"/>"
+      "    </Preselection>" "  </Period>" "</MPD>";
+
+
+
+  gboolean ret;
+  GList *preselections;
+  GstMPDPreselectionNode *preselection;
+  GstMPDDescriptorTypeNode *audioChannelConfiguration;
+  GstMPDDescriptorTypeNode *supplementalProperty;
+  GstMPDDescriptorTypeNode *accesibility;
+  GstMPDTextualDescriptorNode *label;
+  GstMPDDescriptorTypeNode *role;
+  GstMPDClient2 *mpdclient = gst_mpd_client2_new ();
+
+  ret = gst_mpd_client2_parse (mpdclient, xml, (gint) strlen (xml));
+  assert_equals_int (ret, TRUE);
+
+  /* process the xml data */
+  ret =
+      gst_mpd_client2_setup_media_presentation (mpdclient, GST_CLOCK_TIME_NONE,
+      -1, NULL);
+  assert_equals_int (ret, TRUE);
+
+  /* period0 has 2 adaptation set */
+  fail_unless (mpdclient->periods != NULL);
+  periodName = gst_mpd_client2_get_period_id (mpdclient);
+  assert_equals_string (periodName, "Period0");
+  adaptation_sets_count = gst_mpd_client2_get_nb_adaptationSet (mpdclient);
+  assert_equals_int (adaptation_sets_count, 2);
+
+  preselections = gst_mpd_client2_get_preselections (mpdclient);
+  fail_if (preselections == NULL);
+
+  assert_equals_int (gst_mpd_client2_get_nb_preselections (mpdclient), 3);
+
+  /* Check everything from first preselection */
+  preselection = preselections->data;
+  fail_if (preselection == NULL);
+  assert_equals_int (preselection->id, 11);
+  assert_equals_string (preselection->tag, "1");
+  assert_equals_string (preselection->preselectionComponents, "1 2");
+  assert_equals_string (preselection->lang, "en");
+
+  audioChannelConfiguration = (GstMPDDescriptorTypeNode *)
+      GST_MPD_REPRESENTATION_BASE_NODE
+      (preselection)->AudioChannelConfiguration->data;
+  fail_if (audioChannelConfiguration == NULL);
+  assert_equals_string (audioChannelConfiguration->schemeIdUri,
+      "AudioChannelConfigurationScheme");
+  assert_equals_string (audioChannelConfiguration->value, "2");
+
+  label = (GstMPDTextualDescriptorNode *) GST_MPD_REPRESENTATION_BASE_NODE
+      (preselection)->Label->data;
+  fail_if (label == NULL);
+  assert_equals_string (label->node_name, "Label");
+  assert_equals_string (label->lang, "label_1");
+  assert_equals_string (label->content, "Label_1");
+
+  role = (GstMPDDescriptorTypeNode *) preselection->Role->data;
+  fail_if (role == NULL);
+  assert_equals_string (role->schemeIdUri, "RoleScheme");
+  assert_equals_string (role->value, "RoleValue");
+
+
+  /* Check some specific attributes from 3th preselection */
+  preselection = (GstMPDPreselectionNode *) g_list_nth_data (preselections, 2);
+  assert_equals_int (preselection->id, 13);
+
+  accesibility = (GstMPDDescriptorTypeNode *) preselection->Accessibility->data;
+  fail_if (accesibility == NULL);
+  assert_equals_string (accesibility->schemeIdUri, "AccessibilityScheme");
+  assert_equals_string (accesibility->value, "AccessibilityValue");
+
+  supplementalProperty = (GstMPDDescriptorTypeNode *)
+      GST_MPD_REPRESENTATION_BASE_NODE (preselection)->
+      SupplementalProperty->data;
+  fail_if (supplementalProperty == NULL);
+  assert_equals_string (supplementalProperty->schemeIdUri,
+      "SupplementalPropertyScheme");
+  assert_equals_string (supplementalProperty->value,
+      "SupplementalPropertyValue");
+
+  gst_mpd_client2_free (mpdclient);
+}
+
+GST_END_TEST;
+
 /*
  * Test handling Representation selection
  *
@@ -6507,6 +6637,7 @@ dash_suite (void)
   tcase_add_test (tc_complexMPD, dash_mpdparser_period_selection);
   tcase_add_test (tc_complexMPD, dash_mpdparser_get_period_at_time);
   tcase_add_test (tc_complexMPD, dash_mpdparser_adaptationSet_handling);
+  tcase_add_test (tc_complexMPD, dash_mpdparser_adaptationSet_preselection);
   tcase_add_test (tc_complexMPD, dash_mpdparser_representation_selection);
   tcase_add_test (tc_complexMPD, dash_mpdparser_multipleSegmentURL);
   tcase_add_test (tc_complexMPD, dash_mpdparser_activeStream_selection);
