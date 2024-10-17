@@ -7,9 +7,6 @@ debugutilsbad_sources = [
   'gstcompare.c',
   'gstdebugspy.c',
   'gsterrorignore.c',
-  'gstfakeaudiosink.c',
-  'gstfakesinkutils.c',
-  'gstfakevideosink.c',
   'gsttestsrcbin.c',
   'gstwatchdog.c',
 ]
@@ -45,7 +42,12 @@ endif
 
 gstdebugutilsbad_deps = [gstbase_dep, gstvideo_dep, gstnet_dep, gstaudio_dep]
 if host_machine.system() != 'emscripten'
-  debugutilsbad_sources += 'gstvideocodectestsink.c'
+  debugutilsbad_sources += [
+    'gstfakeaudiosink.c',
+    'gstfakesinkutils.c',
+    'gstfakevideosink.c',
+    'gstvideocodectestsink.c',
+  ]
   gstdebugutilsbad_deps += gio_dep
 endif
 
