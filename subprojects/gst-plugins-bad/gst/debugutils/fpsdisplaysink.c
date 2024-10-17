@@ -111,7 +111,7 @@ static guint fpsdisplaysink_signals[LAST_SIGNAL] = { 0 };
 static GParamSpec *pspec_last_message = NULL;
 
 static void
-fps_display_sink_class_init (GstFPSDisplaySinkClass * klass)
+fps_display_sink_class_init (GstFPSDisplaySinkClass * klass, gpointer data)
 {
   GObjectClass *gobject_klass = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_klass = GST_ELEMENT_CLASS (klass);
@@ -326,7 +326,7 @@ update_video_sink (GstFPSDisplaySink * self, GstElement * video_sink)
 
 static void
 fps_display_sink_init (GstFPSDisplaySink * self,
-    GstFPSDisplaySinkClass * g_class)
+    GstFPSDisplaySinkClass * g_class, gpointer data)
 {
   self->sync = DEFAULT_SYNC;
   self->signal_measurements = DEFAULT_SIGNAL_FPS_MEASUREMENTS;
