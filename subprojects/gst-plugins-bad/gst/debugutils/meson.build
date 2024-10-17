@@ -11,7 +11,6 @@ debugutilsbad_sources = [
   'gstfakesinkutils.c',
   'gstfakevideosink.c',
   'gsttestsrcbin.c',
-  'gstvideocodectestsink.c',
   'gstwatchdog.c',
 ]
 
@@ -44,11 +43,17 @@ if get_option('debugutils').disabled()
   subdir_done()
 endif
 
+gstdebugutilsbad_deps = [gstbase_dep, gstvideo_dep, gstnet_dep, gstaudio_dep]
+if host_machine.system() != 'emscripten'
+  debugutilsbad_sources += 'gstvideocodectestsink.c'
+  gstdebugutilsbad_deps += gio_dep
+endif
+
 gstdebugutilsbad = library('gstdebugutilsbad',
   debugutilsbad_sources,
   c_args : gst_plugins_bad_args,
   include_directories : [configinc],
-  dependencies : [gstbase_dep, gstvideo_dep, gstnet_dep, gstaudio_dep, gio_dep],
+  dependencies : gstdebugutilsbad_deps,
   install : true,
   install_dir : plugins_install_dir,
 )
