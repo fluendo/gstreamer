@@ -206,6 +206,18 @@ gst_mpd_representation_base_node_finalize (GObject * object)
       (GDestroyNotify) gst_mpd_descriptor_type_node_free);
   g_list_free_full (self->ContentProtection,
       (GDestroyNotify) gst_mpd_descriptor_type_node_free);
+  g_list_free_full (self->OutputProtection,
+      (GDestroyNotify) gst_mpd_descriptor_type_node_free);
+  g_list_free_full (self->EssentialProperty,
+      (GDestroyNotify) gst_mpd_descriptor_type_node_free);
+  g_list_free_full (self->SupplementalProperty,
+      (GDestroyNotify) gst_mpd_descriptor_type_node_free);
+  g_list_free_full (self->InbandEventStream,
+      (GDestroyNotify) gst_mpd_descriptor_type_node_free);
+  g_list_free_full (self->GroupLabel,
+      (GDestroyNotify) gst_mpd_descriptor_type_node_free);
+  g_list_free_full (self->Label,
+      (GDestroyNotify) gst_mpd_textual_descriptor_node_free);
 
   if (self->caps)
     gst_caps_unref (self->caps);
@@ -270,6 +282,19 @@ gst_mpd_representation_base_get_xml_node (GstMPDNode * node,
       gst_mpd_node_get_list_item, representation_base_node);
   g_list_foreach (self->ContentProtection,
       gst_mpd_node_get_list_item, representation_base_node);
+
+  g_list_foreach (self->OutputProtection,
+      gst_mpd_node_get_list_item, representation_base_node);
+  g_list_foreach (self->EssentialProperty,
+      gst_mpd_node_get_list_item, representation_base_node);
+  g_list_foreach (self->SupplementalProperty,
+      gst_mpd_node_get_list_item, representation_base_node);
+  g_list_foreach (self->InbandEventStream,
+      gst_mpd_node_get_list_item, representation_base_node);
+  g_list_foreach (self->GroupLabel,
+      gst_mpd_node_get_list_item, representation_base_node);
+  g_list_foreach (self->Label,
+      gst_mpd_node_get_list_item, representation_base_node);
 }
 
 static void
@@ -330,6 +355,12 @@ gst_mpd_representation_base_node_init (GstMPDRepresentationBaseNode * self)
   self->FramePacking = NULL;
   self->AudioChannelConfiguration = NULL;
   self->ContentProtection = NULL;
+  self->OutputProtection = NULL;
+  self->EssentialProperty = NULL;
+  self->SupplementalProperty = NULL;
+  self->InbandEventStream = NULL;
+  self->GroupLabel = NULL;
+  self->Label = NULL;
 }
 
 void

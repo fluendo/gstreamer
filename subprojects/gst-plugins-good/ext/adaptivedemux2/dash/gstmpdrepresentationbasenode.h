@@ -59,6 +59,12 @@ struct _GstMPDRepresentationBaseNode2
   GList *AudioChannelConfiguration;
   /* list of ContentProtection DescriptorType nodes */
   GList *ContentProtection;
+  GList *OutputProtection;
+  GList *EssentialProperty;
+  GList *SupplementalProperty;
+  GList *InbandEventStream;
+  GList *GroupLabel;
+  GList *Label;
 };
 
 

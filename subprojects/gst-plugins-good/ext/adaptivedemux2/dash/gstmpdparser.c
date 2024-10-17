@@ -536,6 +536,22 @@ beach:
 }
 
 static void
+gst_mpdparser_parse_label_node (GList ** list, xmlNode * a_node)
+{
+  GstMPDTextualDescriptorNode *new_textual_descriptor;
+  new_textual_descriptor =
+      gst_mpd_textual_descriptor_node_new ((const gchar *) a_node->name);
+  *list = g_list_append (*list, new_textual_descriptor);
+
+  GST_LOG ("attributes of %s node:", a_node->name);
+  gst_xml_helper_get_prop_unsigned_integer (a_node, "id", 0,
+      &new_textual_descriptor->id);
+  gst_xml_helper_get_prop_string_stripped (a_node, "lang",
+      &new_textual_descriptor->lang);
+  gst_xml_helper_get_node_content (a_node, &new_textual_descriptor->content);
+}
+
+static void
 gst_mpdparser_parse_representation_base (GstMPDRepresentationBaseNode *
     representation_base, xmlNode * a_node)
 {
@@ -598,6 +614,27 @@ gst_mpdparser_parse_representation_base (GstMPDRepresentationBaseNode *
               (xmlChar *) "ContentProtection") == 0) {
         gst_mpdparser_parse_content_protection_node
             (&representation_base->ContentProtection, cur_node);
+      } else if (xmlStrcmp (cur_node->name,
+              (xmlChar *) "OutputProtection") == 0) {
+        gst_mpdparser_parse_descriptor_type
+            (&representation_base->OutputProtection, cur_node);
+      } else if (xmlStrcmp (cur_node->name,
+              (xmlChar *) "EssentialProperty") == 0) {
+        gst_mpdparser_parse_descriptor_type
+            (&representation_base->EssentialProperty, cur_node);
+      } else if (xmlStrcmp (cur_node->name,
+              (xmlChar *) "SupplementalProperty") == 0) {
+        gst_mpdparser_parse_descriptor_type
+            (&representation_base->SupplementalProperty, cur_node);
+      } else if (xmlStrcmp (cur_node->name,
+              (xmlChar *) "InbandEventStream") == 0) {
+        gst_mpdparser_parse_descriptor_type
+            (&representation_base->InbandEventStream, cur_node);
+      } else if (xmlStrcmp (cur_node->name, (xmlChar *) "GroupLabel") == 0) {
+        gst_mpdparser_parse_label_node (&representation_base->GroupLabel,
+            cur_node);
+      } else if (xmlStrcmp (cur_node->name, (xmlChar *) "Label") == 0) {
+        gst_mpdparser_parse_label_node (&representation_base->Label, cur_node);
       }
     }
   }
