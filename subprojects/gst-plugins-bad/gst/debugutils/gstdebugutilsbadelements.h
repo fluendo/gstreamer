@@ -37,7 +37,9 @@ GST_ELEMENT_REGISTER_DECLARE (fakeaudiosink);
 GST_ELEMENT_REGISTER_DECLARE (fakevideosink);
 GST_ELEMENT_REGISTER_DECLARE (fpsdisplaysink);
 GST_ELEMENT_REGISTER_DECLARE (testsrcbin);
+#ifndef __EMSCRIPTEN__
 GST_ELEMENT_REGISTER_DECLARE (videocodectestsink);
+#endif
 GST_ELEMENT_REGISTER_DECLARE (watchdog);
 
 
