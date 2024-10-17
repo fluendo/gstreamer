@@ -47,6 +47,7 @@
 #include "../../ext/adaptivedemux2/dash/gstmpdurltypenode.c"
 #include "../../ext/adaptivedemux2/dash/gstmpddescriptortypenode.c"
 #include "../../ext/adaptivedemux2/dash/gstmpdclient.c"
+#include "../../ext/adaptivedemux2/dash/gstmpdtextualdescriptornode.c"
 #undef GST_CAT_DEFAULT
 
 #include <gst/check/gstcheck.h>

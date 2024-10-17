@@ -28,7 +28,8 @@ dash_sources = [
   'dash/gstxmlhelper.c',
   'dash/gstmpdhelper.c',
   'dash/gstmpdparser.c',
-  'dash/gstmpdclient.c'
+  'dash/gstmpdclient.c',
+  'dash/gstmpdtextualdescriptornode.c'
 ]
 
 smoothstreaming_sources = [
