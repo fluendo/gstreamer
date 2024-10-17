@@ -55,6 +55,8 @@ struct _GstMPDPeriodNode2
   GList *Subsets;
   /* list of BaseURL nodes */
   GList *BaseURLs;
+  /* list of Preselection nodes */
+  GList *Preselections;
 
   gchar *xlink_href;
   int actuate;

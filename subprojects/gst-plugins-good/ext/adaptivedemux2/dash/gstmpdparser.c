@@ -64,6 +64,8 @@ static gboolean gst_mpdparser_parse_representation_node (GList ** list,
     GstMPDPeriodNode * period_node);
 static gboolean gst_mpdparser_parse_adaptation_set_node (GList ** list,
     xmlNode * a_node, GstMPDPeriodNode * parent);
+static gboolean gst_mpdparser_parse_preselection_node (GList ** list,
+    xmlNode * a_node, GstMPDPeriodNode * parent);
 static void gst_mpdparser_parse_subset_node (GList ** list, xmlNode * a_node);
 static gboolean
 gst_mpdparser_parse_segment_template_node (GstMPDSegmentTemplateNode ** pointer,
@@ -710,6 +712,50 @@ error:
 }
 
 static gboolean
+gst_mpdparser_parse_preselection_node (GList ** list, xmlNode * a_node,
+    GstMPDPeriodNode * parent)
+{
+  xmlNode *cur_node;
+  GstMPDPreselectionNode *new_preselection;
+  new_preselection = gst_mpd_preselection_node_new ();
+
+  GST_LOG ("attributes of Preselections node:");
+
+  gst_xml_helper_get_prop_unsigned_integer (a_node, "id", 0,
+      &new_preselection->id);
+  gst_xml_helper_get_prop_string (a_node, "tag", &new_preselection->tag);
+  gst_xml_helper_get_prop_string (a_node, "preselectionComponents",
+      &new_preselection->preselectionComponents);
+  gst_xml_helper_get_prop_string (a_node, "codecs", &new_preselection->codecs);
+  gst_xml_helper_get_prop_string (a_node, "lang", &new_preselection->lang);
+
+  /* RepresentationBase extension */
+  gst_mpdparser_parse_representation_base
+      (GST_MPD_REPRESENTATION_BASE_NODE (new_preselection), a_node);
+
+  /* explore children nodes */
+  for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+      if (xmlStrcmp (cur_node->name, (xmlChar *) "Accessibility") == 0) {
+        gst_mpdparser_parse_descriptor_type (&new_preselection->Accessibility,
+            cur_node);
+      } else if (xmlStrcmp (cur_node->name, (xmlChar *) "Role") == 0) {
+        gst_mpdparser_parse_descriptor_type (&new_preselection->Role, cur_node);
+      } else if (xmlStrcmp (cur_node->name, (xmlChar *) "Rating") == 0) {
+        gst_mpdparser_parse_descriptor_type (&new_preselection->Rating,
+            cur_node);
+      } else if (xmlStrcmp (cur_node->name, (xmlChar *) "Viewpoint") == 0) {
+        gst_mpdparser_parse_descriptor_type (&new_preselection->Viewpoint,
+            cur_node);
+      }
+    }
+  }
+
+  *list = g_list_append (*list, new_preselection);
+  return TRUE;
+}
+
+static gboolean
 gst_mpdparser_parse_adaptation_set_node (GList ** list, xmlNode * a_node,
     GstMPDPeriodNode * parent)
 {
@@ -940,6 +986,16 @@ gst_mpdparser_parse_period_node (GList ** list, xmlNode * a_node)
         gst_mpdparser_parse_subset_node (&new_period->Subsets, cur_node);
       } else if (xmlStrcmp (cur_node->name, (xmlChar *) "BaseURL") == 0) {
         gst_mpdparser_parse_baseURL_node (&new_period->BaseURLs, cur_node);
+      }
+    }
+  }
+
+  for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+      if (xmlStrcmp (cur_node->name, (xmlChar *) "Preselection") == 0) {
+        if (!gst_mpdparser_parse_preselection_node
+            (&new_period->Preselections, cur_node, new_period))
+          goto error;
       }
     }
   }
