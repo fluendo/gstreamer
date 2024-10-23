@@ -150,6 +150,9 @@ struct _GstPadPrivate
    * by a single thread at a time. Protected by the object lock */
   GCond activation_cond;
   gboolean in_activation;
+
+  /* the pad is creating the task */
+  gboolean task_creating;
 };
 
 typedef struct
@@ -6426,7 +6429,7 @@ gst_pad_start_task (GstPad * pad, GstTaskFunction func, gpointer user_data,
     GDestroyNotify notify)
 {
   GstTask *task;
-  gboolean res;
+  gboolean res = FALSE;
 
   g_return_val_if_fail (GST_IS_PAD (pad), FALSE);
   g_return_val_if_fail (func != NULL, FALSE);
@@ -6436,12 +6439,12 @@ gst_pad_start_task (GstPad * pad, GstTaskFunction func, gpointer user_data,
   GST_OBJECT_LOCK (pad);
   task = GST_PAD_TASK (pad);
   if (task == NULL) {
+    /* We are creating the task, this is the only moment we allow
+     * calling #gst_pad_set_task
+     */
+    pad->priv->task_creating = TRUE;
+
     task = gst_task_new (func, user_data, notify);
-    notify = NULL;
-    gst_task_set_lock (task, GST_PAD_GET_STREAM_LOCK (pad));
-    gst_task_set_enter_callback (task, pad_enter_thread, pad, NULL);
-    gst_task_set_leave_callback (task, pad_leave_thread, pad, NULL);
-    GST_INFO_OBJECT (pad, "created task %p", task);
     GST_PAD_TASK (pad) = task;
     gst_object_ref (task);
     /* release lock to post the message */
@@ -6452,11 +6455,26 @@ gst_pad_start_task (GstPad * pad, GstTaskFunction func, gpointer user_data,
     gst_object_unref (task);
 
     GST_OBJECT_LOCK (pad);
-    /* nobody else is supposed to have changed the pad now */
-    if (GST_PAD_TASK (pad) != task)
-      goto concurrent_stop;
+
+    if (GST_PAD_TASK (pad) != task) {
+      GST_DEBUG_OBJECT (pad, "replaced task");
+
+      task = GST_PAD_TASK (pad);
+      /* The application might have changed the task, set the values now */
+      if (task->func != func || task->user_data != user_data || task->notify != notify) {
+        GST_ERROR_OBJECT (task, "Provided task has wrong values");
+        goto wrong_task;
+      }
+    }
+    pad->priv->task_creating = FALSE;
+    gst_task_set_lock (task, GST_PAD_GET_STREAM_LOCK (pad));
+    gst_task_set_enter_callback (task, pad_enter_thread, pad, NULL);
+    gst_task_set_leave_callback (task, pad_leave_thread, pad, NULL);
+    notify = NULL;
   }
   res = gst_task_set_state (task, GST_TASK_STARTED);
+
+wrong_task:
   GST_OBJECT_UNLOCK (pad);
 
   /* free user_data if it wasn't used for gst_task_new */
@@ -6464,13 +6482,29 @@ gst_pad_start_task (GstPad * pad, GstTaskFunction func, gpointer user_data,
     notify (user_data);
 
   return res;
+}
 
-  /* ERRORS */
-concurrent_stop:
-  {
+gboolean
+gst_pad_set_task (GstPad * pad, GstTask * task)
+{
+  GstTask *old;
+
+  GST_DEBUG_OBJECT (pad, "Setting task " GST_PTR_FORMAT, task);
+  GST_OBJECT_LOCK (pad);
+  if (!pad->priv->task_creating) {
+    gst_object_unref (task);
     GST_OBJECT_UNLOCK (pad);
-    return TRUE;
+    return FALSE;
   }
+
+  old = GST_PAD_TASK (pad);
+  if (old) {
+    gst_object_unref (old);
+  }
+  
+  GST_PAD_TASK (pad) = task;
+  GST_OBJECT_UNLOCK (pad);
+  return TRUE;
 }
 
 /**
@@ -6509,6 +6543,45 @@ gst_pad_pause_task (GstPad * pad)
   GST_PAD_STREAM_LOCK (pad);
   GST_PAD_STREAM_UNLOCK (pad);
 
+  return res;
+
+no_task:
+  {
+    GST_DEBUG_OBJECT (pad, "pad has no task");
+    GST_OBJECT_UNLOCK (pad);
+    return FALSE;
+  }
+}
+
+/**
+ * gst_pad_resume_task:
+ * @pad: the #GstPad to resume the task of
+ *
+ * Resume the task of @pad. This function will resume a task which was
+ * previously paused with #gst_pad_pause_task.
+
+ * This function will deadlock if called from the GstTaskFunction of
+ * the task. The pad's lock is not recursive.
+ *
+ * Returns: a %TRUE if the task could be resumed or %FALSE when the pad
+ * has no task or it can not be resumed.
+ */
+gboolean
+gst_pad_resume_task (GstPad * pad)
+{
+  GstTask *task;
+  gboolean res;
+
+  g_return_val_if_fail (GST_IS_PAD (pad), FALSE);
+
+  GST_DEBUG_OBJECT (pad, "resuming task");
+  GST_OBJECT_LOCK (pad);
+  task = GST_PAD_TASK (pad);
+  if (task == NULL)
+    goto no_task;
+
+  res = gst_task_resume (task);
+  GST_OBJECT_UNLOCK (pad);
   return res;
 
 no_task:
