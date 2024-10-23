@@ -240,6 +240,36 @@ ensure_klass_pool (GstTaskClass * klass)
   klass->pool = _global_task_pool;
 }
 
+/* Called with TASK_LOCK */
+static void
+gst_task_default_execute (GstTask * task, GRecMutex * lock)
+{
+  while (G_LIKELY (GET_TASK_STATE (task) != GST_TASK_STOPPED)) {
+    GST_OBJECT_LOCK (task);
+    while (G_UNLIKELY (GST_TASK_STATE (task) == GST_TASK_PAUSED)) {
+      g_rec_mutex_unlock (lock);
+
+      GST_TASK_SIGNAL (task);
+      GST_INFO_OBJECT (task, "Task going to paused");
+      GST_TASK_WAIT (task);
+      GST_INFO_OBJECT (task, "Task resume from paused");
+      GST_OBJECT_UNLOCK (task);
+      /* locking order.. */
+      g_rec_mutex_lock (lock);
+      GST_OBJECT_LOCK (task);
+    }
+
+    if (G_UNLIKELY (GET_TASK_STATE (task) == GST_TASK_STOPPED)) {
+      GST_OBJECT_UNLOCK (task);
+      break;
+    } else {
+      GST_OBJECT_UNLOCK (task);
+    }
+
+    task->func (task->user_data);
+  }
+}
+
 static void
 gst_task_class_init (GstTaskClass * klass)
 {
@@ -248,6 +278,7 @@ gst_task_class_init (GstTaskClass * klass)
   gobject_class = (GObjectClass *) klass;
 
   gobject_class->finalize = gst_task_finalize;
+  klass->execute = gst_task_default_execute;
 }
 
 static void
@@ -346,6 +377,7 @@ gst_task_func (GstTask * task)
   GRecMutex *lock;
   GThread *tself;
   GstTaskPrivate *priv;
+  GstTaskClass *klass;
 
   priv = task->priv;
 
@@ -374,30 +406,9 @@ gst_task_func (GstTask * task)
   /* configure the thread name now */
   gst_task_configure_name (task);
 
-  while (G_LIKELY (GET_TASK_STATE (task) != GST_TASK_STOPPED)) {
-    GST_OBJECT_LOCK (task);
-    while (G_UNLIKELY (GST_TASK_STATE (task) == GST_TASK_PAUSED)) {
-      g_rec_mutex_unlock (lock);
-
-      GST_TASK_SIGNAL (task);
-      GST_INFO_OBJECT (task, "Task going to paused");
-      GST_TASK_WAIT (task);
-      GST_INFO_OBJECT (task, "Task resume from paused");
-      GST_OBJECT_UNLOCK (task);
-      /* locking order.. */
-      g_rec_mutex_lock (lock);
-      GST_OBJECT_LOCK (task);
-    }
-
-    if (G_UNLIKELY (GET_TASK_STATE (task) == GST_TASK_STOPPED)) {
-      GST_OBJECT_UNLOCK (task);
-      break;
-    } else {
-      GST_OBJECT_UNLOCK (task);
-    }
-
-    task->func (task->user_data);
-  }
+  klass = GST_TASK_GET_CLASS (task);
+  if (klass->execute)
+    klass->execute (task, lock);
 
   g_rec_mutex_unlock (lock);
 
@@ -571,6 +582,23 @@ gst_task_get_pool (GstTask * task)
   return result;
 }
 
+gpointer
+gst_task_get_id (GstTask * task)
+{
+  GstTaskPrivate *priv;
+  gpointer *result;
+
+  g_return_val_if_fail (GST_IS_TASK (task), NULL);
+
+  priv = task->priv;
+
+  GST_OBJECT_LOCK (task);
+  result = priv->id;
+  GST_OBJECT_UNLOCK (task);
+
+  return result;
+}
+
 /**
  * gst_task_set_pool:
  * @task: a #GstTask
@@ -738,6 +766,7 @@ start_task (GstTask * task)
 static inline gboolean
 gst_task_set_state_unlocked (GstTask * task, GstTaskState state)
 {
+  GstTaskClass *klass;
   GstTaskState old;
   gboolean res = TRUE;
 
@@ -748,10 +777,20 @@ gst_task_set_state_unlocked (GstTask * task, GstTaskState state)
     if (G_UNLIKELY (GST_TASK_GET_LOCK (task) == NULL))
       goto no_lock;
 
+  klass = GST_TASK_GET_CLASS (task);
   /* if the state changed, do our thing */
   old = GET_TASK_STATE (task);
   if (old != state) {
     SET_TASK_STATE (task, state);
+  }
+
+  /* See if the subclass wants to process something before */
+  GST_OBJECT_UNLOCK (task);
+  if (klass->set_state)
+    klass->set_state (task, old, state);
+  GST_OBJECT_LOCK (task);
+
+  if (old != state) {
     switch (old) {
       case GST_TASK_STOPPED:
         /* If the task already has a thread scheduled we don't have to do
