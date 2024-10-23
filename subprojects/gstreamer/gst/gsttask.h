@@ -160,8 +160,14 @@ struct _GstTaskClass {
   /*< private >*/
   GstTaskPool *pool;
 
+  /*< public >*/
+  /* virtual methods for subclasses */
+  /* Called with the TASK_LOCK taken */
+  void (*execute) (GstTask *task, GRecMutex *lock);
+  void (*set_state) (GstTask *task, GstTaskState old_state, GstTaskState new_state);
+
   /*< private >*/
-  gpointer _gst_reserved[GST_PADDING];
+  gpointer _gst_reserved[GST_PADDING - 1];
 };
 
 GST_API
@@ -178,6 +184,9 @@ void            gst_task_set_lock       (GstTask *task, GRecMutex *mutex);
 
 GST_API
 GstTaskPool *   gst_task_get_pool       (GstTask *task);
+
+GST_API
+gpointer        gst_task_get_id         (GstTask * task);
 
 GST_API
 void            gst_task_set_pool       (GstTask *task, GstTaskPool *pool);
