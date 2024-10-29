@@ -6387,19 +6387,19 @@ gst_pad_start_task (GstPad * pad, GstTaskFunction func, gpointer user_data,
     GST_OBJECT_LOCK (pad);
 
     if (GST_PAD_TASK (pad) != task) {
+      GST_DEBUG_OBJECT (pad, "replaced task");
+
       task = GST_PAD_TASK (pad);
       /* The application might have changed the task, set the values now */
       if (task->func != func || task->user_data != user_data || task->notify != notify) {
         GST_ERROR_OBJECT (task, "Provided task has wrong values");
         goto wrong_task;
       }
-    
-      GST_DEBUG_OBJECT (pad, "replaced task");
-      gst_task_set_lock (task, GST_PAD_GET_STREAM_LOCK (pad));
-      gst_task_set_enter_callback (task, pad_enter_thread, pad, NULL);
-      gst_task_set_leave_callback (task, pad_leave_thread, pad, NULL);
     }
     pad->priv->task_creating = FALSE;
+    gst_task_set_lock (task, GST_PAD_GET_STREAM_LOCK (pad));
+    gst_task_set_enter_callback (task, pad_enter_thread, pad, NULL);
+    gst_task_set_leave_callback (task, pad_leave_thread, pad, NULL);
     notify = NULL;
   }
   res = gst_task_set_state (task, GST_TASK_STARTED);
