@@ -2309,7 +2309,11 @@ gst_video_decoder_reset (GstVideoDecoder * decoder, gboolean full,
 
   GST_DEBUG_OBJECT (decoder, "reset full %d", full);
 
+  GST_DEBUG_OBJECT (decoder, "reset about to lock");
+
   GST_VIDEO_DECODER_STREAM_LOCK (decoder);
+
+  GST_DEBUG_OBJECT (decoder, "reset locked");
 
   if (full || flush_hard) {
     gst_segment_init (&decoder->input_segment, GST_FORMAT_UNDEFINED);
@@ -2343,6 +2347,7 @@ gst_video_decoder_reset (GstVideoDecoder * decoder, gboolean full,
     GST_OBJECT_UNLOCK (decoder);
     priv->distance_from_sync = -1;
   }
+  GST_DEBUG_OBJECT (decoder, "finished step 1");
 
   if (full) {
     if (priv->input_state)
@@ -2388,6 +2393,8 @@ gst_video_decoder_reset (GstVideoDecoder * decoder, gboolean full,
     }
   }
 
+  GST_DEBUG_OBJECT (decoder, "finished step 2");
+
   priv->discont = TRUE;
 
   priv->last_timestamp_out = GST_CLOCK_TIME_NONE;
@@ -2395,9 +2402,14 @@ gst_video_decoder_reset (GstVideoDecoder * decoder, gboolean full,
 
   priv->input_offset = 0;
   priv->frame_offset = 0;
+
+  GST_DEBUG_OBJECT (decoder, "clear adapter");
+
   gst_adapter_clear (priv->input_adapter);
   gst_adapter_clear (priv->output_adapter);
   g_queue_clear_full (&priv->timestamps, (GDestroyNotify) timestamp_free);
+
+  GST_DEBUG_OBJECT (decoder, "bytes out time 0");
 
   GST_OBJECT_LOCK (decoder);
   priv->bytes_out = 0;
@@ -2407,6 +2419,7 @@ gst_video_decoder_reset (GstVideoDecoder * decoder, gboolean full,
 #ifndef GST_DISABLE_DEBUG
   priv->last_reset_time = gst_util_get_timestamp ();
 #endif
+  GST_DEBUG_OBJECT (decoder, "reset full finished %d", full);
 
   GST_VIDEO_DECODER_STREAM_UNLOCK (decoder);
 }
