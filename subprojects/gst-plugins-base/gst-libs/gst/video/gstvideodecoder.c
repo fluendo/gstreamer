@@ -4193,6 +4193,12 @@ gst_video_decoder_get_frame (GstVideoDecoder * decoder, int frame_number)
   return frame;
 }
 
+static GstVideoCodecFrame *
+gst_video_codec_frame_ref_with_data (GstVideoCodecFrame * frame, gpointer data)
+{
+  return gst_video_codec_frame_ref (frame);
+}
+
 /**
  * gst_video_decoder_get_frames:
  * @decoder: a #GstVideoDecoder
@@ -4209,7 +4215,7 @@ gst_video_decoder_get_frames (GstVideoDecoder * decoder)
   GST_VIDEO_DECODER_STREAM_LOCK (decoder);
   frames =
       g_list_copy_deep (decoder->priv->frames.head,
-      (GCopyFunc) gst_video_codec_frame_ref, NULL);
+      (GCopyFunc) gst_video_codec_frame_ref_with_data, NULL);
   GST_VIDEO_DECODER_STREAM_UNLOCK (decoder);
 
   return frames;
