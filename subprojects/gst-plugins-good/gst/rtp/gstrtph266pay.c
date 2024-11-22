@@ -108,7 +108,7 @@ typedef enum
 {
   ALIGNMENT_AU,
   ALIGNMENT_NAL,
-  ALIGNMENT_UNKOWN,
+  ALIGNMENT_UNKNOWN,
 } Alignment;
 
 typedef enum
@@ -295,7 +295,7 @@ gst_rtp_h266_pay_init (GstRtpH266Pay * rtph266pay)
   rtph266pay->xps_id_nalu_map =
       g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL,
       (GDestroyNotify) _nalu_free);
-  rtph266pay->alignment = ALIGNMENT_UNKOWN;
+  rtph266pay->alignment = ALIGNMENT_UNKNOWN;
   rtph266pay->ts_last_xps_to_sent = GST_CLOCK_TIME_NONE;
   rtph266pay->config_interval = DEFAULT_CONFIG_INTERVAL;
   rtph266pay->aggregate_mode = DEFAULT_AGGREGATE_MODE;
@@ -397,7 +397,7 @@ _set_caps (GstRTPBasePayload * rtpbasepay, GstCaps * caps)
     } else if (g_str_equal (alignment_str, "nal")) {
       rtph266pay->alignment = ALIGNMENT_NAL;
     } else {
-      rtph266pay->alignment = ALIGNMENT_UNKOWN;
+      rtph266pay->alignment = ALIGNMENT_UNKNOWN;
     }
   }
 
@@ -682,7 +682,7 @@ _push_pending_data (GstRtpH266Pay * rtph266pay, gboolean eos)
       ret = _push_aggregated (rtph266pay);      // Push what we have right now
       if (ret != GST_FLOW_OK)
         return ret;
-    } else {                    // Not aggregation path
+    } else {                    // no-aggregation path
       gboolean is_last = g_queue_get_length (nalus) == 0;
       // Can't push the last NALU without knowing if it's the end of an AU,
       // because setting the M bit could be necessary. But have to push it if
