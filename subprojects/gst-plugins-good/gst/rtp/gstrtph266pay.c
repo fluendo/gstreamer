@@ -667,8 +667,18 @@ _push_pending_data (GstRtpH266Pay * rtph266pay, gboolean eos)
   _insert_ps_cache (rtph266pay);
   _set_au_boundaries (rtph266pay);
 
-  // Try to push all NALUs
+  // 1. Aggregate NALUs while possible
+  // ---- vvv Can't aggregate anymore vvv ----
+  // 2. If it has been possible to **aggregate something**:
+  //   1. Keep the current NALU, it'll be processed later
+  //   2. Send the current Aggregation Packet
+  // 3. If it has been possible to **aggregate nothing**:
+  //   * If the packet fits into a MTP -> Send a Unit Packet
+  //   * Else -> Send two or more Fragmentation Units
+  //
+  // Note: _push_aggregated will send a UP when there is only 1 NALU aggregated
   while ((nalu = g_queue_pop_head (nalus))) {
+    // Aggregate NALUs while possible
     if (_can_aggregate_nalu (rtph266pay, nalu)) {
       _aggregated_nalus_add (aggregated_nalus, nalu);
       GST_DEBUG_OBJECT (rtph266pay, "NALU aggregated: %" NALU_PTR_FORMAT,
@@ -707,6 +717,8 @@ _push_pending_data (GstRtpH266Pay * rtph266pay, gboolean eos)
     }
   }
 
+  // If we already have an Access Unit aggregated, sent it right now instead of
+  // waiting for the next buffer. An AP can't have more than 1 AU aggregated.
   if (_aggregated_nalus_have_au (aggregated_nalus))
     return _push_aggregated (rtph266pay);
   return GST_FLOW_OK;
