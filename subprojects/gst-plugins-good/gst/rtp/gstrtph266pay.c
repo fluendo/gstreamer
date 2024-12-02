@@ -100,9 +100,9 @@ typedef struct
 } Nalu;
 
 #define NALU_PTR_FORMAT \
-  "p, size: %u, type: %u, ps_id: %u, au_start: %s, au_end: %s"
+  "p, size: %u, f_bit: %d, layer_id: %d, type: %u, ps_id: %u, au_start: %s, au_end: %s"
 #define NALU_ARGS(nalu) \
-  (nalu), (nalu)->size, (nalu)->type, (nalu)->ps_id, (nalu)->au_start ? "true" : "false", (nalu)->au_end ? "true" : "false"
+  (nalu), (nalu)->size, (nalu)->f_bit, (nalu)->layer_id, (nalu)->type, (nalu)->ps_id, (nalu)->au_start ? "true" : "false", (nalu)->au_end ? "true" : "false"
 
 typedef enum
 {
