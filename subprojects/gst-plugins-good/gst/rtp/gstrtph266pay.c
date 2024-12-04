@@ -821,7 +821,7 @@ _push_aggregated (GstRtpH266Pay * rtph266pay)
       GST_BUFFER_COPY_FLAGS | GST_BUFFER_COPY_TIMESTAMPS, 0, -1);
   gst_rtp_buffer_set_marker (&rtp, nalu->au_end);
 
-  // Append PayloadHdr
+  // Append PayloadHdr (RFC 9328 4.3.2)
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   // |F|Z| MinLayerID| Type(28)| TID |
   // +---------------+---------------+
@@ -952,7 +952,7 @@ _extract_fu (GstRtpH266Pay * rtph266pay, const Nalu * nalu,
   fu_hdr = gst_rtp_buffer_get_payload (&rtp);
   g_assert (fu_hdr);
 
-  // Setup PayloadHdr and FU Header
+  // Setup PayloadHdr and FU Header (RFC 9328 4.3.3)
   // |     PayloadHdr (NALU HDR)     |   FU HEADER   |
   // |-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|-+-+-+-+-+-+-+-|
   // |F|Z| LayerID   | Type(29)| TID |S|E|P|  FuType |
@@ -989,6 +989,7 @@ _get_nalu_running_time (const GstRtpH266Pay * rtph266pay, const Nalu * nalu)
 static Nalu *
 _nalu_new (GstBuffer * nalu_buf)
 {
+  // ITU-T H.266 V3: 7.3.1.2, 7.3.2.3, 7.3.2.4, 7.3.2.5, 7.3.2.6
   // |            NALU HDR           |  2 first bytes of PS
   // |-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|-+-+-+-+-+-+-+-:-+-+-+-+-+-+-+-:-+-+
   // |F|Z| LayerID   |   Type  | TID | [VPS, PPS, SPS, PAPS, SAPS]   : ...
