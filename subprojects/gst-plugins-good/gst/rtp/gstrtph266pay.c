@@ -38,22 +38,50 @@ GST_DEBUG_CATEGORY_STATIC (GST_CAT_DEFAULT);
 
 typedef enum
 {
-  NALU_TYPE_VPS = 14,
-  NALU_TYPE_SPS = 15,
-  NALU_TYPE_PPS = 16,
-  NALU_TYPE_PAPS = 17,
-  NALU_TYPE_SAPS = 18,
-  NALU_TYPE_AUD = 20,
+  NALU_TYPE_TRAIL_NUT = 0,
+  NALU_TYPE_STSA_NUT = 1,
+  NALU_TYPE_RADL_NUT = 2,
+  NALU_TYPE_RASL_NUT = 3,
+  NALU_TYPE_RSV_VCL_4 = 4,
+  NALU_TYPE_RSV_VCL_5 = 5,
+  NALU_TYPE_RSV_VCL_6 = 6,
+  NALU_TYPE_IDR_W_RADL = 7,
+  NALU_TYPE_IDR_N_LP = 8,
+  NALU_TYPE_CRA_NUT = 9,
+  NALU_TYPE_GDR_NUT = 10,
+  NALU_TYPE_RSV_IRAP_11 = 11,
+  NALU_TYPE_OPI_NUT = 12,
+  NALU_TYPE_DCI_NUT = 13,
+  NALU_TYPE_VPS_NUT = 14,
+  NALU_TYPE_SPS_NUT = 15,
+  NALU_TYPE_PPS_NUT = 16,
+  NALU_TYPE_PREFIX_APS_NUT = 17,
+  NALU_TYPE_SUFFIX_APS_NUT = 18,
+  NALU_TYPE_PH_NUT = 19,
+  NALU_TYPE_AUD_NUT = 20,
+  NALU_TYPE_EOS_NUT = 21,
+  NALU_TYPE_EOB_NUT = 22,
+  NALU_TYPE_PREFIX_SEI_NUT = 23,
+  NALU_TYPE_SUFFIX_SEI_NUT = 24,
+  NALU_TYPE_FD_NUT = 25,
+  NALU_TYPE_RSV_NVCL_26 = 26,
+  NALU_TYPE_RSV_NVCL_27 = 27,
+  _NALU_TYPE_MAX
 } NaluType;
 
 #define NALU_SC_MSK 0xffffff00
 #define NALU_SC_VAL 0x00000100
 #define NALU_SC_LEN 3
 #define NALU_HDR_LEN 2
-#define NALU_INVALID_XPS 0xFF
-#define NALU_IS_PARAMETER_SET(nalu) \
-  (((nalu)->type >= NALU_TYPE_VPS) && ((nalu)->type <= NALU_TYPE_SAPS))
+#define NALU_INVALID_PS 0xFF
+#define NALU_IS_PS(nalu) \
+  (((nalu)->type >= NALU_TYPE_VPS_NUT) && ((nalu)->type <= NALU_TYPE_SUFFIX_APS_NUT))
+#define NALU_IS_VCL(nalu) \
+  (((nalu)->type >= NALU_TYPE_TRAIL_NUT) && ((nalu)->type <= NALU_TYPE_RSV_IRAP_11))
+#define NALU_IS_IDR(nalu) \
+  (((nalu)->type == NALU_TYPE_IDR_W_RADL) || ((nalu)->type == NALU_TYPE_IDR_N_LP))
 
+#define AP_TYPE 28
 #define FU_TYPE 29
 #define FU_HDR_LEN (NALU_HDR_LEN + 1)   // PayloadHdr + FU header
 
@@ -63,23 +91,41 @@ typedef struct
   GstBuffer *hdr_buf;
   GstBuffer *rbsp_buf;
   guint16 size;                 // Size of the NALU (inluding its header)
+  gboolean f_bit;               // forbidden_zero_bit
+  guint8 layer_id;              // nuh_layer_id
   NaluType type;                // nal_unit_type
-  guint8 xps_id;                // {vps_video,sps_seq,pps_pic,aps_adaptation}_parameter_set_id
+  guint8 ps_id;                 // {vps_video,sps_seq,pps_pic,aps_adaptation}_parameter_set_id
   gboolean au_start;
   gboolean au_end;
 } Nalu;
 
 #define NALU_PTR_FORMAT \
-  "p, size: %u, type: %u, xps_id: %u, au_start: %s, au_end: %s"
+  "p, size: %u, f_bit: %d, layer_id: %d, type: %u, ps_id: %u, au_start: %s, au_end: %s"
 #define NALU_ARGS(nalu) \
-  (nalu), (nalu)->size, (nalu)->type, (nalu)->xps_id, (nalu)->au_start ? "true" : "false", (nalu)->au_end ? "true" : "false"
+  (nalu), (nalu)->size, (nalu)->f_bit, (nalu)->layer_id, (nalu)->type, (nalu)->ps_id, (nalu)->au_start ? "true" : "false", (nalu)->au_end ? "true" : "false"
 
 typedef enum
 {
   ALIGNMENT_AU,
   ALIGNMENT_NAL,
-  ALIGNMENT_UNKOWN,
+  ALIGNMENT_UNKNOWN,
 } Alignment;
+
+typedef enum
+{
+  AGGREGATE_NONE,
+  AGGREGATE_ZERO_LATENCY,
+  AGGREGATE_MAX,
+} AggregateMode;
+#define TYPE_AGGREGATE_MODE _aggregate_mode_get_type ()
+
+typedef struct
+{
+  GQueue nalus;
+  gsize nalu_size_sum;
+  guint min_layer_id;
+  gboolean f_bit;
+} AggregatedNalus;
 
 struct _GstRtpH266Pay
 {
@@ -87,7 +133,17 @@ struct _GstRtpH266Pay
 
   GstAdapter *adapter;
   GQueue nalus;
+  AggregatedNalus aggregated_nalus;
+  GHashTable *ps_id_nalu_map;
+
   Alignment alignment;
+  GstClockTime ts_last_ps_to_sent;
+  gint fps_n;
+  gint fps_d;
+
+  // Properties
+  gint config_interval;
+  AggregateMode aggregate_mode;
 };
 
 #define gst_rtp_h266_pay_parent_class parent_class
@@ -109,9 +165,14 @@ static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src",
         "clock-rate = (int) 90000, " "encoding-name = (string) \"H266\"")
     );
 
+#define DEFAULT_CONFIG_INTERVAL 0
+#define DEFAULT_AGGREGATE_MODE AGGREGATE_NONE
+
 enum
 {
   PROP_0,
+  PROP_CONFIG_INTERVAL,
+  PROP_AGGREGATE_MODE,
 };
 
 // GObject methods
@@ -133,21 +194,45 @@ static gboolean _sink_event (GstRTPBasePayload * rtpbasepay, GstEvent * event);
 
 // GstRtpH266Pay methods
 static void _process_nalu (GstRtpH266Pay * rtph266pay, GstBuffer * nalu_buf);
+static void _update_ps_cache (GstRtpH266Pay * rtph266pay, const Nalu * nalu);
+static void _clear_ps_cache (GstRtpH266Pay * rtph266pay);
+static gboolean _can_insert_ps (GstRtpH266Pay * rtph266pay, const Nalu * nalu);
+static void _insert_ps_cache (GstRtpH266Pay * rtph266pay);
 static void _set_au_boundaries (GstRtpH266Pay * rtph266pay);
 static GstFlowReturn _push_pending_data (GstRtpH266Pay * rtph266pay,
     gboolean eos);
-static GstFlowReturn _push_up (GstRtpH266Pay * rtph266pay, const Nalu * nalu);
-static GstFlowReturn _push_fu (GstRtpH266Pay * rtph266pay, const Nalu * nalu);
-//static GstFlowReturn _push_ap (GstRtpH266Pay * rtph266pay, GQueue *nalus);
+static GstFlowReturn _push_unit_pkt (GstRtpH266Pay * rtph266pay, Nalu * nalu);
+static GstFlowReturn _push_fragmented (GstRtpH266Pay * rtph266pay, Nalu * nalu);
+static GstFlowReturn _push_aggregated (GstRtpH266Pay * rtph266pay);
 static gboolean _up_fits_in_mtu (const GstRtpH266Pay * rtph266pay,
     const Nalu * nalu);
+static gboolean _ap_fits_in_mtu (const GstRtpH266Pay * rtph266pay,
+    const Nalu * nalu);
+static gboolean _can_aggregate_nalu (GstRtpH266Pay * rtph266pay, Nalu * nalu);
 static GstBuffer *_extract_fu (GstRtpH266Pay * rtph266pay, const Nalu * nalu,
     gsize offset, gsize size, gboolean last);
-static void _clear_nalu_queue (GstRtpH266Pay * rtph266pay);
+static void _clear_nalu_queues (GstRtpH266Pay * rtph266pay);
+static GstClockTime _get_nalu_running_time (const GstRtpH266Pay * rtph266pay,
+    const Nalu * nalu);
 
 // Nalu methods
 static Nalu *_nalu_new (GstBuffer * nalu_buf);
 static void _nalu_free (Nalu * nalu);
+static Nalu *_nalu_copy (const Nalu * nalu);
+static Nalu *_nalu_copy_ts (Nalu * dst, const Nalu * src);
+static gboolean _nalu_is_rsv (const Nalu * nalu);
+
+// AggregatedNalus methods
+static void _aggregated_nalus_init (AggregatedNalus * aggregated_nalus);
+static void _aggregated_nalus_clear (AggregatedNalus * aggregated_nalus);
+static void _aggregated_nalus_add (AggregatedNalus * aggregated_nalus,
+    Nalu * nalu);
+static gboolean _aggregated_nalus_is_empty (AggregatedNalus * aggregated_nalus);
+static gboolean _aggregated_nalus_have_au (AggregatedNalus * aggregated_nalus);
+
+// Others
+static GType _aggregate_mode_get_type (void);
+static gboolean _src_query (GstPad * pad, GstObject * parent, GstQuery * query);
 
 static void
 gst_rtp_h266_pay_class_init (GstRtpH266PayClass * klass)
@@ -163,6 +248,25 @@ gst_rtp_h266_pay_class_init (GstRtpH266PayClass * klass)
   gobject_class->finalize = GST_DEBUG_FUNCPTR (_finalize);
   gobject_class->set_property = GST_DEBUG_FUNCPTR (_set_property);
   gobject_class->get_property = GST_DEBUG_FUNCPTR (_get_property);
+
+  g_object_class_install_property (gobject_class,
+      PROP_CONFIG_INTERVAL,
+      g_param_spec_int ("config-interval",
+          "Parameter Set send interval",
+          "Send VPS, SPS, PPS and APS at this interval (in seconds)"
+          "(0 = disabled, -1 = send with every IDR frame)",
+          -1, 3600, DEFAULT_CONFIG_INTERVAL,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)
+      );
+
+  g_object_class_install_property (G_OBJECT_CLASS (klass),
+      PROP_AGGREGATE_MODE,
+      g_param_spec_enum ("aggregate-mode",
+          "Attempt to use aggregate packets",
+          "Bundle suitable Parameter Set NAL units into aggregate packets.",
+          TYPE_AGGREGATE_MODE,
+          DEFAULT_AGGREGATE_MODE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)
+      );
 
   gstelement_class->change_state = GST_DEBUG_FUNCPTR (_change_state);
 
@@ -187,7 +291,17 @@ gst_rtp_h266_pay_init (GstRtpH266Pay * rtph266pay)
 {
   rtph266pay->adapter = gst_adapter_new ();
   g_queue_init (&rtph266pay->nalus);
-  rtph266pay->alignment = ALIGNMENT_UNKOWN;
+  _aggregated_nalus_init (&rtph266pay->aggregated_nalus);
+  rtph266pay->ps_id_nalu_map =
+      g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL,
+      (GDestroyNotify) _nalu_free);
+  rtph266pay->alignment = ALIGNMENT_UNKNOWN;
+  rtph266pay->ts_last_ps_to_sent = GST_CLOCK_TIME_NONE;
+  rtph266pay->config_interval = DEFAULT_CONFIG_INTERVAL;
+  rtph266pay->aggregate_mode = DEFAULT_AGGREGATE_MODE;
+
+  gst_pad_set_query_function (GST_RTP_BASE_PAYLOAD_SRCPAD (rtph266pay),
+      _src_query);
 }
 
 static void
@@ -196,7 +310,8 @@ _finalize (GObject * object)
   GstRtpH266Pay *rtph266pay = GST_RTP_H266_PAY (object);
 
   g_clear_pointer (&rtph266pay->adapter, g_object_unref);
-  _clear_nalu_queue (rtph266pay);
+  g_clear_pointer (&rtph266pay->ps_id_nalu_map, g_hash_table_destroy);
+  _clear_nalu_queues (rtph266pay);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -205,12 +320,42 @@ static void
 _set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
 {
+  GstRtpH266Pay *rtph266pay = GST_RTP_H266_PAY (object);
+
+  GST_OBJECT_LOCK (rtph266pay);
+  switch (prop_id) {
+    case PROP_CONFIG_INTERVAL:
+      rtph266pay->config_interval = g_value_get_int (value);
+      break;
+    case PROP_AGGREGATE_MODE:
+      rtph266pay->aggregate_mode = g_value_get_enum (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+  GST_OBJECT_UNLOCK (rtph266pay);
 }
 
 static void
 _get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec)
 {
+  GstRtpH266Pay *rtph266pay = GST_RTP_H266_PAY (object);
+
+  GST_OBJECT_LOCK (rtph266pay);
+  switch (prop_id) {
+    case PROP_CONFIG_INTERVAL:
+      g_value_set_int (value, rtph266pay->config_interval);
+      break;
+    case PROP_AGGREGATE_MODE:
+      g_value_set_enum (value, rtph266pay->aggregate_mode);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+  GST_OBJECT_UNLOCK (rtph266pay);
 }
 
 static GstStateChangeReturn
@@ -221,10 +366,15 @@ _change_state (GstElement * element, GstStateChange transition)
 
   if (transition == GST_STATE_CHANGE_READY_TO_PAUSED) {
     gst_adapter_clear (rtph266pay->adapter);
-    _clear_nalu_queue (rtph266pay);
+    _clear_nalu_queues (rtph266pay);
   }
 
   ret = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
+
+  // Chain up to the parent class first to avoid a race condition
+  // Check commit df724c410b02b82bd7db893d24e8572a06c2fcb1
+  if (transition == GST_STATE_CHANGE_PAUSED_TO_READY)
+    _clear_ps_cache (rtph266pay);
 
   return ret;
 }
@@ -247,9 +397,15 @@ _set_caps (GstRTPBasePayload * rtpbasepay, GstCaps * caps)
     } else if (g_str_equal (alignment_str, "nal")) {
       rtph266pay->alignment = ALIGNMENT_NAL;
     } else {
-      rtph266pay->alignment = ALIGNMENT_UNKOWN;
+      rtph266pay->alignment = ALIGNMENT_UNKNOWN;
     }
   }
+
+  gint fps_n = 0;
+  gint fps_d = 0;
+  gst_structure_get_fraction (s, "framerate", &fps_n, &fps_d);
+  rtph266pay->fps_n = fps_n;
+  rtph266pay->fps_d = fps_d;
 
   return TRUE;
 }
@@ -317,11 +473,14 @@ _sink_event (GstRTPBasePayload * rtpbasepay, GstEvent * event)
   switch (GST_EVENT_TYPE (event)) {
     case GST_EVENT_FLUSH_STOP:
       gst_adapter_clear (rtph266pay->adapter);
-      _clear_nalu_queue (rtph266pay);
+      _clear_nalu_queues (rtph266pay);
       break;
     case GST_EVENT_EOS:
       GST_DEBUG_OBJECT (rtph266pay, "EOS: Draining");
       ret = _push_pending_data (rtph266pay, TRUE);
+      break;
+    case GST_EVENT_STREAM_START:
+      _clear_ps_cache (rtph266pay);
       break;
     default:
       break;
@@ -351,7 +510,109 @@ _process_nalu (GstRtpH266Pay * rtph266pay, GstBuffer * nalu_buf)
   GST_DEBUG_OBJECT (rtph266pay, "NALU decoded: %" NALU_PTR_FORMAT,
       NALU_ARGS (nalu));
 
+  _update_ps_cache (rtph266pay, nalu);
   g_queue_push_tail (&rtph266pay->nalus, nalu);
+}
+
+static void
+_update_ps_cache (GstRtpH266Pay * rtph266pay, const Nalu * nalu)
+{
+  GHashTable *map = rtph266pay->ps_id_nalu_map;
+  guint8 type = nalu->type;
+  guint8 id = nalu->ps_id;
+  Nalu *new_nalu;
+  gpointer *key;
+
+  if (!NALU_IS_PS (nalu))
+    return;
+
+  new_nalu = _nalu_copy (nalu);
+  new_nalu->au_start = FALSE;
+  new_nalu->au_end = FALSE;
+  key = GINT_TO_POINTER ((type << 8) | id);
+  if (g_hash_table_insert (map, key, new_nalu))
+    GST_DEBUG_OBJECT (rtph266pay, "PS(%u,%u) cached", type, id);
+  else
+    GST_DEBUG_OBJECT (rtph266pay, "PS(%u,%u) replaced", type, id);
+
+  rtph266pay->ts_last_ps_to_sent = _get_nalu_running_time (rtph266pay, nalu);
+}
+
+static void
+_clear_ps_cache (GstRtpH266Pay * rtph266pay)
+{
+  rtph266pay->ts_last_ps_to_sent = GST_CLOCK_TIME_NONE;
+  g_hash_table_remove_all (rtph266pay->ps_id_nalu_map);
+}
+
+static gboolean
+_can_insert_ps (GstRtpH266Pay * rtph266pay, const Nalu * nalu)
+{
+  if (_nalu_is_rsv (nalu) || !NALU_IS_VCL (nalu))
+    return FALSE;               // Can't insert before this kind of NALU
+
+  GstClockTime ts_nalu = _get_nalu_running_time (rtph266pay, nalu);
+  GstClockTime ts_last_ps = rtph266pay->ts_last_ps_to_sent;
+  gboolean ts_last_ps_valid = GST_CLOCK_TIME_IS_VALID (ts_last_ps);
+  gboolean automatic_interval = rtph266pay->config_interval < 0;
+  gboolean ps_already_sent = ts_last_ps_valid && (ts_last_ps == ts_nalu);
+
+  if (automatic_interval) {
+    if (!NALU_IS_IDR (nalu) || ps_already_sent)
+      return FALSE;
+    GST_DEBUG_OBJECT (rtph266pay, "IDR detected: PS can be sent");
+    return TRUE;
+  } else {
+    if (!ts_last_ps_valid)
+      return FALSE;             // Haven't saw any PS yet
+
+    GstClockTime ps_period = rtph266pay->config_interval * GST_SECOND;
+    GstClockTime ts_next_ps = ts_last_ps + ps_period;
+
+    if (ts_next_ps <= ts_nalu) {
+      GST_DEBUG_OBJECT (rtph266pay, "config-interval starved: PS can be sent");
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+static void
+_insert_ps_cache (GstRtpH266Pay * rtph266pay)
+{
+  if (g_hash_table_size (rtph266pay->ps_id_nalu_map) == 0)
+    return;
+  if (rtph266pay->config_interval == 0)
+    return;                     // Disabled
+
+  GQueue *nalus = &rtph266pay->nalus;
+  GList *head = g_queue_peek_head_link (nalus);
+
+  for (GList * l = head; l != NULL; l = l->next) {
+    Nalu *current_nalu = l->data;
+
+    if (!_can_insert_ps (rtph266pay, current_nalu))
+      continue;
+
+    // Insert all cached parameter sets before the current nalu
+    GHashTableIter iter;
+    Nalu *ps_nalu;
+    g_hash_table_iter_init (&iter, rtph266pay->ps_id_nalu_map);
+    while (g_hash_table_iter_next (&iter, NULL, (gpointer) & ps_nalu)) {
+      Nalu *ps_nalu_copy = _nalu_copy (ps_nalu);
+      ps_nalu_copy = _nalu_copy_ts (ps_nalu_copy, current_nalu);
+      GST_DEBUG_OBJECT (rtph266pay, "PS(%u,%u) queued to be sent",
+          ps_nalu_copy->type, ps_nalu_copy->ps_id);
+      g_queue_insert_before (nalus, l, ps_nalu_copy);
+    }
+
+    // Update ts_last_ps_to_sent with the PTS of the current NALU
+    rtph266pay->ts_last_ps_to_sent =
+        _get_nalu_running_time (rtph266pay, current_nalu);
+
+    break;                      // PS already inserted
+  }
 }
 
 static void
@@ -359,11 +620,13 @@ _set_au_boundaries (GstRtpH266Pay * rtph266pay)
 {
   GList *head = g_queue_peek_head_link (&rtph266pay->nalus);
   Nalu *last_nalu = g_queue_peek_tail (&rtph266pay->nalus);
+  // Take into account the last aggregated NALU
+  Nalu *prev_nalu = g_queue_peek_tail (&rtph266pay->aggregated_nalus.nalus);
 
   for (GList * l = head; l != NULL; l = l->next) {
     Nalu *nalu = l->data;
-    Nalu *prev_nalu = l->prev ? l->prev->data : NULL;
-    // TODO gboolean discont = GST_BUFFER_IS_DISCONT (nalu->nalu_buf);
+    prev_nalu = l->prev ? l->prev->data : prev_nalu;
+    //gboolean discont = GST_BUFFER_IS_DISCONT (nalu->nalu_buf);
     GstClockTime prev_pts = GST_CLOCK_TIME_NONE;
     GstClockTime prev_dts = GST_CLOCK_TIME_NONE;
     GstClockTime pts = GST_BUFFER_PTS (nalu->nalu_buf);
@@ -372,7 +635,7 @@ _set_au_boundaries (GstRtpH266Pay * rtph266pay)
       prev_pts = GST_BUFFER_PTS (prev_nalu->nalu_buf);
       prev_dts = GST_BUFFER_DTS (prev_nalu->nalu_buf);
     }
-    gboolean aud = nalu->type == NALU_TYPE_AUD;
+    gboolean aud = nalu->type == NALU_TYPE_AUD_NUT;
     gboolean new_ts = (prev_pts != pts) || (prev_dts != dts);
 
     nalu->au_start = aud || new_ts /*|| discont */ ;
@@ -395,48 +658,74 @@ _set_au_boundaries (GstRtpH266Pay * rtph266pay)
 static GstFlowReturn
 _push_pending_data (GstRtpH266Pay * rtph266pay, gboolean eos)
 {
+  AggregatedNalus *aggregated_nalus = &rtph266pay->aggregated_nalus;
   GQueue *nalus = &rtph266pay->nalus;
   GstFlowReturn ret = GST_FLOW_OK;
   Nalu *nalu;
 
-  // TODO: handle AP
-  // TODO: send XPS if needed
-
-  // TODO: Maybe it's worth to avoid iterating the NALU list twice, maybe not
+  // FIXME: Maybe it's worth to avoid iterating the NALUs several times, maybe not
+  _insert_ps_cache (rtph266pay);
   _set_au_boundaries (rtph266pay);
 
-  // Try to push all NALUs
+  // 1. Aggregate NALUs while possible
+  // ---- vvv Can't aggregate anymore vvv ----
+  // 2. If it has been possible to **aggregate something**:
+  //   1. Keep the current NALU, it'll be processed later
+  //   2. Send the current Aggregation Packet
+  // 3. If it has been possible to **aggregate nothing**:
+  //   * If the packet fits into a MTP -> Send a Unit Packet
+  //   * Else -> Send two or more Fragmentation Units
+  //
+  // Note: _push_aggregated will send a UP when there is only 1 NALU aggregated
   while ((nalu = g_queue_pop_head (nalus))) {
-    gboolean is_last = g_queue_get_length (nalus) == 0;
-
-    // Can't push the last NALU without knowing if it's the end of an AU,
-    // because setting the M bit could be necessary. But have to push it if
-    // we're on EOS
-    if (!eos && is_last && !nalu->au_end) {
-      GST_DEBUG_OBJECT (rtph266pay, "Keeping last NALU: %" NALU_PTR_FORMAT,
+    // Aggregate NALUs while possible
+    if (_can_aggregate_nalu (rtph266pay, nalu)) {
+      _aggregated_nalus_add (aggregated_nalus, nalu);
+      GST_DEBUG_OBJECT (rtph266pay, "NALU aggregated: %" NALU_PTR_FORMAT,
           NALU_ARGS (nalu));
-      g_queue_push_head (nalus, nalu);
-      break;
+      continue;
     }
 
-    GST_DEBUG_OBJECT (rtph266pay, "Pushing NALU: %" NALU_PTR_FORMAT,
-        NALU_ARGS (nalu));
+    // vvv Can't aggregate anymore vvv
+    if (!_aggregated_nalus_is_empty (aggregated_nalus)) {
+      g_queue_push_head (nalus, nalu);  // Keep this one for later
+      ret = _push_aggregated (rtph266pay);      // Push what we have right now
+      if (ret != GST_FLOW_OK)
+        return ret;
+    } else {                    // no-aggregation path
+      gboolean is_last = g_queue_get_length (nalus) == 0;
+      // Can't push the last NALU without knowing if it's the end of an AU,
+      // because setting the M bit could be necessary. But have to push it if
+      // we're on EOS
+      if (!eos && is_last && !nalu->au_end) {
+        GST_DEBUG_OBJECT (rtph266pay, "Keeping last NALU: %" NALU_PTR_FORMAT,
+            NALU_ARGS (nalu));
+        g_queue_push_head (nalus, nalu);
+        return GST_FLOW_OK;
+      }
 
-    if (_up_fits_in_mtu (rtph266pay, nalu))
-      ret = _push_up (rtph266pay, nalu);
-    else
-      ret = _push_fu (rtph266pay, nalu);
+      GST_DEBUG_OBJECT (rtph266pay, "Pushing NALU: %" NALU_PTR_FORMAT,
+          NALU_ARGS (nalu));
 
-    _nalu_free (nalu);
-    if (ret != GST_FLOW_OK)
-      break;
+      if (_up_fits_in_mtu (rtph266pay, nalu))
+        ret = _push_unit_pkt (rtph266pay, nalu);
+      else
+        ret = _push_fragmented (rtph266pay, nalu);
+
+      if (ret != GST_FLOW_OK)
+        return ret;
+    }
   }
 
-  return ret;
+  // If we already have an Access Unit aggregated, sent it right now instead of
+  // waiting for the next buffer. An AP can't have more than 1 AU aggregated.
+  if (_aggregated_nalus_have_au (aggregated_nalus))
+    return _push_aggregated (rtph266pay);
+  return GST_FLOW_OK;
 }
 
 static GstFlowReturn
-_push_up (GstRtpH266Pay * rtph266pay, const Nalu * nalu)
+_push_unit_pkt (GstRtpH266Pay * rtph266pay, Nalu * nalu)
 {
   GstRTPBasePayload *rtpbasepay = GST_RTP_BASE_PAYLOAD (rtph266pay);
   GstRTPBuffer rtp = GST_RTP_BUFFER_INIT;
@@ -460,15 +749,17 @@ _push_up (GstRtpH266Pay * rtph266pay, const Nalu * nalu)
   g_assert (out_buf);
 
   gst_rtp_buffer_unmap (&rtp);
+  _nalu_free (nalu);
   GST_DEBUG_OBJECT (rtph266pay, "Pushing UP %" GST_PTR_FORMAT, out_buf);
   return gst_rtp_base_payload_push (rtpbasepay, out_buf);
 error:
+  _nalu_free (nalu);
   gst_buffer_unref (out_buf);
   return GST_FLOW_ERROR;
 }
 
 static GstFlowReturn
-_push_fu (GstRtpH266Pay * rtph266pay, const Nalu * nalu)
+_push_fragmented (GstRtpH266Pay * rtph266pay, Nalu * nalu)
 {
   GstRTPBasePayload *rtpbasepay = GST_RTP_BASE_PAYLOAD (rtph266pay);
   GstBufferList *out_buflist = gst_buffer_list_new ();
@@ -494,7 +785,78 @@ _push_fu (GstRtpH266Pay * rtph266pay, const Nalu * nalu)
 
   GST_DEBUG_OBJECT (rtph266pay, "Pushing FU GstBufferList %" GST_PTR_FORMAT,
       out_buflist);
+  _nalu_free (nalu);
   return gst_rtp_base_payload_push_list (rtpbasepay, out_buflist);
+}
+
+static GstFlowReturn
+_push_aggregated (GstRtpH266Pay * rtph266pay)
+{
+  GstRTPBasePayload *rtpbasepay = GST_RTP_BASE_PAYLOAD (rtph266pay);
+  AggregatedNalus *aggregated_nalus = &rtph266pay->aggregated_nalus;
+  GQueue *agg_nalus = &aggregated_nalus->nalus;
+  GstRTPBuffer rtp = GST_RTP_BUFFER_INIT;
+  GstBuffer *out_buf;
+  guint num_nalus;
+  Nalu *nalu;
+
+  // Can't send an AP with a single NALU
+  num_nalus = g_queue_get_length (agg_nalus);
+  if (num_nalus == 1) {
+    GST_DEBUG_OBJECT (rtph266pay, "Can't send an AP with a single NALU");
+    nalu = g_queue_pop_head (agg_nalus);
+    _aggregated_nalus_clear (aggregated_nalus);
+    return _push_unit_pkt (rtph266pay, nalu);
+  }
+
+  // Allocate just the RTP header. We'll add the buffer payload later. This way
+  // we avoid unnecessary copies
+  out_buf = gst_rtp_base_payload_allocate_output_buffer (rtpbasepay, 0, 0, 0);
+  if (!gst_rtp_buffer_map (out_buf, GST_MAP_WRITE, &rtp))
+    goto error;
+
+  // Copy buffer metadata from the last nalu to aggregate
+  nalu = g_queue_peek_tail (agg_nalus);
+  gst_buffer_copy_into (out_buf, nalu->nalu_buf,
+      GST_BUFFER_COPY_FLAGS | GST_BUFFER_COPY_TIMESTAMPS, 0, -1);
+  gst_rtp_buffer_set_marker (&rtp, nalu->au_end);
+
+  // Append PayloadHdr (RFC 9328 4.3.2)
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |F|Z| MinLayerID| Type(28)| TID |
+  // +---------------+---------------+
+  guint16 f_bit_msk = (!!aggregated_nalus->f_bit) << (7 + 8);
+  guint16 min_layer_id_msk = ((aggregated_nalus->min_layer_id & 0x3F) << 8);
+  guint16 type_msk = AP_TYPE << 3;
+  guint16 payload_hdr = g_htons (0 | f_bit_msk | min_layer_id_msk | type_msk);
+  GstBuffer *payload_hdr_buf =
+      gst_buffer_new_memdup (&payload_hdr, sizeof (payload_hdr));
+  out_buf = gst_buffer_append (out_buf, payload_hdr_buf);
+
+  // TODO: Conditionally append DONL
+
+  // Append all NALUs with their sizes and headers
+  while ((nalu = g_queue_pop_head (agg_nalus))) {
+    guint16 nalu_size = g_htons (nalu->size);
+    GstBuffer *nalu_size_buf =
+        gst_buffer_new_memdup (&nalu_size, sizeof (nalu_size));
+
+    out_buf = gst_buffer_append (out_buf, nalu_size_buf);
+    out_buf = gst_buffer_append (out_buf, gst_buffer_ref (nalu->hdr_buf));
+    out_buf = gst_buffer_append (out_buf, gst_buffer_ref (nalu->rbsp_buf));
+    _nalu_free (nalu);
+  }
+  g_assert (out_buf);
+
+  gst_rtp_buffer_unmap (&rtp);
+  GST_DEBUG_OBJECT (rtph266pay, "Pushing AP [%d] %" GST_PTR_FORMAT, num_nalus,
+      out_buf);
+  _aggregated_nalus_clear (aggregated_nalus);
+  return gst_rtp_base_payload_push (rtpbasepay, out_buf);
+error:
+  _aggregated_nalus_clear (aggregated_nalus);
+  gst_buffer_unref (out_buf);
+  return GST_FLOW_ERROR;
 }
 
 static gboolean
@@ -509,6 +871,53 @@ _up_fits_in_mtu (const GstRtpH266Pay * rtph266pay, const Nalu * nalu)
         "NALU does not fit into %u MTU: %" GST_PTR_FORMAT, mtu, nalu->nalu_buf);
   }
   return fits;
+}
+
+static gboolean
+_ap_fits_in_mtu (const GstRtpH266Pay * rtph266pay, const Nalu * nalu)
+{
+  const AggregatedNalus *aggregated_nalus = &rtph266pay->aggregated_nalus;
+  guint mtu = GST_RTP_BASE_PAYLOAD_MTU (rtph266pay);
+  guint num_nalus = g_queue_get_length ((GQueue *) & aggregated_nalus->nalus);
+  gsize nalu_size_sum = aggregated_nalus->nalu_size_sum;
+  guint nalu_size_field_sum = (num_nalus + 1) * sizeof (guint16);       // +1 for the current nalu
+  // TODO: Consider DONL
+  guint payload_size =
+      NALU_HDR_LEN + nalu_size_field_sum + nalu_size_sum + nalu->size;
+
+  gboolean fits = gst_rtp_buffer_calc_packet_len (payload_size, 0, 0) <= mtu;
+
+  if (!fits) {
+    GST_DEBUG_OBJECT (rtph266pay,
+        "NALU does not fit into the current AP [%u/%u]: %" GST_PTR_FORMAT,
+        payload_size, mtu, nalu->nalu_buf);
+  }
+  return fits;
+}
+
+static gboolean
+_can_aggregate_nalu (GstRtpH266Pay * rtph266pay, Nalu * nalu)
+{
+  AggregateMode aggregate_mode = rtph266pay->aggregate_mode;
+
+  if (aggregate_mode == AGGREGATE_NONE)
+    return FALSE;
+
+  if (aggregate_mode == AGGREGATE_ZERO_LATENCY) {
+    if (NALU_IS_VCL (nalu)) {
+      GST_DEBUG_OBJECT (rtph266pay, "VLC NALU -> can't aggregate");
+      return FALSE;
+    }
+  }
+
+  gboolean have_aggregated_nalus =
+      !_aggregated_nalus_is_empty (&rtph266pay->aggregated_nalus);
+  if (nalu->au_start && have_aggregated_nalus) {
+    GST_DEBUG_OBJECT (rtph266pay, "More than 1 AU -> can't aggregate");
+    return FALSE;
+  }
+
+  return _ap_fits_in_mtu (rtph266pay, nalu);
 }
 
 static GstBuffer *
@@ -543,7 +952,7 @@ _extract_fu (GstRtpH266Pay * rtph266pay, const Nalu * nalu,
   fu_hdr = gst_rtp_buffer_get_payload (&rtp);
   g_assert (fu_hdr);
 
-  // Setup PayloadHdr and FU Header
+  // Setup PayloadHdr and FU Header (RFC 9328 4.3.3)
   // |     PayloadHdr (NALU HDR)     |   FU HEADER   |
   // |-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|-+-+-+-+-+-+-+-|
   // |F|Z| LayerID   | Type(29)| TID |S|E|P|  FuType |
@@ -563,15 +972,25 @@ _extract_fu (GstRtpH266Pay * rtph266pay, const Nalu * nalu,
 }
 
 static void
-_clear_nalu_queue (GstRtpH266Pay * rtph266pay)
+_clear_nalu_queues (GstRtpH266Pay * rtph266pay)
 {
   g_queue_clear_full (&rtph266pay->nalus, (GDestroyNotify) _nalu_free);
+  _aggregated_nalus_clear (&rtph266pay->aggregated_nalus);
+}
+
+static GstClockTime
+_get_nalu_running_time (const GstRtpH266Pay * rtph266pay, const Nalu * nalu)
+{
+  GstSegment *segment = &GST_RTP_BASE_PAYLOAD (rtph266pay)->segment;
+  GstClockTime pts = GST_BUFFER_PTS (nalu->nalu_buf);
+  return gst_segment_to_running_time (segment, GST_FORMAT_TIME, pts);
 }
 
 static Nalu *
 _nalu_new (GstBuffer * nalu_buf)
 {
-  // |            NALU HDR           |  2 first bytes of XPS
+  // ITU-T H.266 V3: 7.3.1.2, 7.3.2.3, 7.3.2.4, 7.3.2.5, 7.3.2.6
+  // |            NALU HDR           |  2 first bytes of PS
   // |-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|-+-+-+-+-+-+-+-:-+-+-+-+-+-+-+-:-+-+
   // |F|Z| LayerID   |   Type  | TID | [VPS, PPS, SPS, PAPS, SAPS]   : ...
   // +---------------+---------------|---------------:---------------:----
@@ -588,21 +1007,23 @@ _nalu_new (GstBuffer * nalu_buf)
 
   nalu = g_new (Nalu, 1);
   nalu->size = gst_buffer_get_size (nalu_buf);
+  nalu->f_bit = !!(data[0] & 0x80);
+  nalu->layer_id = data[0] & 0x3F;
   nalu->type = data[1] >> 3;
   switch (nalu->type) {
-    case NALU_TYPE_VPS:
-    case NALU_TYPE_SPS:
-      nalu->xps_id = data[2] >> 4;
+    case NALU_TYPE_VPS_NUT:
+    case NALU_TYPE_SPS_NUT:
+      nalu->ps_id = data[2] >> 4;
       break;
-    case NALU_TYPE_PPS:
-      nalu->xps_id = data[2] >> 2;
+    case NALU_TYPE_PPS_NUT:
+      nalu->ps_id = data[2] >> 2;
       break;
-    case NALU_TYPE_PAPS:
-    case NALU_TYPE_SAPS:
-      nalu->xps_id = ((data[2] & 0x03) << 2) | ((data[3] & 0xC0) >> 6);
+    case NALU_TYPE_PREFIX_APS_NUT:
+    case NALU_TYPE_SUFFIX_APS_NUT:
+      nalu->ps_id = ((data[2] & 0x03) << 2) | ((data[3] & 0xC0) >> 6);
       break;
     default:
-      nalu->xps_id = NALU_INVALID_XPS;
+      nalu->ps_id = NALU_INVALID_PS;
   }
 
   nalu->nalu_buf = nalu_buf;
@@ -626,4 +1047,134 @@ _nalu_free (Nalu * nalu)
   gst_buffer_unref (nalu->hdr_buf);
   gst_buffer_unref (nalu->rbsp_buf);
   g_free (nalu);
+}
+
+static Nalu *
+_nalu_copy (const Nalu * nalu)
+{
+  Nalu *new_nalu = g_new (Nalu, 1);
+  *new_nalu = *nalu;
+  new_nalu->nalu_buf = gst_buffer_ref (nalu->nalu_buf);
+  new_nalu->hdr_buf = gst_buffer_ref (nalu->hdr_buf);
+  new_nalu->rbsp_buf = gst_buffer_ref (nalu->rbsp_buf);
+  return new_nalu;
+}
+
+static Nalu *
+_nalu_copy_ts (Nalu * dst, const Nalu * src)
+{
+  dst->nalu_buf = gst_buffer_make_writable (dst->nalu_buf);
+  gst_buffer_copy_into (dst->nalu_buf, src->nalu_buf,
+      GST_BUFFER_COPY_TIMESTAMPS, 0, -1);
+  return dst;
+}
+
+static gboolean
+_nalu_is_rsv (const Nalu * nalu)
+{
+  switch (nalu->type) {
+    case NALU_TYPE_RSV_VCL_4:
+    case NALU_TYPE_RSV_VCL_5:
+    case NALU_TYPE_RSV_VCL_6:
+    case NALU_TYPE_RSV_IRAP_11:
+    case NALU_TYPE_RSV_NVCL_26:
+    case NALU_TYPE_RSV_NVCL_27:
+      return TRUE;
+    default:
+      return FALSE;
+  }
+}
+
+static void
+_aggregated_nalus_init (AggregatedNalus * aggregated_nalus)
+{
+  g_queue_init (&aggregated_nalus->nalus);
+  aggregated_nalus->nalu_size_sum = 0;
+  aggregated_nalus->min_layer_id = 0;
+  aggregated_nalus->f_bit = FALSE;
+}
+
+static void
+_aggregated_nalus_clear (AggregatedNalus * aggregated_nalus)
+{
+  g_queue_clear_full (&aggregated_nalus->nalus, (GDestroyNotify) _nalu_free);
+  aggregated_nalus->nalu_size_sum = 0;
+  aggregated_nalus->min_layer_id = 0;
+  aggregated_nalus->f_bit = FALSE;
+}
+
+static void
+_aggregated_nalus_add (AggregatedNalus * aggregated_nalus, Nalu * nalu)
+{
+  g_queue_push_head (&aggregated_nalus->nalus, nalu);
+  aggregated_nalus->nalu_size_sum += nalu->size;
+  if (nalu->layer_id < aggregated_nalus->min_layer_id)
+    aggregated_nalus->min_layer_id = nalu->layer_id;
+  aggregated_nalus->f_bit = aggregated_nalus->f_bit || nalu->f_bit;
+}
+
+static gboolean
+_aggregated_nalus_is_empty (AggregatedNalus * aggregated_nalus)
+{
+  return g_queue_get_length (&aggregated_nalus->nalus) == 0;
+}
+
+static gboolean
+_aggregated_nalus_have_au (AggregatedNalus * aggregated_nalus)
+{
+  Nalu *last_nalu = g_queue_peek_tail (&aggregated_nalus->nalus);
+  return last_nalu && last_nalu->au_end;
+}
+
+static GType
+_aggregate_mode_get_type (void)
+{
+  static GType type = 0;
+  static const GEnumValue values[] = {
+    {AGGREGATE_NONE, "Do not aggregate NAL units", "none"},
+    {AGGREGATE_ZERO_LATENCY,
+          "Aggregate NAL units until a VCL or suffix unit is included",
+        "zero-latency"},
+    {AGGREGATE_MAX,
+          "Aggregate all NAL units with the same timestamp (adds one frame of latency)",
+        "max"},
+    {0, NULL, NULL},
+  };
+
+  if (!type) {
+    type = g_enum_register_static ("GstRtpH266AggregateMode", values);
+  }
+  return type;
+}
+
+static gboolean
+_src_query (GstPad * pad, GstObject * parent, GstQuery * query)
+{
+  GstRtpH266Pay *rtph266pay = GST_RTP_H266_PAY (parent);
+
+  if (GST_QUERY_TYPE (query) != GST_QUERY_LATENCY)
+    return gst_pad_query_default (pad, parent, query);
+
+  if (rtph266pay->alignment == ALIGNMENT_UNKNOWN)
+    return FALSE;
+
+  gboolean aggregate_max = rtph266pay->aggregate_mode == AGGREGATE_MAX;
+  gboolean au_alignment = rtph266pay->alignment == ALIGNMENT_AU;
+  gint fps_n = rtph266pay->fps_n;
+  gint fps_d = rtph266pay->fps_d;
+  gboolean configured = fps_n && fps_d;
+  if (!aggregate_max || !au_alignment || !configured)
+    return gst_pad_query_default (pad, parent, query);
+
+  GstClockTime min_latency;
+  GstClockTime max_latency;
+  gboolean live;
+  gst_query_parse_latency (query, &live, &min_latency, &max_latency);
+
+  GstClockTime one_frame = gst_util_uint64_scale_int (GST_SECOND, fps_d, fps_n);
+  min_latency += one_frame;
+  max_latency += one_frame;
+
+  gst_query_set_latency (query, live, min_latency, max_latency);
+  return gst_pad_query_default (pad, parent, query);
 }
