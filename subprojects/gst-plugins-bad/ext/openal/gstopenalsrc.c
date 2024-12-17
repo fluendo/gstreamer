@@ -404,9 +404,11 @@ gst_openal_src_parse_spec (GstOpenalSrc * openalsrc,
       switch (GST_AUDIO_INFO_FORMAT (&spec->info)) {
         case GST_AUDIO_FORMAT_U8:
           switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO8
             case 1:
               format = AL_FORMAT_MONO8;
               break;
+#endif
             default:
               break;
           }
@@ -415,9 +417,11 @@ gst_openal_src_parse_spec (GstOpenalSrc * openalsrc,
         case GST_AUDIO_FORMAT_U16:
         case GST_AUDIO_FORMAT_S16:
           switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO16
             case 1:
               format = AL_FORMAT_MONO16;
               break;
+#endif
             default:
               break;
           }
@@ -435,9 +439,11 @@ gst_openal_src_parse_spec (GstOpenalSrc * openalsrc,
 
         case GST_AUDIO_FORMAT_F64:
           switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO_DOUBLE_EXT
             case 1:
               format = AL_FORMAT_MONO_DOUBLE_EXT;
               break;
+#endif
             default:
               break;
           }
@@ -450,9 +456,11 @@ gst_openal_src_parse_spec (GstOpenalSrc * openalsrc,
 
     case GST_AUDIO_RING_BUFFER_FORMAT_TYPE_IMA_ADPCM:
       switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO_IMA4
         case 1:
           format = AL_FORMAT_MONO_IMA4;
           break;
+#endif
         default:
           break;
       }
@@ -460,9 +468,11 @@ gst_openal_src_parse_spec (GstOpenalSrc * openalsrc,
 
     case GST_AUDIO_RING_BUFFER_FORMAT_TYPE_A_LAW:
       switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO_ALAW_EXT
         case 1:
           format = AL_FORMAT_MONO_ALAW_EXT;
           break;
+#endif
         default:
           break;
       }
@@ -470,9 +480,11 @@ gst_openal_src_parse_spec (GstOpenalSrc * openalsrc,
 
     case GST_AUDIO_RING_BUFFER_FORMAT_TYPE_MU_LAW:
       switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO_MULAW
         case 1:
           format = AL_FORMAT_MONO_MULAW;
           break;
+#endif
         default:
           break;
       }
