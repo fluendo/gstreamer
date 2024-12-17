@@ -701,24 +701,36 @@ gst_openal_sink_parse_spec (GstOpenALSink * sink,
       switch (GST_AUDIO_INFO_FORMAT (&spec->info)) {
         case GST_AUDIO_FORMAT_U8:
           switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO8
             case 1:
               format = AL_FORMAT_MONO8;
               break;
+#endif
+#ifdef AL_FORMAT_STEREO8
             case 2:
               format = AL_FORMAT_STEREO8;
               break;
+#endif
+#ifdef AL_FORMAT_QUAD8
             case 4:
               format = AL_FORMAT_QUAD8;
               break;
+#endif
+#ifdef AL_FORMAT_51CHN8
             case 6:
               format = AL_FORMAT_51CHN8;
               break;
+#endif
+#ifdef AL_FORMAT_61CHN8
             case 7:
               format = AL_FORMAT_61CHN8;
               break;
+#endif
+#ifdef AL_FORMAT_71CHN8
             case 8:
               format = AL_FORMAT_71CHN8;
               break;
+#endif
             default:
               break;
           }
@@ -726,24 +738,36 @@ gst_openal_sink_parse_spec (GstOpenALSink * sink,
 
         case GST_AUDIO_FORMAT_S16:
           switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO16
             case 1:
               format = AL_FORMAT_MONO16;
               break;
+#endif
+#ifdef AL_FORMAT_STEREO16
             case 2:
               format = AL_FORMAT_STEREO16;
               break;
+#endif
+#ifdef AL_FORMAT_QUAD16
             case 4:
               format = AL_FORMAT_QUAD16;
               break;
+#endif
+#ifdef AL_FORMAT_51CHN16
             case 6:
               format = AL_FORMAT_51CHN16;
               break;
+#endif
+#ifdef AL_FORMAT_61CHN16
             case 7:
               format = AL_FORMAT_61CHN16;
               break;
+#endif
+#ifdef AL_FORMAT_71CHN16
             case 8:
               format = AL_FORMAT_71CHN16;
               break;
+#endif
             default:
               break;
           }
@@ -757,18 +781,26 @@ gst_openal_sink_parse_spec (GstOpenALSink * sink,
             case 2:
               format = AL_FORMAT_STEREO_FLOAT32;
               break;
+#ifdef AL_FORMAT_QUAD32
             case 4:
               format = AL_FORMAT_QUAD32;
               break;
+#endif
+#ifdef AL_FORMAT_51CHN32
             case 6:
               format = AL_FORMAT_51CHN32;
               break;
+#endif
+#ifdef AL_FORMAT_61CHN32
             case 7:
               format = AL_FORMAT_61CHN32;
               break;
+#endif
+#ifdef AL_FORMAT_71CHN32
             case 8:
               format = AL_FORMAT_71CHN32;
               break;
+#endif
             default:
               break;
           }
@@ -776,12 +808,16 @@ gst_openal_sink_parse_spec (GstOpenALSink * sink,
 
         case GST_AUDIO_FORMAT_F64:
           switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO_DOUBLE_EXT
             case 1:
               format = AL_FORMAT_MONO_DOUBLE_EXT;
               break;
+#endif
+#ifdef AL_FORMAT_STEREO_DOUBLE_EXT
             case 2:
               format = AL_FORMAT_STEREO_DOUBLE_EXT;
               break;
+#endif
             default:
               break;
           }
@@ -793,12 +829,16 @@ gst_openal_sink_parse_spec (GstOpenALSink * sink,
 
     case GST_AUDIO_RING_BUFFER_FORMAT_TYPE_IMA_ADPCM:
       switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO_IMA4
         case 1:
           format = AL_FORMAT_MONO_IMA4;
           break;
+#endif
+#ifdef AL_FORMAT_STEREO_IMA4
         case 2:
           format = AL_FORMAT_STEREO_IMA4;
           break;
+#endif
         default:
           break;
       }
@@ -806,12 +846,16 @@ gst_openal_sink_parse_spec (GstOpenALSink * sink,
 
     case GST_AUDIO_RING_BUFFER_FORMAT_TYPE_A_LAW:
       switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO_ALAW_EXT
         case 1:
           format = AL_FORMAT_MONO_ALAW_EXT;
           break;
+#endif
+#ifdef AL_FORMAT_STEREO_ALAW_EXT
         case 2:
           format = AL_FORMAT_STEREO_ALAW_EXT;
           break;
+#endif
         default:
           break;
       }
@@ -819,24 +863,36 @@ gst_openal_sink_parse_spec (GstOpenALSink * sink,
 
     case GST_AUDIO_RING_BUFFER_FORMAT_TYPE_MU_LAW:
       switch (GST_AUDIO_INFO_CHANNELS (&spec->info)) {
+#ifdef AL_FORMAT_MONO_MULAW
         case 1:
           format = AL_FORMAT_MONO_MULAW;
           break;
+#endif
+#ifdef AL_FORMAT_STEREO_MULAW
         case 2:
           format = AL_FORMAT_STEREO_MULAW;
           break;
+#endif
+#ifdef AL_FORMAT_QUAD_MULAW
         case 4:
           format = AL_FORMAT_QUAD_MULAW;
           break;
+#endif
+#ifdef AL_FORMAT_51CHN_MULAW
         case 6:
           format = AL_FORMAT_51CHN_MULAW;
           break;
+#endif
+#ifdef AL_FORMAT_61CHN_MULAW
         case 7:
           format = AL_FORMAT_61CHN_MULAW;
           break;
+#endif
+#ifdef AL_FORMAT_71CHN_MULAW
         case 8:
           format = AL_FORMAT_71CHN_MULAW;
           break;
+#endif
         default:
           break;
       }
