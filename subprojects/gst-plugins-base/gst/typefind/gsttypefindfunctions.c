@@ -6837,7 +6837,7 @@ GST_TYPE_FIND_REGISTER_DEFINE (h264_video, "video/x-h264", GST_RANK_PRIMARY,
 GST_TYPE_FIND_REGISTER_DEFINE (h265_video, "video/x-h265", GST_RANK_PRIMARY,
     h265_video_type_find, "h265,x265,265", H265_VIDEO_CAPS, NULL, NULL);
 GST_TYPE_FIND_REGISTER_DEFINE (h266_video, "video/x-h266", GST_RANK_PRIMARY,
-    h266_video_type_find, "h266,266", H266_VIDEO_CAPS, NULL, NULL);
+    h266_video_type_find, "h266,x266,266", H266_VIDEO_CAPS, NULL, NULL);
 GST_TYPE_FIND_REGISTER_DEFINE (nuv, "video/x-nuv", GST_RANK_SECONDARY,
     nuv_type_find, "nuv", NUV_CAPS, NULL, NULL);
 /* ISO formats */

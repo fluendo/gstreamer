@@ -78,7 +78,7 @@ static gboolean
 gst_rtp_h266_depay_negotiate (GstRtpH266Depay * rtph266depay)
 {
   GstCaps *caps;
-  gboolean ret = FALSE;
+  gboolean ret = TRUE;
 
   caps =
       gst_pad_get_allowed_caps (GST_RTP_BASE_DEPAYLOAD_SRCPAD (rtph266depay));
@@ -87,7 +87,7 @@ gst_rtp_h266_depay_negotiate (GstRtpH266Depay * rtph266depay)
 
   if (!caps) {
     GST_ERROR_OBJECT (rtph266depay, "Caps not found.");
-    return ret;
+    goto nocaps;
   }
 
   if (gst_caps_get_size (caps) > 0) {
@@ -110,14 +110,17 @@ gst_rtp_h266_depay_negotiate (GstRtpH266Depay * rtph266depay)
       rtph266depay->alignment = GST_H266_ALIGNMENT_AU;
     } else {
       GST_ERROR_OBJECT (rtph266depay, "alignment not supported: %s", str);
+      ret = FALSE;
       goto beach;
     }
   }
 
-  ret = TRUE;
-
 beach:
   gst_caps_unref (caps);
+
+nocaps:
+  rtph266depay->alignment = GST_H266_ALIGNMENT_AU; // TODO: Default in rtph266depay is NAL. Be consistent.
+
   return ret;
 }
 
@@ -562,6 +565,49 @@ gst_rtp_h266_depay_reset (GstRtpH266Depay * rtph266depay)
 }
 
 static gboolean
+gst_rtp_h266_depay_set_output_caps (GstRtpH266Depay * rtph266depay,
+    GstCaps * caps)
+{
+  GstPad *srcpad;
+  gboolean res;
+
+  srcpad = GST_RTP_BASE_DEPAYLOAD_SRCPAD (rtph266depay);
+
+  res = gst_pad_set_caps (srcpad, caps);
+
+  // TODO: Get allocator and params.
+
+  return res;
+
+}
+
+static gboolean
+gst_rtp_h266_set_src_caps (GstRtpH266Depay * rtph266depay)
+{
+  gboolean res;
+  GstCaps *old_caps;
+  GstCaps *srccaps;
+  GstPad *srcpad;
+
+  srccaps = gst_caps_new_simple ("video/x-h266",
+      "stream-format", G_TYPE_STRING, "bytestream",
+      "alignment", G_TYPE_STRING, "au", NULL);
+
+
+  srcpad = GST_RTP_BASE_DEPAYLOAD_SRCPAD (rtph266depay);
+  old_caps = gst_pad_get_current_caps (srcpad);
+
+  if (old_caps == NULL || !gst_caps_is_equal (srccaps, old_caps)) {
+    res = gst_rtp_h266_depay_set_output_caps (rtph266depay, srccaps);
+  } else {
+    res = TRUE;
+  }
+  gst_caps_unref (srccaps);
+
+  return res;
+}
+
+static gboolean
 gst_rtp_h266_depay_setcaps (GstRTPBaseDepayload * depayload, GstCaps * caps)
 {
   GstRtpH266Depay *rtph266depay = GST_RTP_H266_DEPAY (depayload);
@@ -577,7 +623,7 @@ gst_rtp_h266_depay_setcaps (GstRTPBaseDepayload * depayload, GstCaps * caps)
 
   GST_DEBUG_OBJECT (rtph266depay, "set caps");
 
-  return TRUE;
+  return gst_rtp_h266_set_src_caps (rtph266depay);
 }
 
 static gboolean
