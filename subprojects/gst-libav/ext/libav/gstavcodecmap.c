@@ -1033,6 +1033,7 @@ gst_ffmpeg_codecid_is_known (enum AVCodecID codec_id)
     case AV_CODEC_ID_CYUV:
     case AV_CODEC_ID_H264:
     case AV_CODEC_ID_HEVC:
+    case AV_CODEC_ID_VVC:
     case AV_CODEC_ID_INDEO5:
     case AV_CODEC_ID_INDEO4:
     case AV_CODEC_ID_INDEO3:
@@ -1788,6 +1789,38 @@ gst_ffmpeg_codecid_to_caps (enum AVCodecID codec_id,
          * ffmpeg does not distinguish the different types: HVC1/HEV1/etc. */
         if (context->extradata_size > 0) {
           gst_caps_set_simple (caps, "stream-format", G_TYPE_STRING, "hvc1",
+              NULL);
+        } else {
+          gst_caps_set_simple (caps, "stream-format", G_TYPE_STRING,
+              "byte-stream", NULL);
+        }
+      }
+      break;
+
+    case AV_CODEC_ID_VVC:
+      caps =
+          gst_ff_vid_caps_new (context, NULL, codec_id, encode, "video/x-h266",
+          "alignment", G_TYPE_STRING, "au", NULL);
+      if (!encode) {
+        GValue arr = { 0, };
+        GValue item = { 0, };
+        g_value_init (&arr, GST_TYPE_LIST);
+        g_value_init (&item, G_TYPE_STRING);
+        g_value_set_string (&item, "vvc1");
+        gst_value_list_append_value (&arr, &item);
+        g_value_set_string (&item, "vvi1");
+        gst_value_list_append_value (&arr, &item);
+        g_value_set_string (&item, "byte-stream");
+        gst_value_list_append_value (&arr, &item);
+        g_value_unset (&item);
+        gst_caps_set_value (caps, "stream-format", &arr);
+        g_value_unset (&arr);
+      } else if (context) {
+        /* FIXME: ffmpeg currently assumes VVC1 if there is extradata and
+         * byte-stream otherwise. See for example the MOV or MPEG-TS code.
+         * ffmpeg does not distinguish the different types: VVC1/VVI1/etc. */
+        if (context->extradata_size > 0) {
+          gst_caps_set_simple (caps, "stream-format", G_TYPE_STRING, "vvc1",
               NULL);
         } else {
           gst_caps_set_simple (caps, "stream-format", G_TYPE_STRING,
@@ -4957,6 +4990,9 @@ gst_ffmpeg_caps_to_codecid (const GstCaps * caps, AVCodecContext * context)
     video = TRUE;
   } else if (!strcmp (mimetype, "video/x-h265")) {
     id = AV_CODEC_ID_HEVC;
+    video = TRUE;
+  } else if (!strcmp (mimetype, "video/x-h266")) {
+    id = AV_CODEC_ID_VVC;
     video = TRUE;
   } else if (!strcmp (mimetype, "video/x-flash-video")) {
     gint flvversion = 0;
