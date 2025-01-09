@@ -56,7 +56,7 @@ GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
     GST_STATIC_CAPS
-    ("video/x-h266, stream-format = (string) byte-stream, alignment = (string) au "));
+    ("video/x-h266, stream-format = (string) byte-stream, alignment = (string) { nal, au } "));
 
 static GstStaticPadTemplate gst_rtp_h266_depay_sink_template =
 GST_STATIC_PAD_TEMPLATE ("sink",
@@ -78,7 +78,7 @@ static gboolean
 gst_rtp_h266_depay_negotiate (GstRtpH266Depay * rtph266depay)
 {
   GstCaps *caps;
-  gboolean ret = FALSE;
+  gboolean ret = TRUE;
 
   caps =
       gst_pad_get_allowed_caps (GST_RTP_BASE_DEPAYLOAD_SRCPAD (rtph266depay));
@@ -87,7 +87,7 @@ gst_rtp_h266_depay_negotiate (GstRtpH266Depay * rtph266depay)
 
   if (!caps) {
     GST_ERROR_OBJECT (rtph266depay, "Caps not found.");
-    return ret;
+    goto nocaps;
   }
 
   if (gst_caps_get_size (caps) > 0) {
@@ -109,15 +109,17 @@ gst_rtp_h266_depay_negotiate (GstRtpH266Depay * rtph266depay)
     if (g_strcmp0 (str, "au") == 0) {
       rtph266depay->alignment = GST_H266_ALIGNMENT_AU;
     } else {
-      GST_ERROR_OBJECT (rtph266depay, "alignment not supported: %s", str);
-      goto beach;
+      rtph266depay->alignment = GST_H266_ALIGNMENT_NAL;
     }
   }
 
-  ret = TRUE;
-
 beach:
   gst_caps_unref (caps);
+
+nocaps:
+  GST_DEBUG_OBJECT (rtph266depay, "defaulting to nal");
+  rtph266depay->alignment = GST_H266_ALIGNMENT_NAL;
+
   return ret;
 }
 
@@ -238,29 +240,34 @@ gst_rtp_h266_depay_handle_nal (GstRtpH266Depay * rtph266depay, GstBuffer * nal,
   nal_unit_type = (map.data[sizeof (sync_bytes) + 1] >> 3) & 0x1F;
   GST_DEBUG_OBJECT (rtph266depay, "Process nal with type %d", nal_unit_type);
 
-  g_assert (rtph266depay->alignment == GST_H266_ALIGNMENT_AU);
-
   keyframe = NAL_TYPE_IS_PARAMETER_SET (nal_unit_type);
   out_keyframe = keyframe;
   out_timestamp = in_timestamp;
 
+  if (rtph266depay->alignment == GST_H266_ALIGNMENT_AU) {
 #if 0
-  /* Assume payloader always sets the (marker) M bit (whether 0 or 1). */
-  if (!marker) {
-    /* ... */
-  }
+    /* Assume payloader always sets the (marker) M bit (whether 0 or 1). */
+    if (!marker) {
+      /* ... */
+    }
 #endif
 
-  /* add to adapter */
-  gst_buffer_unmap (nal, &map);
-  GST_DEBUG_OBJECT (depayload, "adding NAL to picture adapter");
-  gst_adapter_push (rtph266depay->picture_adapter, nal);
-  rtph266depay->last_ts = in_timestamp;
-  rtph266depay->last_keyframe = rtph266depay->last_keyframe || keyframe;
+    /* add to adapter */
+    gst_buffer_unmap (nal, &map);
+    GST_DEBUG_OBJECT (depayload, "adding NAL to picture adapter");
+    gst_adapter_push (rtph266depay->picture_adapter, nal);
+    rtph266depay->last_ts = in_timestamp;
+    rtph266depay->last_keyframe = rtph266depay->last_keyframe || keyframe;
 
-  if (marker)
-    outbuf = gst_rtp_h266_complete_au (rtph266depay, &out_timestamp,
-        &out_keyframe);
+    if (marker)
+      outbuf = gst_rtp_h266_complete_au (rtph266depay, &out_timestamp,
+          &out_keyframe);
+  } else {
+    /* no merge, output is input nal */
+    GST_DEBUG_OBJECT (rtph266depay, "using NAL as output");
+    outbuf = nal;
+    gst_buffer_unmap (nal, &map);
+  }
 
   if (outbuf) {
     gst_rtp_h266_depay_push (rtph266depay, outbuf, out_keyframe, out_timestamp,
@@ -562,6 +569,48 @@ gst_rtp_h266_depay_reset (GstRtpH266Depay * rtph266depay)
 }
 
 static gboolean
+gst_rtp_h266_depay_set_output_caps (GstRtpH266Depay * rtph266depay,
+    GstCaps * caps)
+{
+  GstPad *srcpad;
+  gboolean res;
+
+  srcpad = GST_RTP_BASE_DEPAYLOAD_SRCPAD (rtph266depay);
+
+  res = gst_pad_set_caps (srcpad, caps);
+
+  // TODO: Get allocator and params.
+
+  return res;
+}
+
+static gboolean
+gst_rtp_h266_set_src_caps (GstRtpH266Depay * rtph266depay)
+{
+  gboolean res;
+  GstCaps *old_caps;
+  GstCaps *srccaps;
+  GstPad *srcpad;
+
+  srccaps = gst_caps_new_simple ("video/x-h266",
+      "stream-format", G_TYPE_STRING, "bytestream",
+      "alignment", G_TYPE_STRING,
+      rtph266depay->alignment == GST_H266_ALIGNMENT_AU ? "au" : "nal", NULL);
+
+  srcpad = GST_RTP_BASE_DEPAYLOAD_SRCPAD (rtph266depay);
+  old_caps = gst_pad_get_current_caps (srcpad);
+
+  if (old_caps == NULL || !gst_caps_is_equal (srccaps, old_caps)) {
+    res = gst_rtp_h266_depay_set_output_caps (rtph266depay, srccaps);
+  } else {
+    res = TRUE;
+  }
+  gst_caps_unref (srccaps);
+
+  return res;
+}
+
+static gboolean
 gst_rtp_h266_depay_setcaps (GstRTPBaseDepayload * depayload, GstCaps * caps)
 {
   GstRtpH266Depay *rtph266depay = GST_RTP_H266_DEPAY (depayload);
@@ -577,7 +626,7 @@ gst_rtp_h266_depay_setcaps (GstRTPBaseDepayload * depayload, GstCaps * caps)
 
   GST_DEBUG_OBJECT (rtph266depay, "set caps");
 
-  return TRUE;
+  return gst_rtp_h266_set_src_caps (rtph266depay);
 }
 
 static gboolean
