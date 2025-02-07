@@ -3994,7 +3994,7 @@ gst_bin_handle_message_func (GstBin * bin, GstMessage * message)
         GST_OBJECT_LOCK (bin);
         contexts =
             g_list_copy_deep (GST_ELEMENT_CAST (bin)->contexts,
-            (GCopyFunc) gst_mini_object_ref, NULL);
+            (GCopyFunc) gst_mini_object_ref_with_data, NULL);
         GST_OBJECT_UNLOCK (bin);
         GST_LOG_OBJECT (bin, "got need-context message type: %s", context_type);
         for (l = contexts; l; l = l->next) {
