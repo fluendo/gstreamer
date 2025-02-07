@@ -483,6 +483,13 @@ gst_mini_object_ref (GstMiniObject * mini_object)
   return mini_object;
 }
 
+
+GstMiniObject *
+gst_mini_object_ref_with_data (GstMiniObject * mini_object, gpointer data)
+{
+  return gst_mini_object_ref (mini_object);
+}
+
 /* Called with global qdata lock */
 static gint
 find_notify (GstMiniObject * object, GQuark quark, gboolean match_notify,
