@@ -3613,6 +3613,11 @@ gst_element_set_context (GstElement * element, GstContext * context)
     oclass->set_context (element, context);
 }
 
+static gpointer
+gst_context_gcopy_proxy(gconstpointer src, gpointer data) {
+  return gst_context_ref (src);
+}
+
 /**
  * gst_element_get_contexts:
  * @element: a #GstElement to set the context of.
@@ -3633,7 +3638,7 @@ gst_element_get_contexts (GstElement * element)
   g_return_val_if_fail (GST_IS_ELEMENT (element), NULL);
 
   GST_OBJECT_LOCK (element);
-  ret = g_list_copy_deep (element->contexts, (GCopyFunc) gst_context_ref, NULL);
+  ret = g_list_copy_deep (element->contexts, gst_context_gcopy_proxy, NULL);
   GST_OBJECT_UNLOCK (element);
 
   return ret;
