@@ -141,7 +141,7 @@ gst_video_aggregator_pad_get_property (GObject * object, guint prop_id,
 
 static int
 pad_zorder_compare (const GstVideoAggregatorPad * pad1,
-    const GstVideoAggregatorPad * pad2)
+    const GstVideoAggregatorPad * pad2, gpointer data)
 {
   return pad1->priv->zorder - pad2->priv->zorder;
 }
