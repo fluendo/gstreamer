@@ -338,7 +338,7 @@ static int  gst_resolve_reference(reference_t *rr, GstElement *pipeline){
   else            return -1; /* not found */
 }
 
-static void gst_parse_free_delayed_set (DelayedSet *set)
+static void gst_parse_free_delayed_set (DelayedSet *set, gpointer closure)
 {
   g_free(set->name);
   g_free(set->value_str);
