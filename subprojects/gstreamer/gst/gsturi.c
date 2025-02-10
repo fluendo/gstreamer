@@ -1056,6 +1056,11 @@ _gst_uri_copy_query_table (GHashTable * orig)
   return new;
 }
 
+static gpointer
+gst_strdup_gcopy_proxy(gconstpointer src, gpointer data) {
+  return g_strdup (src);
+}
+
 static GstUri *
 _gst_uri_copy (const GstUri * orig_uri)
 {
@@ -1070,7 +1075,7 @@ _gst_uri_copy (const GstUri * orig_uri)
     new_uri->userinfo = g_strdup (orig_uri->userinfo);
     new_uri->host = g_strdup (orig_uri->host);
     new_uri->port = orig_uri->port;
-    new_uri->path = g_list_copy_deep (orig_uri->path, (GCopyFunc) g_strdup,
+    new_uri->path = g_list_copy_deep (orig_uri->path, gst_strdup_gcopy_proxy,
         NULL);
     new_uri->query = _gst_uri_copy_query_table (orig_uri->query);
     new_uri->fragment = g_strdup (orig_uri->fragment);
@@ -1195,7 +1200,7 @@ _merge (GList * base, GList * path)
 {
   GList *ret, *path_copy, *last;
 
-  path_copy = g_list_copy_deep (path, (GCopyFunc) g_strdup, NULL);
+  path_copy = g_list_copy_deep (path, gst_strdup_gcopy_proxy, NULL);
   /* if base is NULL make path absolute */
   if (base == NULL) {
     if (path_copy != NULL && path_copy->data != NULL) {
@@ -1204,7 +1209,7 @@ _merge (GList * base, GList * path)
     return path_copy;
   }
 
-  ret = g_list_copy_deep (base, (GCopyFunc) g_strdup, NULL);
+  ret = g_list_copy_deep (base, gst_strdup_gcopy_proxy, NULL);
   last = g_list_last (ret);
   ret = g_list_remove_link (ret, last);
   g_list_free_full (last, g_free);
@@ -1221,7 +1226,7 @@ _remove_dot_segments (GList * path)
   if (path == NULL)
     return NULL;
 
-  out = g_list_copy_deep (path, (GCopyFunc) g_strdup, NULL);
+  out = g_list_copy_deep (path, gst_strdup_gcopy_proxy, NULL);
 
   for (elem = out; elem; elem = next) {
     next = elem->next;
@@ -1798,7 +1803,7 @@ gst_uri_equal (const GstUri * first, const GstUri * second)
   GST_URI_NORMALIZED_CMP_STR (host, _gst_uri_normalize_hostname,
       _GST_URI_NORMALIZE_LOWERCASE);
 
-  GST_URI_NORMALIZED_CMP_LIST (path, _gst_uri_normalize_path, g_strdup,
+  GST_URI_NORMALIZED_CMP_LIST (path, _gst_uri_normalize_path, gst_strdup_gcopy_proxy,
       g_strcmp0, g_free);
 
   if (first->query == NULL && second->query != NULL)
@@ -1889,7 +1894,7 @@ gst_uri_join (GstUri * base_uri, GstUri * ref_uri)
       t->query = _gst_uri_copy_query_table (ref_uri->query);
     } else {
       if (ref_uri->path == NULL) {
-        t->path = g_list_copy_deep (base_uri->path, (GCopyFunc) g_strdup, NULL);
+        t->path = g_list_copy_deep (base_uri->path, gst_strdup_gcopy_proxy, NULL);
         if (ref_uri->query != NULL)
           t->query = _gst_uri_copy_query_table (ref_uri->query);
         else
@@ -2496,7 +2501,7 @@ gst_uri_get_path_segments (const GstUri * uri)
   g_return_val_if_fail (uri == NULL || GST_IS_URI (uri), NULL);
 
   if (uri) {
-    ret = g_list_copy_deep (uri->path, (GCopyFunc) g_strdup, NULL);
+    ret = g_list_copy_deep (uri->path, gst_strdup_gcopy_proxy, NULL);
   }
 
   return ret;
