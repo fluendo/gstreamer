@@ -7,7 +7,7 @@
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#if defined(TCP_INFO)
+#if defined(TCP_INFO) && !defined(__EMSCRIPTEN__)
 #define HAVE_SOCKET_METRIC_HEADERS
 #endif
 #endif
