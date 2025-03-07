@@ -30,6 +30,7 @@
 #include "gststats.h"
 #include "gstleaks.h"
 #include "gstfactories.h"
+#include "gstframerate.h"
 
 GType gst_dots_tracer_get_type (void);
 
@@ -39,6 +40,9 @@ plugin_init (GstPlugin * plugin)
   if (!gst_tracer_register (plugin, "dots", gst_dots_tracer_get_type ()))
     return FALSE;
 
+  if (!gst_tracer_register (plugin, "framerate",
+          gst_framerate_tracer_get_type ()))
+    return FALSE;
   if (!gst_tracer_register (plugin, "latency", gst_latency_tracer_get_type ()))
     return FALSE;
 #ifndef GST_DISABLE_GST_DEBUG
