@@ -25,6 +25,13 @@
 #include <gst/gst.h>
 #include <gst/gsttracer.h>
 
+#include <gio/gio.h>
+#include <glib.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+
 G_BEGIN_DECLS
 
 #define GST_TYPE_FRAMERATE_TRACER \
@@ -49,6 +56,10 @@ typedef struct _GstFramerateTracerClass GstFramerateTracerClass;
  */
 struct _GstFramerateTracer {
   GstTracer 	 parent;
+
+  /*< private >*/
+  GThread *client_socket_thread;
+  gchar *unix_socket_path;
 
   /*< private:statistics >*/
   GPid pid;

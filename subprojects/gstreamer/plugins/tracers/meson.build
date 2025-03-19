@@ -55,11 +55,13 @@ endif
 
 thread_dep = dependency('threads', required : false)
 
+gio_unix_dep = dependency('gio-unix-2.0')
+
 gst_tracers = library('gstcoretracers',
   gst_tracers_sources,
   c_args : gst_c_args,
   include_directories : [configinc],
-  dependencies : [gst_dep, gst_base_dep, thread_dep],
+  dependencies : [gst_dep, thread_dep, gst_base_dep, gio_dep, gio_unix_dep],
   install : true,
   install_dir : plugins_install_dir,
 )
