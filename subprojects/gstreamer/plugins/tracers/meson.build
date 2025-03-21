@@ -6,6 +6,7 @@ if not tracer_hooks
 endif
 
 gst_tracers_sources = [
+  'gstframerate.c',
   'gstlatency.c',
   'gstleaks.c',
   'gststats.c',
@@ -27,7 +28,7 @@ gst_tracers = library('gstcoretracers',
   gst_tracers_sources,
   c_args : gst_c_args,
   include_directories : [configinc],
-  dependencies : [gst_dep, thread_dep],
+  dependencies : [gst_dep, gst_base_dep, thread_dep],
   install : true,
   install_dir : plugins_install_dir,
 )
