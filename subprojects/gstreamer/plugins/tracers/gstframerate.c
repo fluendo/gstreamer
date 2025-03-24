@@ -36,7 +36,7 @@
  *
  *   unix_socket_path (optional): if set, send data through sockets
  *
- *    - address_type: one of "invalid", "anonymous", "path", "abstract" or "padded".
+ *    - address_type: "path"
  * 
  * Example:
  *
@@ -137,6 +137,9 @@ socket_address_from_string (const char *name)
   for (i = 0; i < G_N_ELEMENTS (unix_socket_address_types); i++) {
     len = strlen (unix_socket_address_types[i]);
     if (!strncmp (name, unix_socket_address_types[i], len) && name[len] == ':') {
+      /* Only G_UNIX_SOCKET_ADDRESS_PATH supported now. */
+      if (i != G_UNIX_SOCKET_ADDRESS_PATH)
+        return NULL;
       return g_unix_socket_address_new_with_type (name + len + 1, -1,
           (GUnixSocketAddressType) i);
     }
