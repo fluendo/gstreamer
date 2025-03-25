@@ -363,7 +363,7 @@ gst_framerate_tracer_display_current_fps (GstFramerateTracer * self,
         frames_dropped, average_fps, rr, -1.0f);
     g_snprintf (data, sizeof (data), CLIENT_SOCKET_DATA_FORMAT,
         self->pid, current_ts, frames_rendered, frames_dropped, average_fps,
-        -1.0f, -1.0f);
+        rr, -1.0f);
   } else {
     gst_tracer_record_log (tr_framerate, self->pid, current_ts, frames_rendered,
         frames_dropped, -1.0f, rr, dr);
