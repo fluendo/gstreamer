@@ -143,14 +143,14 @@ plugin_init (GstPlugin * plugin)
   /* build global ffmpeg param/property info */
   gst_ffmpeg_cfg_init ();
 
-  gst_ffmpegaudenc_register (plugin);
-  gst_ffmpegvidenc_register (plugin);
-  gst_ffmpegauddec_register (plugin);
+  /* gst_ffmpegaudenc_register (plugin); */
+  /* gst_ffmpegvidenc_register (plugin); */
+  /* gst_ffmpegauddec_register (plugin); */
   gst_ffmpegviddec_register (plugin);
-  gst_ffmpegdemux_register (plugin);
-  gst_ffmpegmux_register (plugin);
-  gst_ffmpegdeinterlace_register (plugin);
-  gst_ffmpegvidcmp_register (plugin);
+  /* gst_ffmpegdemux_register (plugin); */
+  /* gst_ffmpegmux_register (plugin); */
+  /* gst_ffmpegdeinterlace_register (plugin); */
+  /* gst_ffmpegvidcmp_register (plugin); */
 
   /* Now we can return the pointer to the newly created Plugin object. */
   return TRUE;
