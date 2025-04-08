@@ -384,7 +384,7 @@ gst_ffmpegviddec_init (GstFFMpegVidDec * ffmpegdec)
 }
 
 static void
-gst_ffmpegviddec_subinit (GstFFMpegVidDec * ffmpegdec)
+gst_ffmpegviddec_subinit (GstFFMpegVidDec * ffmpegdec, GTypeClass *g_class)
 {
   /* some ffmpeg data */
   ffmpegdec->skip_frame = ffmpegdec->lowres = 0;
