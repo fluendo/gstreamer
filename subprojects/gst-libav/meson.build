@@ -243,6 +243,12 @@ if host_machine.system() == 'windows'
 else
   pathsep = ':'
 endif
+
+element_groups = get_option('element_groups')
+foreach group : element_groups
+  cdata.set('BUILD_@0@'.format(group.to_upper()), '1')
+endforeach
+
 subdir('ext/libav')
 subdir('docs')
 subdir('tests')

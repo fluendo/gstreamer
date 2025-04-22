@@ -6,3 +6,4 @@ option('package-origin', type : 'string',
 option('doc', type : 'feature', value : 'auto', yield: true,
        description: 'Enable documentation.')
 option('tests', type : 'feature', value : 'auto', yield : true)
+option('element_groups', type : 'array', value : ['audenc', 'auddec', 'videnc', 'viddec', 'demux', 'mux', 'deinterlace', 'vidcmp' ], choices: ['audenc', 'auddec', 'videnc', 'viddec', 'demux', 'mux', 'deinterlace', 'vidcmp'], description : 'Groups of elements to compile into the plugin')
