@@ -1,18 +1,17 @@
 libav_sources = [
     'gstav.c',
-    'gstavprotocol.c',
     'gstavcodecmap.c',
     'gstavutils.c',
-    'gstavaudenc.c',
-    'gstavvidenc.c',
-    'gstavauddec.c',
-    'gstavviddec.c',
     'gstavcfg.c',
-    'gstavdemux.c',
-    'gstavmux.c',
-    'gstavdeinterlace.c',
-    'gstavvidcmp.c',
 ]
+
+foreach group : element_groups
+  libav_sources += 'gstav@0@.c'.format(group)
+endforeach
+
+if 'mux' in element_groups or 'demux' in element_groups
+  libav_sources += 'gstavprotocol.c'
+endif
 
 libav_headers = [
   'gstavviddec.h',
