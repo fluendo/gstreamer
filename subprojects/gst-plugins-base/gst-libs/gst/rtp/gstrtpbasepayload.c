@@ -143,7 +143,8 @@ enum
 
 static GParamSpec *gst_rtp_base_payload_extensions_pspec;
 
-static void gst_rtp_base_payload_class_init (GstRTPBasePayloadClass * klass);
+static void gst_rtp_base_payload_class_init (GstRTPBasePayloadClass * klass,
+    gpointer klass_data);
 static void gst_rtp_base_payload_init (GstRTPBasePayload * rtpbasepayload,
     gpointer g_class);
 static void gst_rtp_base_payload_finalize (GObject * object);
@@ -261,7 +262,8 @@ extension_accumulator (GSignalInvocationHint * ihint,
 }
 
 static void
-gst_rtp_base_payload_class_init (GstRTPBasePayloadClass * klass)
+gst_rtp_base_payload_class_init (GstRTPBasePayloadClass * klass,
+    gpointer klass_data)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
