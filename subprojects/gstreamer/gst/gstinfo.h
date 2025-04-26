@@ -663,7 +663,7 @@ G_STMT_START{                                        \
  */
 #define GST_DEBUG_CATEGORY_INIT(cat,name,color,description) G_STMT_START{\
   if (cat == NULL)							\
-    cat = _gst_debug_category_new (name,color,description);		\
+    cat = _gst_debug_category_new (name,color, GST_MAYBE_BLURB (description)); \
 }G_STMT_END
 
 /**

@@ -89,6 +89,7 @@
 #include <stdarg.h>
 #include <gobject/gvaluecollector.h>
 
+#include "gstmacros.h"
 #include "gstelement.h"
 #include "gstelementmetadata.h"
 #include "gstenumtypes.h"
@@ -1688,7 +1689,7 @@ gst_element_class_set_metadata (GstElementClass * klass,
  * loaded, so this function can be used even from dynamically loaded plugins.)
  */
 void
-gst_element_class_set_static_metadata (GstElementClass * klass,
+_gst_element_class_set_static_metadata (GstElementClass * klass,
     const gchar * longname, const gchar * classification,
     const gchar * description, const gchar * author)
 {

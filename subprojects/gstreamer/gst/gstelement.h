@@ -906,8 +906,10 @@ void                    gst_element_class_set_metadata          (GstElementClass
                                                                  const gchar     *classification,
                                                                  const gchar     *description,
                                                                  const gchar     *author);
+
+#define gst_element_class_set_static_metadata(klass, longname, classification, description, author) _gst_element_class_set_static_metadata (klass, GST_MAYBE_BLURB (longname), classification, GST_MAYBE_BLURB (description), GST_MAYBE_BLURB (author))
 GST_API
-void                    gst_element_class_set_static_metadata   (GstElementClass *klass,
+void                    _gst_element_class_set_static_metadata  (GstElementClass *klass,
                                                                  const gchar     *longname,
                                                                  const gchar     *classification,
                                                                  const gchar     *description,

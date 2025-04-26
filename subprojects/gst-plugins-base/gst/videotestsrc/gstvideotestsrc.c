@@ -48,15 +48,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef GST_DISABLE_BLURBS
-#define GST_MAYBE_BLURB(blurb) "(disabled)"
-#else
-#define GST_MAYBE_BLURB(blurb) (blurb)
-#endif
-
-#define GST_PARAM_SPEC(type, name, nick, blurb, ...)                    \
-  g_param_spec_##type (name, nick, GST_MAYBE_BLURB (blurb), __VA_ARGS__)
-
 GST_DEBUG_CATEGORY_STATIC (video_test_src_debug);
 #define GST_CAT_DEFAULT video_test_src_debug
 

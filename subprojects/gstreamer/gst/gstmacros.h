@@ -54,6 +54,15 @@ G_BEGIN_DECLS
 
 G_END_DECLS
 
+#ifdef GST_DISABLE_BLURBS
+#define GST_MAYBE_BLURB(blurb) "(disabled)"
+#else
+#define GST_MAYBE_BLURB(blurb) (blurb)
+#endif
+
+#define GST_PARAM_SPEC(type, name, nick, blurb, ...)                    \
+  g_param_spec_##type (name, nick, GST_MAYBE_BLURB (blurb), __VA_ARGS__)
+
 #endif /* __GST_MACROS_H__ */
 
 

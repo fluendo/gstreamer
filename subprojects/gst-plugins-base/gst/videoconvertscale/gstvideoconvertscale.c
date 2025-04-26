@@ -309,73 +309,73 @@ gst_video_convert_scale_class_init (GstVideoConvertScaleClass * klass)
   gobject_class->get_property = gst_video_convert_scale_get_property;
 
   g_object_class_install_property (gobject_class, PROP_METHOD,
-      g_param_spec_enum ("method", "method", "method",
+      GST_PARAM_SPEC (enum, "method", "method", "method",
           GST_TYPE_VIDEO_SCALE_METHOD, DEFAULT_PROP_METHOD,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_ADD_BORDERS,
-      g_param_spec_boolean ("add-borders", "Add Borders",
+      GST_PARAM_SPEC (boolean, "add-borders", "Add Borders",
           "Add black borders if necessary to keep the display aspect ratio",
           DEFAULT_PROP_ADD_BORDERS,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_SHARPNESS,
-      g_param_spec_double ("sharpness", "Sharpness",
+      GST_PARAM_SPEC (double, "sharpness", "Sharpness",
           "Sharpness of filter", 0.5, 1.5, DEFAULT_PROP_SHARPNESS,
           G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_SHARPEN,
-      g_param_spec_double ("sharpen", "Sharpen",
+      GST_PARAM_SPEC (double, "sharpen", "Sharpen",
           "Sharpening", 0.0, 1.0, DEFAULT_PROP_SHARPEN,
           G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_DITHER,
-      g_param_spec_enum ("dither", "Dither", "Apply dithering while converting",
+      GST_PARAM_SPEC (enum, "dither", "Dither", "Apply dithering while converting",
           gst_video_dither_method_get_type (), DEFAULT_PROP_DITHER,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_ENVELOPE,
-      g_param_spec_double ("envelope", "Envelope",
+      GST_PARAM_SPEC (double, "envelope", "Envelope",
           "Size of filter envelope", 1.0, 5.0, DEFAULT_PROP_ENVELOPE,
           G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_N_THREADS,
-      g_param_spec_uint ("n-threads", "Threads",
+      GST_PARAM_SPEC (uint, "n-threads", "Threads",
           "Maximum number of threads to use", 0, G_MAXUINT,
           DEFAULT_PROP_N_THREADS,
           G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_DITHER_QUANTIZATION,
-      g_param_spec_uint ("dither-quantization", "Dither Quantize",
+      GST_PARAM_SPEC (uint, "dither-quantization", "Dither Quantize",
           "Quantizer to use", 0, G_MAXUINT, DEFAULT_PROP_DITHER_QUANTIZATION,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_CHROMA_RESAMPLER,
-      g_param_spec_enum ("chroma-resampler", "Chroma resampler",
+      GST_PARAM_SPEC (enum, "chroma-resampler", "Chroma resampler",
           "Chroma resampler method", gst_video_resampler_method_get_type (),
           DEFAULT_PROP_CHROMA_RESAMPLER,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_ALPHA_MODE,
-      g_param_spec_enum ("alpha-mode", "Alpha Mode",
+      GST_PARAM_SPEC (enum, "alpha-mode", "Alpha Mode",
           "Alpha Mode to use", gst_video_alpha_mode_get_type (),
           DEFAULT_PROP_ALPHA_MODE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_ALPHA_VALUE,
-      g_param_spec_double ("alpha-value", "Alpha Value",
+      GST_PARAM_SPEC (double, "alpha-value", "Alpha Value",
           "Alpha Value to use", 0.0, 1.0,
           DEFAULT_PROP_ALPHA_VALUE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_CHROMA_MODE,
-      g_param_spec_enum ("chroma-mode", "Chroma Mode", "Chroma Resampling Mode",
+      GST_PARAM_SPEC (enum, "chroma-mode", "Chroma Mode", "Chroma Resampling Mode",
           gst_video_chroma_mode_get_type (), DEFAULT_PROP_CHROMA_MODE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_MATRIX_MODE,
-      g_param_spec_enum ("matrix-mode", "Matrix Mode", "Matrix Conversion Mode",
+      GST_PARAM_SPEC (enum, "matrix-mode", "Matrix Mode", "Matrix Conversion Mode",
           gst_video_matrix_mode_get_type (), DEFAULT_PROP_MATRIX_MODE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_GAMMA_MODE,
-      g_param_spec_enum ("gamma-mode", "Gamma Mode", "Gamma Conversion Mode",
+      GST_PARAM_SPEC (enum, "gamma-mode", "Gamma Mode", "Gamma Conversion Mode",
           gst_video_gamma_mode_get_type (), DEFAULT_PROP_GAMMA_MODE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_PRIMARIES_MODE,
-      g_param_spec_enum ("primaries-mode", "Primaries Mode",
+      GST_PARAM_SPEC (enum, "primaries-mode", "Primaries Mode",
           "Primaries Conversion Mode", gst_video_primaries_mode_get_type (),
           DEFAULT_PROP_PRIMARIES_MODE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
@@ -390,7 +390,7 @@ gst_video_convert_scale_class_init (GstVideoConvertScaleClass * klass)
    * Since: 1.24
    */
   g_object_class_install_property (gobject_class,
-      PROP_CONVERTER_CONFIG, g_param_spec_boxed ("converter-config",
+      PROP_CONVERTER_CONFIG, GST_PARAM_SPEC (boxed, "converter-config",
           "Converter configuration",
           "A GstStructure describing the configuration that should be used."
           " This configuration, if set, takes precedence over the other similar conversion properties.",

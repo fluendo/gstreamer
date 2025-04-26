@@ -51,6 +51,7 @@
 #include "gstpad.h"
 
 /* for GstElement */
+#include "gstmacros.h"
 #include "gstelement.h"
 
 /* for GstDeviceProvider */

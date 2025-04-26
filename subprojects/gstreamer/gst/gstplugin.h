@@ -261,7 +261,7 @@ static const GstPluginDesc gst_plugin_desc = { \
   major, \
   minor, \
   G_STRINGIFY(name), \
-  (gchar *) description, \
+  (gchar *) GST_MAYBE_BLURB (description),      \
   init, \
   version, \
   license, \
