@@ -367,19 +367,19 @@ gst_pad_class_init (GstPadClass * klass)
       G_STRUCT_OFFSET (GstPadClass, unlinked), NULL, NULL,
       NULL, G_TYPE_NONE, 1, GST_TYPE_PAD);
 
-  pspec_caps = g_param_spec_boxed ("caps", "Caps",
+  pspec_caps = GST_PARAM_SPEC (boxed, "caps", "Caps",
       "The capabilities of the pad", GST_TYPE_CAPS,
       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (gobject_class, PAD_PROP_CAPS, pspec_caps);
 
   g_object_class_install_property (gobject_class, PAD_PROP_DIRECTION,
-      g_param_spec_enum ("direction", "Direction", "The direction of the pad",
-          GST_TYPE_PAD_DIRECTION, GST_PAD_UNKNOWN,
+      GST_PARAM_SPEC (enum, "direction", "Direction",
+          "The direction of the pad", GST_TYPE_PAD_DIRECTION, GST_PAD_UNKNOWN,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   /* FIXME, Make G_PARAM_CONSTRUCT_ONLY when we fix ghostpads. */
   g_object_class_install_property (gobject_class, PAD_PROP_TEMPLATE,
-      g_param_spec_object ("template", "Template",
+      GST_PARAM_SPEC (object, "template", "Template",
           "The GstPadTemplate of this pad", GST_TYPE_PAD_TEMPLATE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
@@ -391,7 +391,7 @@ gst_pad_class_init (GstPadClass * klass)
    * Since: 1.6
    */
   g_object_class_install_property (gobject_class, PAD_PROP_OFFSET,
-      g_param_spec_int64 ("offset", "Offset",
+      GST_PARAM_SPEC (int64, "offset", "Offset",
           "The running time offset of the pad", 0, G_MAXINT64, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 

@@ -354,7 +354,7 @@ gst_bin_class_init (GstBinClass * klass)
    * of its children on its own.
    */
   g_object_class_install_property (gobject_class, PROP_ASYNC_HANDLING,
-      g_param_spec_boolean ("async-handling", "Async Handling",
+      GST_PARAM_SPEC (boolean, "async-handling", "Async Handling",
           "The bin will handle Asynchronous state changes",
           DEFAULT_ASYNC_HANDLING, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
@@ -441,7 +441,7 @@ gst_bin_class_init (GstBinClass * klass)
    * a field named `message` that contains the original forwarded #GstMessage.
    */
   g_object_class_install_property (gobject_class, PROP_MESSAGE_FORWARD,
-      g_param_spec_boolean ("message-forward", "Message Forward",
+      GST_PARAM_SPEC (boolean, "message-forward", "Message Forward",
           "Forwards all children messages",
           DEFAULT_MESSAGE_FORWARD, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
