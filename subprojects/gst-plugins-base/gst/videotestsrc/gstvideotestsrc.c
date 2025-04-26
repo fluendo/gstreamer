@@ -48,6 +48,15 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef GST_DISABLE_BLURBS
+#define GST_MAYBE_BLURB(blurb) "(disabled)"
+#else
+#define GST_MAYBE_BLURB(blurb) (blurb)
+#endif
+
+#define GST_PARAM_SPEC(type, name, nick, blurb, ...)                    \
+  g_param_spec_##type (name, nick, GST_MAYBE_BLURB (blurb), __VA_ARGS__)
+
 GST_DEBUG_CATEGORY_STATIC (video_test_src_debug);
 #define GST_CAT_DEFAULT video_test_src_debug
 
@@ -270,88 +279,88 @@ gst_video_test_src_class_init (GstVideoTestSrcClass * klass)
   gobject_class->finalize = gst_video_test_src_finalize;
 
   g_object_class_install_property (gobject_class, PROP_PATTERN,
-      g_param_spec_enum ("pattern", "Pattern",
+      GST_PARAM_SPEC (enum, "pattern", "Pattern",
           "Type of test pattern to generate", GST_TYPE_VIDEO_TEST_SRC_PATTERN,
           DEFAULT_PATTERN, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_ANIMATION_MODE,
-      g_param_spec_enum ("animation-mode", "Animation mode",
+      GST_PARAM_SPEC (enum, "animation-mode", "Animation mode",
           "For pattern=ball, which counter defines the position of the ball.",
           GST_TYPE_VIDEO_TEST_SRC_ANIMATION_MODE, DEFAULT_ANIMATION_MODE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_MOTION_TYPE,
-      g_param_spec_enum ("motion", "Motion",
+      GST_PARAM_SPEC (enum, "motion", "Motion",
           "For pattern=ball, what motion the ball does",
           GST_TYPE_VIDEO_TEST_SRC_MOTION_TYPE, DEFAULT_MOTION_TYPE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_FLIP,
-      g_param_spec_boolean ("flip", "Flip",
+      GST_PARAM_SPEC (boolean, "flip", "Flip",
           "For pattern=ball, invert colors every second.",
           DEFAULT_FLIP, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_TIMESTAMP_OFFSET,
-      g_param_spec_int64 ("timestamp-offset", "Timestamp offset",
+      GST_PARAM_SPEC (int64, "timestamp-offset", "Timestamp offset",
           "An offset added to timestamps set on buffers (in ns)", 0,
           G_MAXINT64, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_IS_LIVE,
-      g_param_spec_boolean ("is-live", "Is Live",
+      GST_PARAM_SPEC (boolean, "is-live", "Is Live",
           "Whether to act as a live source", DEFAULT_IS_LIVE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_K0,
-      g_param_spec_int ("k0", "Zoneplate zero order phase",
+      GST_PARAM_SPEC (int, "k0", "Zoneplate zero order phase",
           "Zoneplate zero order phase, for generating plain fields or phase offsets",
           G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KX,
-      g_param_spec_int ("kx", "Zoneplate 1st order x phase",
+      GST_PARAM_SPEC (int, "kx", "Zoneplate 1st order x phase",
           "Zoneplate 1st order x phase, for generating constant horizontal frequencies",
           G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KY,
-      g_param_spec_int ("ky", "Zoneplate 1st order y phase",
+      GST_PARAM_SPEC (int, "ky", "Zoneplate 1st order y phase",
           "Zoneplate 1st order y phase, for generating content vertical frequencies",
           G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KT,
-      g_param_spec_int ("kt", "Zoneplate 1st order t phase",
+      GST_PARAM_SPEC (int, "kt", "Zoneplate 1st order t phase",
           "Zoneplate 1st order t phase, for generating phase rotation as a function of time",
           G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KXT,
-      g_param_spec_int ("kxt", "Zoneplate x*t product phase",
+      GST_PARAM_SPEC (int, "kxt", "Zoneplate x*t product phase",
           "Zoneplate x*t product phase, normalised to kxy/256 cycles per vertical pixel at width/2 from origin",
           G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KYT,
-      g_param_spec_int ("kyt", "Zoneplate y*t product phase",
+      GST_PARAM_SPEC (int, "kyt", "Zoneplate y*t product phase",
           "Zoneplate y*t product phase", G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KXY,
-      g_param_spec_int ("kxy", "Zoneplate x*y product phase",
+      GST_PARAM_SPEC (int, "kxy", "Zoneplate x*y product phase",
           "Zoneplate x*y product phase", G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KX2,
-      g_param_spec_int ("kx2", "Zoneplate 2nd order x phase",
+      GST_PARAM_SPEC (int, "kx2", "Zoneplate 2nd order x phase",
           "Zoneplate 2nd order x phase, normalised to kx2/256 cycles per horizontal pixel at width/2 from origin",
           G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KY2,
-      g_param_spec_int ("ky2", "Zoneplate 2nd order y phase",
+      GST_PARAM_SPEC (int, "ky2", "Zoneplate 2nd order y phase",
           "Zoneplate 2nd order y phase, normailsed to ky2/256 cycles per vertical pixel at height/2 from origin",
           G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_KT2,
-      g_param_spec_int ("kt2", "Zoneplate 2nd order t phase",
+      GST_PARAM_SPEC (int, "kt2", "Zoneplate 2nd order t phase",
           "Zoneplate 2nd order t phase, t*t/256 cycles per picture", G_MININT32,
           G_MAXINT32, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_XOFFSET,
-      g_param_spec_int ("xoffset", "Zoneplate 2nd order products x offset",
+      GST_PARAM_SPEC (int, "xoffset", "Zoneplate 2nd order products x offset",
           "Zoneplate 2nd order products x offset", G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_YOFFSET,
-      g_param_spec_int ("yoffset", "Zoneplate 2nd order products y offset",
+      GST_PARAM_SPEC (int, "yoffset", "Zoneplate 2nd order products y offset",
           "Zoneplate 2nd order products y offset", G_MININT32, G_MAXINT32, 0,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   /**
@@ -361,7 +370,7 @@ gst_video_test_src_class_init (GstVideoTestSrcClass * klass)
    * patterns.  Default is white (0xffffffff).
    */
   g_object_class_install_property (gobject_class, PROP_FOREGROUND_COLOR,
-      g_param_spec_uint ("foreground-color", "Foreground Color",
+      GST_PARAM_SPEC (uint, "foreground-color", "Foreground Color",
           "Foreground color to use (big-endian ARGB)", 0, G_MAXUINT32,
           DEFAULT_FOREGROUND_COLOR,
           G_PARAM_READWRITE | GST_PARAM_CONTROLLABLE | G_PARAM_STATIC_STRINGS));
@@ -372,13 +381,13 @@ gst_video_test_src_class_init (GstVideoTestSrcClass * klass)
    * black (0xff000000).
    */
   g_object_class_install_property (gobject_class, PROP_BACKGROUND_COLOR,
-      g_param_spec_uint ("background-color", "Background Color",
+      GST_PARAM_SPEC (uint, "background-color", "Background Color",
           "Background color to use (big-endian ARGB)", 0, G_MAXUINT32,
           DEFAULT_BACKGROUND_COLOR,
           G_PARAM_READWRITE | GST_PARAM_CONTROLLABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_HORIZONTAL_SPEED,
-      g_param_spec_int ("horizontal-speed", "Horizontal Speed",
+      GST_PARAM_SPEC (int, "horizontal-speed", "Horizontal Speed",
           "Scroll image number of pixels per frame (positive is scroll to the left)",
           G_MININT32, G_MAXINT32, DEFAULT_HORIZONTAL_SPEED,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
