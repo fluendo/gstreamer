@@ -270,16 +270,16 @@ gst_element_class_init (GstElementClass * klass, gpointer class_data)
   gobject_class->finalize = gst_element_finalize;
   gobject_class->constructed = gst_element_constructed;
 
-  klass->change_state = GST_DEBUG_FUNCPTR (gst_element_change_state_func);
-  klass->set_state = GST_DEBUG_FUNCPTR (gst_element_set_state_func);
-  klass->get_state = GST_DEBUG_FUNCPTR (gst_element_get_state_func);
-  klass->set_clock = GST_DEBUG_FUNCPTR (gst_element_set_clock_func);
-  klass->set_bus = GST_DEBUG_FUNCPTR (gst_element_set_bus_func);
-  klass->query = GST_DEBUG_FUNCPTR (gst_element_default_query);
-  klass->send_event = GST_DEBUG_FUNCPTR (gst_element_default_send_event);
+  klass->change_state = gst_element_change_state_func;
+  klass->set_state = gst_element_set_state_func;
+  klass->get_state = gst_element_get_state_func;
+  klass->set_clock = gst_element_set_clock_func;
+  klass->set_bus = gst_element_set_bus_func;
+  klass->query = gst_element_default_query;
+  klass->send_event = gst_element_default_send_event;
   klass->numpadtemplates = 0;
-  klass->post_message = GST_DEBUG_FUNCPTR (gst_element_post_message_default);
-  klass->set_context = GST_DEBUG_FUNCPTR (gst_element_set_context_default);
+  klass->post_message = gst_element_post_message_default;
+  klass->set_context = gst_element_set_context_default;
 
   klass->elementfactory = NULL;
 }

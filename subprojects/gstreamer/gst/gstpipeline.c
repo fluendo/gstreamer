@@ -213,13 +213,10 @@ gst_pipeline_class_init (GstPipelineClass * klass)
       "Complete pipeline object",
       "Erik Walthinsen <omega@cse.ogi.edu>, Wim Taymans <wim@fluendo.com>");
 
-  gstelement_class->change_state =
-      GST_DEBUG_FUNCPTR (gst_pipeline_change_state);
-  gstelement_class->provide_clock =
-      GST_DEBUG_FUNCPTR (gst_pipeline_provide_clock_func);
-  gstbin_class->handle_message =
-      GST_DEBUG_FUNCPTR (gst_pipeline_handle_message);
-  gstbin_class->do_latency = GST_DEBUG_FUNCPTR (gst_pipeline_do_latency);
+  gstelement_class->change_state = gst_pipeline_change_state;
+  gstelement_class->provide_clock = gst_pipeline_provide_clock_func;
+  gstbin_class->handle_message = gst_pipeline_handle_message;
+  gstbin_class->do_latency = gst_pipeline_do_latency;
 }
 
 static void

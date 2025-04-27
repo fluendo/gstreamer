@@ -194,7 +194,7 @@ gst_object_class_init (GstObjectClass * klass)
 
   /* see the comments at gst_object_dispatch_properties_changed */
   gobject_class->dispatch_properties_changed
-      = GST_DEBUG_FUNCPTR (gst_object_dispatch_properties_changed);
+      = gst_object_dispatch_properties_changed;
 
   gobject_class->constructed = gst_object_constructed;
   gobject_class->dispose = gst_object_dispose;

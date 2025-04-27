@@ -453,30 +453,28 @@ gst_bin_class_init (GstBinClass * klass)
       "Erik Walthinsen <omega@cse.ogi.edu>,"
       "Wim Taymans <wim.taymans@gmail.com>");
 
-  gstelement_class->change_state =
-      GST_DEBUG_FUNCPTR (gst_bin_change_state_func);
-  gstelement_class->post_message = GST_DEBUG_FUNCPTR (gst_bin_post_message);
-  gstelement_class->get_state = GST_DEBUG_FUNCPTR (gst_bin_get_state_func);
+  gstelement_class->change_state = gst_bin_change_state_func;
+  gstelement_class->post_message = gst_bin_post_message;
+  gstelement_class->get_state = gst_bin_get_state_func;
 #if 0
-  gstelement_class->get_index = GST_DEBUG_FUNCPTR (gst_bin_get_index_func);
-  gstelement_class->set_index = GST_DEBUG_FUNCPTR (gst_bin_set_index_func);
+  gstelement_class->get_index = gst_bin_get_index_func;
+  gstelement_class->set_index = gst_bin_set_index_func;
 #endif
-  gstelement_class->provide_clock =
-      GST_DEBUG_FUNCPTR (gst_bin_provide_clock_func);
-  gstelement_class->set_clock = GST_DEBUG_FUNCPTR (gst_bin_set_clock_func);
+  gstelement_class->provide_clock = gst_bin_provide_clock_func;
+  gstelement_class->set_clock = gst_bin_set_clock_func;
 
-  gstelement_class->send_event = GST_DEBUG_FUNCPTR (gst_bin_send_event);
-  gstelement_class->query = GST_DEBUG_FUNCPTR (gst_bin_query);
-  gstelement_class->set_context = GST_DEBUG_FUNCPTR (gst_bin_set_context);
+  gstelement_class->send_event = gst_bin_send_event;
+  gstelement_class->query = gst_bin_query;
+  gstelement_class->set_context = gst_bin_set_context;
 
-  klass->add_element = GST_DEBUG_FUNCPTR (gst_bin_add_func);
-  klass->remove_element = GST_DEBUG_FUNCPTR (gst_bin_remove_func);
-  klass->handle_message = GST_DEBUG_FUNCPTR (gst_bin_handle_message_func);
+  klass->add_element = gst_bin_add_func;
+  klass->remove_element = gst_bin_remove_func;
+  klass->handle_message = gst_bin_handle_message_func;
 
   klass->deep_element_added = gst_bin_deep_element_added_func;
   klass->deep_element_removed = gst_bin_deep_element_removed_func;
 
-  klass->do_latency = GST_DEBUG_FUNCPTR (gst_bin_do_latency_func);
+  klass->do_latency = gst_bin_do_latency_func;
 }
 
 static void
