@@ -425,28 +425,21 @@ gst_base_src_class_init (GstBaseSrcClass * klass, gpointer class_data)
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gstelement_class->change_state =
-      GST_DEBUG_FUNCPTR (gst_base_src_change_state);
-  gstelement_class->send_event = GST_DEBUG_FUNCPTR (gst_base_src_send_event);
+      gst_base_src_change_state;
+  gstelement_class->send_event = gst_base_src_send_event;
 
-  klass->get_caps = GST_DEBUG_FUNCPTR (gst_base_src_default_get_caps);
-  klass->negotiate = GST_DEBUG_FUNCPTR (gst_base_src_default_negotiate);
-  klass->fixate = GST_DEBUG_FUNCPTR (gst_base_src_default_fixate);
+  klass->get_caps = gst_base_src_default_get_caps;
+  klass->negotiate = gst_base_src_default_negotiate;
+  klass->fixate = gst_base_src_default_fixate;
   klass->prepare_seek_segment =
-      GST_DEBUG_FUNCPTR (gst_base_src_default_prepare_seek_segment);
-  klass->do_seek = GST_DEBUG_FUNCPTR (gst_base_src_default_do_seek);
-  klass->query = GST_DEBUG_FUNCPTR (gst_base_src_default_query);
-  klass->event = GST_DEBUG_FUNCPTR (gst_base_src_default_event);
-  klass->create = GST_DEBUG_FUNCPTR (gst_base_src_default_create);
-  klass->alloc = GST_DEBUG_FUNCPTR (gst_base_src_default_alloc);
+      gst_base_src_default_prepare_seek_segment;
+  klass->do_seek = gst_base_src_default_do_seek;
+  klass->query = gst_base_src_default_query;
+  klass->event = gst_base_src_default_event;
+  klass->create = gst_base_src_default_create;
+  klass->alloc = gst_base_src_default_alloc;
   klass->decide_allocation =
-      GST_DEBUG_FUNCPTR (gst_base_src_decide_allocation_default);
-
-  /* Registering debug symbols for function pointers */
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_src_activate_mode);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_src_event);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_src_query);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_src_getrange);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_src_fixate);
+      gst_base_src_decide_allocation_default;
 }
 
 static void

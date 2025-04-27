@@ -593,28 +593,18 @@ gst_base_sink_class_init (GstBaseSinkClass * klass, gpointer class_data)
           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gstelement_class->change_state =
-      GST_DEBUG_FUNCPTR (gst_base_sink_change_state);
-  gstelement_class->send_event = GST_DEBUG_FUNCPTR (gst_base_sink_send_event);
-  gstelement_class->query = GST_DEBUG_FUNCPTR (default_element_query);
+      gst_base_sink_change_state;
+  gstelement_class->send_event = gst_base_sink_send_event;
+  gstelement_class->query = default_element_query;
 
-  klass->get_caps = GST_DEBUG_FUNCPTR (gst_base_sink_default_get_caps);
-  klass->set_caps = GST_DEBUG_FUNCPTR (gst_base_sink_default_set_caps);
-  klass->fixate = GST_DEBUG_FUNCPTR (gst_base_sink_default_fixate);
-  klass->activate_pull =
-      GST_DEBUG_FUNCPTR (gst_base_sink_default_activate_pull);
-  klass->get_times = GST_DEBUG_FUNCPTR (gst_base_sink_default_get_times);
-  klass->query = GST_DEBUG_FUNCPTR (gst_base_sink_default_query);
-  klass->event = GST_DEBUG_FUNCPTR (gst_base_sink_default_event);
-  klass->wait_event = GST_DEBUG_FUNCPTR (gst_base_sink_default_wait_event);
-
-  /* Registering debug symbols for function pointers */
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_sink_fixate);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_sink_pad_activate);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_sink_pad_activate_mode);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_sink_event);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_sink_chain);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_sink_chain_list);
-  GST_DEBUG_REGISTER_FUNCPTR (gst_base_sink_sink_query);
+  klass->get_caps = gst_base_sink_default_get_caps;
+  klass->set_caps = gst_base_sink_default_set_caps;
+  klass->fixate = gst_base_sink_default_fixate;
+  klass->activate_pull = gst_base_sink_default_activate_pull;
+  klass->get_times = gst_base_sink_default_get_times;
+  klass->query = gst_base_sink_default_query;
+  klass->event = gst_base_sink_default_event;
+  klass->wait_event = gst_base_sink_default_wait_event;
 }
 
 static GstCaps *
