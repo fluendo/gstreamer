@@ -80,10 +80,10 @@ gst_push_src_class_init (GstPushSrcClass * klass)
 {
   GstBaseSrcClass *gstbasesrc_class = (GstBaseSrcClass *) klass;
 
-  gstbasesrc_class->create = GST_DEBUG_FUNCPTR (gst_push_src_create);
-  gstbasesrc_class->alloc = GST_DEBUG_FUNCPTR (gst_push_src_alloc);
-  gstbasesrc_class->fill = GST_DEBUG_FUNCPTR (gst_push_src_fill);
-  gstbasesrc_class->query = GST_DEBUG_FUNCPTR (gst_push_src_query);
+  gstbasesrc_class->create = gst_push_src_create;
+  gstbasesrc_class->alloc = gst_push_src_alloc;
+  gstbasesrc_class->fill = gst_push_src_fill;
+  gstbasesrc_class->query = gst_push_src_query;
 }
 
 static void

@@ -204,13 +204,12 @@ gst_video_sink_class_init (GstVideoSinkClass * klass)
           DEFAULT_SHOW_PREROLL_FRAME,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 
-  element_class->change_state = GST_DEBUG_FUNCPTR (gst_video_sink_change_state);
+  element_class->change_state = gst_video_sink_change_state;
 
-  basesink_class->render = GST_DEBUG_FUNCPTR (gst_video_sink_show_frame);
-  basesink_class->preroll =
-      GST_DEBUG_FUNCPTR (gst_video_sink_show_preroll_frame);
-  basesink_class->set_caps = GST_DEBUG_FUNCPTR (gst_video_sink_set_caps);
-  basesink_class->get_times = GST_DEBUG_FUNCPTR (gst_video_sink_get_times);
+  basesink_class->render = gst_video_sink_show_frame;
+  basesink_class->preroll = gst_video_sink_show_preroll_frame;
+  basesink_class->set_caps = gst_video_sink_set_caps;
+  basesink_class->get_times = gst_video_sink_get_times;
 }
 
 static GstStateChangeReturn
