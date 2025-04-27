@@ -674,17 +674,23 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
 
   g_type_class_ref (gst_object_get_type ());
   g_type_class_ref (gst_pad_get_type ());
+#if TERRIBLE_HACK
   g_type_class_ref (gst_element_factory_get_type ());
+#endif
   g_type_class_ref (gst_element_get_type ());
 #ifndef  GST_DISABLE_GST_TRACER_HOOKS
   g_type_class_ref (gst_tracer_factory_get_type ());
 #endif
+#if TERRIBLE_HACK
   g_type_class_ref (gst_type_find_factory_get_type ());
+#endif
   g_type_class_ref (gst_bin_get_type ());
   g_type_class_ref (gst_bus_get_type ());
   g_type_class_ref (gst_task_get_type ());
   g_type_class_ref (gst_clock_get_type ());
+#if FIXME_UPSTREAM
   g_type_class_ref (gst_debug_color_mode_get_type ());
+#endif
 
   gst_uri_handler_get_type ();
 
@@ -699,13 +705,17 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   g_type_class_ref (gst_clock_entry_type_get_type ());
   g_type_class_ref (gst_clock_flags_get_type ());
   g_type_class_ref (gst_clock_type_get_type ());
+#ifndef  FIXME_UPSTREAM
   g_type_class_ref (gst_debug_graph_details_get_type ());
+#endif
   g_type_class_ref (gst_state_get_type ());
   g_type_class_ref (gst_state_change_return_get_type ());
   g_type_class_ref (gst_state_change_get_type ());
   g_type_class_ref (gst_element_flags_get_type ());
+#ifndef FIXED
   g_type_class_ref (gst_tracer_value_scope_get_type ());
   g_type_class_ref (gst_tracer_value_flags_get_type ());
+#endif
   g_type_class_ref (gst_core_error_get_type ());
   g_type_class_ref (gst_library_error_get_type ());
   g_type_class_ref (gst_resource_error_get_type ());
@@ -716,8 +726,10 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   g_type_class_ref (gst_seek_flags_get_type ());
   g_type_class_ref (gst_qos_type_get_type ());
   g_type_class_ref (gst_format_get_type ());
+#if FIXME_UPSTREAM
   g_type_class_ref (gst_debug_level_get_type ());
   g_type_class_ref (gst_debug_color_flags_get_type ());
+#endif
   g_type_class_ref (gst_iterator_result_get_type ());
   g_type_class_ref (gst_iterator_item_get_type ());
   g_type_class_ref (gst_message_type_get_type ());
@@ -731,10 +743,12 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   g_type_class_ref (gst_pad_presence_get_type ());
   g_type_class_ref (gst_pad_template_flags_get_type ());
   g_type_class_ref (gst_pipeline_flags_get_type ());
+#if FIXME_UPSTREAM
   g_type_class_ref (gst_plugin_error_get_type ());
   g_type_class_ref (gst_plugin_flags_get_type ());
   g_type_class_ref (gst_plugin_dependency_flags_get_type ());
   g_type_class_ref (gst_rank_get_type ());
+#endif
   g_type_class_ref (gst_query_type_flags_get_type ());
   g_type_class_ref (gst_query_type_get_type ());
   g_type_class_ref (gst_buffering_mode_get_type ());
@@ -746,11 +760,13 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   g_type_class_ref (gst_task_pool_get_type ());
   g_type_class_ref (gst_task_state_get_type ());
   g_type_class_ref (gst_toc_entry_type_get_type ());
+#if TERRIBLE_HACK
   g_type_class_ref (gst_type_find_probability_get_type ());
   g_type_class_ref (gst_uri_error_get_type ());
   g_type_class_ref (gst_uri_type_get_type ());
   g_type_class_ref (gst_parse_error_get_type ());
   g_type_class_ref (gst_parse_flags_get_type ());
+#endif
   g_type_class_ref (gst_search_mode_get_type ());
   g_type_class_ref (gst_progress_type_get_type ());
   g_type_class_ref (gst_buffer_pool_acquire_flags_get_type ());
@@ -1156,18 +1172,26 @@ gst_deinit (void)
   g_type_class_unref (g_type_class_peek (gst_clock_return_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_clock_entry_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_clock_flags_get_type ()));
+#if FIXME_UPSTREAM
   g_type_class_unref (g_type_class_peek (gst_debug_graph_details_get_type ()));
+#endif
   g_type_class_unref (g_type_class_peek (gst_state_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_state_change_return_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_state_change_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_element_flags_get_type ()));
+#if FIXED
   g_type_class_unref (g_type_class_peek (gst_tracer_value_scope_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_tracer_value_flags_get_type ()));
+#endif
   g_type_class_unref (g_type_class_peek (gst_core_error_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_library_error_get_type ()));
+#if FIXME_UPSTREAM
   g_type_class_unref (g_type_class_peek (gst_plugin_dependency_flags_get_type
           ()));
+#endif
+#if FIXME_UPSTREAM
   g_type_class_unref (g_type_class_peek (gst_parse_flags_get_type ()));
+#endif
   g_type_class_unref (g_type_class_peek (gst_resource_error_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_search_mode_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_stream_error_get_type ()));
@@ -1180,8 +1204,10 @@ gst_deinit (void)
   g_type_class_unref (g_type_class_peek (gst_seek_flags_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_qos_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_format_get_type ()));
+#if FIXME_UPSTREAM
   g_type_class_unref (g_type_class_peek (gst_debug_level_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_debug_color_flags_get_type ()));
+#endif
   g_type_class_unref (g_type_class_peek (gst_iterator_result_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_iterator_item_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_message_type_get_type ()));
@@ -1208,11 +1234,13 @@ gst_deinit (void)
   g_type_class_unref (g_type_class_peek (gst_task_state_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_toc_entry_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_toc_scope_get_type ()));
+#if 0
   g_type_class_unref (g_type_class_peek (gst_type_find_probability_get_type
           ()));
   g_type_class_unref (g_type_class_peek (gst_uri_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_uri_error_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_parse_error_get_type ()));
+#endif
   g_type_class_unref (g_type_class_peek (gst_param_spec_fraction_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_progress_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_buffer_pool_acquire_flags_get_type
