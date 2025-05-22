@@ -438,10 +438,10 @@ flags_to_string (GFlagsValue * vals, guint flags)
   GST_PARAM_CONDITIONALLY_AVAILABLE | GST_PARAM_DOC_SHOW_DEFAULT)
 
 static int
-sort_gparamspecs (GParamSpec ** a, GParamSpec ** b)
-{
-  return g_strcmp0 (g_param_spec_get_name (*a), g_param_spec_get_name (*b));
-}
+sort_gparamspecs (GParamSpec ** a, GParamSpec ** b, gpointer unused)
+ {
+   return g_strcmp0 (g_param_spec_get_name (*a), g_param_spec_get_name (*b));
+ }
 
 /* obj will be NULL if we're printing properties of pad template pads */
 static void
@@ -1228,7 +1228,7 @@ print_signal_info (GstElement * element)
     }
 
     if (found_signals) {
-      g_slist_foreach (found_signals, (GFunc) g_free, NULL);
+      g_slist_foreach (found_signals, (GFunc) g_destroy_notify_to_func, g_free);
       g_slist_free (found_signals);
     }
   }
