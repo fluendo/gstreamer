@@ -618,7 +618,7 @@ static GstClockReturn gst_system_clock_id_wait_async (GstClock * clock,
     GstClockEntry * entry);
 static void gst_system_clock_id_unschedule (GstClock * clock,
     GstClockEntry * entry);
-static void gst_system_clock_async_thread (GstClock * clock);
+static gpointer gst_system_clock_async_thread (GstClock * clock);
 static gboolean gst_system_clock_start_async (GstSystemClock * clock);
 
 static GMutex _gst_sysclock_mutex;
@@ -865,7 +865,7 @@ gst_system_clock_obtain (void)
  *
  * MT safe.
  */
-static void
+static gpointer
 gst_system_clock_async_thread (GstClock * clock)
 {
   GstSystemClock *sysclock = GST_SYSTEM_CLOCK_CAST (clock);
@@ -967,7 +967,7 @@ gst_system_clock_async_thread (GstClock * clock)
           entry->time = requested + entry->interval;
           /* and resort the list now */
           priv->entries =
-              g_list_sort (priv->entries, gst_clock_id_compare_func);
+              g_list_sort (priv->entries, (GCompareFunc)gst_clock_id_compare_func);
           /* and restart */
           continue;
         } else {
@@ -1010,6 +1010,8 @@ exit:
   GST_SYSTEM_CLOCK_BROADCAST (clock);
   GST_SYSTEM_CLOCK_UNLOCK (clock);
   GST_CAT_DEBUG_OBJECT (GST_CAT_CLOCK, clock, "exit system clock thread");
+
+  return NULL;
 }
 
 #ifdef HAVE_POSIX_TIMERS
@@ -1397,7 +1399,7 @@ gst_system_clock_id_wait_async (GstClock * clock, GstClockEntry * entry)
 
   /* insert the entry in sorted order */
   priv->entries = g_list_insert_sorted (priv->entries, entry,
-      gst_clock_id_compare_func);
+      (GCompareFunc)gst_clock_id_compare_func);
 
   /* only need to send the signal if the entry was added to the
    * front, else the thread is just waiting for another entry and
