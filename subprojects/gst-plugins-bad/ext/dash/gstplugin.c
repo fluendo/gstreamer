@@ -22,7 +22,9 @@
 #endif
 
 #include "gstdashdemux.h"
+#ifndef G_PLATFORM_WASM
 #include "gstdashsink.h"
+#endif
 
 static gboolean
 dash_init (GstPlugin * plugin)
@@ -30,7 +32,9 @@ dash_init (GstPlugin * plugin)
   gboolean ret = FALSE;
 
   ret |= GST_ELEMENT_REGISTER (dashdemux, plugin);
+#ifndef G_PLATFORM_WASM
   ret |= GST_ELEMENT_REGISTER (dashsink, plugin);
+#endif
 
   return ret;
 }
