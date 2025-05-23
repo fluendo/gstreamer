@@ -410,9 +410,8 @@ void
 gst_mpd_client_active_streams_free (GstMPDClient * client)
 {
   if (client->active_streams) {
-    g_list_foreach (client->active_streams,
-        (GFunc) gst_mpdparser_free_active_stream, NULL);
-    g_list_free (client->active_streams);
+    g_list_free_full (client->active_streams,
+        (GDestroyNotify) gst_mpdparser_free_active_stream);
     client->active_streams = NULL;
   }
 }
@@ -1263,9 +1262,8 @@ gst_mpd_client_setup_media_presentation (GstMPDClient * client,
    * seems more complicated than the overhead caused here
    */
   if (client->periods) {
-    g_list_foreach (client->periods,
-        (GFunc) gst_mpdparser_free_stream_period, NULL);
-    g_list_free (client->periods);
+    g_list_free_full (client->periods,
+        (GDestroyNotify) gst_mpdparser_free_stream_period);
     client->periods = NULL;
   }
 

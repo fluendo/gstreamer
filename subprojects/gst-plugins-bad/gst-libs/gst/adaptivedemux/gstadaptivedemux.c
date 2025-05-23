@@ -221,7 +221,7 @@ typedef struct _GstAdaptiveDemuxTimer
 static GstBinClass *parent_class = NULL;
 static gint private_offset = 0;
 
-static void gst_adaptive_demux_class_init (GstAdaptiveDemuxClass * klass);
+static void gst_adaptive_demux_class_init (GstAdaptiveDemuxClass * klass, gpointer data);
 static void gst_adaptive_demux_init (GstAdaptiveDemux * dec,
     GstAdaptiveDemuxClass * klass);
 static void gst_adaptive_demux_finalize (GObject * object);
@@ -396,7 +396,7 @@ gst_adaptive_demux_get_property (GObject * object, guint prop_id,
 }
 
 static void
-gst_adaptive_demux_class_init (GstAdaptiveDemuxClass * klass)
+gst_adaptive_demux_class_init (GstAdaptiveDemuxClass * klass, gpointer data)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
