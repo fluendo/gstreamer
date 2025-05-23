@@ -4015,6 +4015,8 @@ gst_dash_demux_poll_clock_drift (GstDashDemux * demux)
   g_mutex_lock (&clock_drift->clock_lock);
 
   if (method == GST_MPD_UTCTIMING_TYPE_NTP) {
+#ifndef G_PLATFORM_WASM
+    /* g_resolver haven't been ported to wasm yet.. */
     value = gst_dash_demux_poll_ntp_server (clock_drift, urls);
     if (!value) {
       GST_ERROR_OBJECT (demux, "Failed to fetch time from NTP server %s",
@@ -4022,6 +4024,7 @@ gst_dash_demux_poll_clock_drift (GstDashDemux * demux)
       g_mutex_unlock (&clock_drift->clock_lock);
       goto quit;
     }
+#endif
   }
   start =
       gst_adaptive_demux_get_client_now_utc (GST_ADAPTIVE_DEMUX_CAST (demux));
