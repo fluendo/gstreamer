@@ -213,7 +213,7 @@ gst_gl_context_emscripten_new (GstGLDisplay * display)
   GstGLContextEmscripten *context;
 
   if ((gst_gl_display_get_handle_type (display) & GST_GL_DISPLAY_TYPE_WEB) == 0) {
-    GST_ERROR_OBJECT (context, "Emscripten context requires a Web Display");
+    GST_ERROR ("Emscripten context requires a Web Display");
     return NULL;
   }
 
