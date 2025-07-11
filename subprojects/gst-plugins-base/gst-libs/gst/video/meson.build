@@ -125,16 +125,25 @@ video_gen_sources = [gstvideo_h]
 
 orcsrc = 'video-orc'
 gstvideo_deps = [gst_base_dep, libm]
+orc_obj = []
+orc_c = []
 if have_orcc
   gstvideo_deps += [orc_dep]
   orc_h = custom_target(orcsrc + '.h',
     input : orcsrc + '.orc',
     output : orcsrc + '.h',
     command : orcc_args + ['--header', '-o', '@OUTPUT@', '@INPUT@'])
-  orc_c = custom_target(orcsrc + '.c',
-    input : orcsrc + '.orc',
-    output : orcsrc + '.c',
-    command : orcc_args + ['--implementation', '-o', '@OUTPUT@', '@INPUT@'])
+
+  if host_machine.system() == 'emscripten'
+    orc_obj = custom_target(orcsrc + '.o',
+      input : orcsrc + '.orc',
+      output : orcsrc + '.o',
+      command : orcc_args + ['--implementation', '--target', 'wasm', '--assembly', '-o', '@OUTPUT@', '@INPUT@'])
+  else
+    orc_c = custom_target(orcsrc + '.c',
+      output : orcsrc + '.c',
+      command : orcc_args + ['--implementation', '-o', '@OUTPUT@', '@INPUT@'])
+  endif
   orc_targets += {'name': orcsrc, 'orc-source': files(orcsrc + '.orc'), 'header': orc_h, 'source': orc_c}
 else
   orc_h = configure_file(input : orcsrc + '-dist.h',
@@ -147,6 +156,7 @@ endif
 
 gstvideo = library('gstvideo-@0@'.format(api_version),
   video_sources, gstvideo_h, gstvideo_c, orc_c, orc_h,
+  objects: orc_obj,
   c_args : gst_plugins_base_args + ['-DBUILDING_GST_VIDEO', '-DG_LOG_DOMAIN="GStreamer-Video"'],
   include_directories: [configinc, libsinc],
   version : libversion,
