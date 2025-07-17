@@ -41,8 +41,10 @@ GST_DEBUG_CATEGORY_STATIC (GST_CAT_PERFORMANCE);
 
 /* A number of function prototypes are given so we can refer to them later. */
 static void gst_ffmpegauddec_base_init (GstFFMpegAudDecClass * klass);
-static void gst_ffmpegauddec_class_init (GstFFMpegAudDecClass * klass);
-static void gst_ffmpegauddec_init (GstFFMpegAudDec * ffmpegdec);
+static void gst_ffmpegauddec_class_init (GstFFMpegAudDecClass * klass,
+    gconstpointer class_data);
+static void gst_ffmpegauddec_init (GstFFMpegAudDec * ffmpegdec,
+    GTypeClass g_class);
 static void gst_ffmpegauddec_finalize (GObject * object);
 static gboolean gst_ffmpegauddec_propose_allocation (GstAudioDecoder * decoder,
     GstQuery * query);
@@ -120,7 +122,8 @@ gst_ffmpegauddec_base_init (GstFFMpegAudDecClass * klass)
 }
 
 static void
-gst_ffmpegauddec_class_init (GstFFMpegAudDecClass * klass)
+gst_ffmpegauddec_class_init (GstFFMpegAudDecClass * klass,
+    gconstpointer class_data)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstAudioDecoderClass *gstaudiodecoder_class = GST_AUDIO_DECODER_CLASS (klass);
@@ -143,7 +146,7 @@ gst_ffmpegauddec_class_init (GstFFMpegAudDecClass * klass)
 }
 
 static void
-gst_ffmpegauddec_init (GstFFMpegAudDec * ffmpegdec)
+gst_ffmpegauddec_init (GstFFMpegAudDec * ffmpegdec, GTypeClass g_class)
 {
   GST_PAD_SET_ACCEPT_TEMPLATE (GST_AUDIO_DECODER_SINK_PAD (ffmpegdec));
   gst_audio_decoder_set_use_default_pad_acceptcaps (GST_AUDIO_DECODER_CAST
