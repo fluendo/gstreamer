@@ -77,6 +77,8 @@ plugin_init (GstPlugin * plugin)
   ret |= GST_ELEMENT_REGISTER (rtph264pay, plugin);
   ret |= GST_ELEMENT_REGISTER (rtph265depay, plugin);
   ret |= GST_ELEMENT_REGISTER (rtph265pay, plugin);
+  ret |= GST_ELEMENT_REGISTER (rtph266depay, plugin);
+  ret |= GST_ELEMENT_REGISTER (rtph266pay, plugin);
   ret |= GST_ELEMENT_REGISTER (rtpj2kdepay, plugin);
   ret |= GST_ELEMENT_REGISTER (rtpj2kpay, plugin);
   ret |= GST_ELEMENT_REGISTER (rtpjpegdepay, plugin);
