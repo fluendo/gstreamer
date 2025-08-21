@@ -326,7 +326,7 @@ update_video_sink (GstFPSDisplaySink * self, GstElement * video_sink)
 
 static void
 fps_display_sink_init (GstFPSDisplaySink * self,
-    GstFPSDisplaySinkClass * g_class, gpointer data)
+    GstFPSDisplaySinkClass * g_class)
 {
   self->sync = DEFAULT_SYNC;
   self->signal_measurements = DEFAULT_SIGNAL_FPS_MEASUREMENTS;
