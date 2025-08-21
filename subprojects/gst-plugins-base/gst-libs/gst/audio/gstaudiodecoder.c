@@ -563,7 +563,7 @@ gst_audio_decoder_reset (GstAudioDecoder * dec, gboolean full)
     dec->priv->ctx.had_input_data = FALSE;
   }
 
-  g_queue_foreach (&dec->priv->frames, (GFunc) gst_buffer_unref, NULL);
+  g_queue_foreach (&dec->priv->frames, (GFunc) g_destroy_notify_to_func, gst_buffer_unref);
   g_queue_clear (&dec->priv->frames);
   gst_adapter_clear (dec->priv->adapter);
   gst_adapter_clear (dec->priv->adapter_out);
@@ -1814,7 +1814,7 @@ drain_failed:
     /* not fatal/impossible though if subclass/codec eats stuff */
     GST_WARNING_OBJECT (dec, "still %d frames left after draining",
         dec->priv->frames.length);
-    g_queue_foreach (&dec->priv->frames, (GFunc) gst_buffer_unref, NULL);
+    g_queue_foreach (&dec->priv->frames, (GFunc) g_destroy_notify_to_func, gst_buffer_unref);
     g_queue_clear (&dec->priv->frames);
   }
 
