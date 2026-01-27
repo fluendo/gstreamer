@@ -101,7 +101,7 @@ struct _GstAudioSinkRingBufferClass
 };
 
 static void gst_audio_sink_ring_buffer_class_init (GstAudioSinkRingBufferClass *
-    klass, gpointer class_data);
+    klass);
 static void gst_audio_sink_ring_buffer_init (GstAudioSinkRingBuffer *
     ringbuffer, GstAudioSinkRingBufferClass * klass);
 static void gst_audio_sink_ring_buffer_dispose (GObject * object);
@@ -153,7 +153,7 @@ gst_audio_sink_ring_buffer_get_type (void)
 }
 
 static void
-gst_audio_sink_ring_buffer_class_init (GstAudioSinkRingBufferClass * klass, gpointer class_data)
+gst_audio_sink_ring_buffer_class_init (GstAudioSinkRingBufferClass * klass)
 {
   GObjectClass *gobject_class;
   GstAudioRingBufferClass *gstringbuffer_class;
@@ -197,7 +197,7 @@ typedef gint (*WriteFunc) (GstAudioSink * sink, gpointer data, guint length);
  * pointer.
  * The start/stop methods control the thread.
  */
-static gpointer
+static void
 audioringbuffer_thread_func (GstAudioRingBuffer * buf)
 {
   GstAudioSink *sink;
@@ -291,13 +291,13 @@ audioringbuffer_thread_func (GstAudioRingBuffer * buf)
 
   /* Will never be reached */
   g_assert_not_reached ();
-  return NULL;
+  return;
 
   /* ERROR */
 no_function:
   {
     GST_DEBUG_OBJECT (sink, "no write function, exit thread");
-    return NULL;
+    return;
   }
 stop_running:
   {
@@ -314,10 +314,8 @@ stop_running:
 
     if (G_UNLIKELY (!__gst_audio_restore_thread_priority (handle)))
       GST_WARNING_OBJECT (sink, "failed to restore thread priority");
-    return NULL;
+    return;
   }
-
-  return NULL;
 }
 
 static void
