@@ -297,11 +297,6 @@ gboolean        gst_mini_object_take            (GstMiniObject **olddata, GstMin
 GST_API
 GstMiniObject * gst_mini_object_steal           (GstMiniObject **olddata) G_GNUC_WARN_UNUSED_RESULT;
 
-#ifdef __EMSCRIPTEN__
-GST_API
-GstMiniObject * gst_mini_object_ref_with_data   (GstMiniObject *mini_object, gpointer data);
-#endif
-
 /**
  * GST_DEFINE_MINI_OBJECT_TYPE:
  * @TypeName: name of the new type in CamelCase
