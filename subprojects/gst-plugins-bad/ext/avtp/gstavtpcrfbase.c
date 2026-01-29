@@ -72,7 +72,7 @@ gst_avtp_crf_base_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec);
 static GstStateChangeReturn gst_avtp_crf_base_change_state (GstElement *
     element, GstStateChange transition);
-static void crf_listener_thread_func (GstAvtpCrfBase * avtpcrfbase);
+static gpointer crf_listener_thread_func (GstAvtpCrfBase * avtpcrfbase);
 
 #define gst_avtp_crf_base_parent_class parent_class
 G_DEFINE_TYPE (GstAvtpCrfBase, gst_avtp_crf_base, GST_TYPE_BASE_TRANSFORM);
@@ -474,7 +474,7 @@ calculate_average_period (GstAvtpCrfBase * avtpcrfbase,
   data->current_ts = first_pkt_tstamp;
 }
 
-static void
+static gpointer
 crf_listener_thread_func (GstAvtpCrfBase * avtpcrfbase)
 {
   GstAvtpCrfThreadData *data = &avtpcrfbase->thread_data;
@@ -486,7 +486,7 @@ crf_listener_thread_func (GstAvtpCrfBase * avtpcrfbase)
   if (fd < 0) {
     GST_ELEMENT_ERROR (avtpcrfbase, RESOURCE, OPEN_READ,
         ("Cannot open socket for CRF Listener"), (NULL));
-    return;
+    return NULL;
   }
 
   while (data->is_running) {
@@ -524,6 +524,7 @@ crf_listener_thread_func (GstAvtpCrfBase * avtpcrfbase)
   }
 
   close (fd);
+  return NULL;
 }
 
 static void
