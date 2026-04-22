@@ -895,7 +895,7 @@ static void gst_parse_free_element (element_t *el)
   gst_parse_element_free (el);
 }
 
-static void gst_parse_free_delayed_link (DelayedLink *link, GClosure *closure)
+static void gst_parse_free_delayed_link (DelayedLink *link)
 {
   g_free (link->src_pad);
   g_free (link->sink_pad);
