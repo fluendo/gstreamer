@@ -45,9 +45,8 @@ enum
 };
 
 static void gst_color_balance_channel_class_init (GstColorBalanceChannelClass *
-    klass, gpointer class_data);
-static void gst_color_balance_channel_init (GstColorBalanceChannel * balance,
-    gpointer class);
+    klass);
+static void gst_color_balance_channel_init (GstColorBalanceChannel * balance);
 static void gst_color_balance_channel_dispose (GObject * object);
 
 static GObjectClass *parent_class = NULL;
@@ -81,8 +80,7 @@ gst_color_balance_channel_get_type (void)
 }
 
 static void
-gst_color_balance_channel_class_init (GstColorBalanceChannelClass * klass,
-    gpointer class_data)
+gst_color_balance_channel_class_init (GstColorBalanceChannelClass * klass)
 {
   GObjectClass *object_klass = (GObjectClass *) klass;
 
@@ -105,8 +103,7 @@ gst_color_balance_channel_class_init (GstColorBalanceChannelClass * klass,
 }
 
 static void
-gst_color_balance_channel_init (GstColorBalanceChannel * channel,
-    gpointer class)
+gst_color_balance_channel_init (GstColorBalanceChannel * channel)
 {
   channel->label = NULL;
   channel->min_value = channel->max_value = 0;

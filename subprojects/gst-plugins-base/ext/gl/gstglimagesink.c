@@ -355,7 +355,7 @@ static gboolean gst_glimage_sink_propose_allocation (GstBaseSink * bsink,
     GstQuery * query);
 
 static void gst_glimage_sink_video_overlay_init (GstVideoOverlayInterface *
-    iface, gpointer iface_data);
+    iface);
 static void gst_glimage_sink_set_window_handle (GstVideoOverlay * overlay,
     guintptr id);
 static void gst_glimage_sink_expose (GstVideoOverlay * overlay);
@@ -655,8 +655,7 @@ gst_glimage_sink_navigation_send_event (GstNavigation * navigation,
 }
 
 static void
-gst_glimage_sink_navigation_interface_init (GstNavigationInterface * iface,
-    gpointer iface_data)
+gst_glimage_sink_navigation_interface_init (GstNavigationInterface * iface)
 {
   iface->send_event_simple = gst_glimage_sink_navigation_send_event;
 }
@@ -1938,8 +1937,7 @@ redisplay_failed:
 }
 
 static void
-gst_glimage_sink_video_overlay_init (GstVideoOverlayInterface * iface,
-    gpointer iface_data)
+gst_glimage_sink_video_overlay_init (GstVideoOverlayInterface * iface)
 {
   iface->set_window_handle = gst_glimage_sink_set_window_handle;
   iface->set_render_rectangle = gst_glimage_sink_set_render_rectangle;
