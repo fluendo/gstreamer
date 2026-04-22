@@ -171,7 +171,7 @@ static GstElementClass *parent_class = NULL;
 static gint private_offset = 0;
 
 static void gst_rtp_base_depayload_class_init (GstRTPBaseDepayloadClass *
-    klass, gpointer klass_data);
+    klass);
 static void gst_rtp_base_depayload_init (GstRTPBaseDepayload * rtpbasepayload,
     GstRTPBaseDepayloadClass * klass);
 static GstEvent *create_segment_event (GstRTPBaseDepayload * filter,
@@ -264,8 +264,7 @@ extension_accumulator (GSignalInvocationHint * ihint,
 }
 
 static void
-gst_rtp_base_depayload_class_init (GstRTPBaseDepayloadClass * klass,
-    gpointer klass_data)
+gst_rtp_base_depayload_class_init (GstRTPBaseDepayloadClass * klass)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
