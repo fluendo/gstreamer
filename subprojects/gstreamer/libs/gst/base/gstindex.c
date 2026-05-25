@@ -211,7 +211,8 @@ gst_index_finalize (GObject * object)
   GstIndex *index = GST_INDEX (object);
 
   if (index->groups) {
-    g_list_foreach (index->groups, (GFunc) gst_index_group_free, NULL);
+    g_list_foreach (index->groups, g_destroy_notify_to_func,
+        gst_index_group_free);
     g_list_free (index->groups);
     index->groups = NULL;
   }
