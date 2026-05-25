@@ -101,7 +101,7 @@ struct _GstAudioSinkRingBufferClass
 };
 
 static void gst_audio_sink_ring_buffer_class_init (GstAudioSinkRingBufferClass *
-    klass);
+    klass, gpointer class_data);
 static void gst_audio_sink_ring_buffer_init (GstAudioSinkRingBuffer *
     ringbuffer, GstAudioSinkRingBufferClass * klass);
 static void gst_audio_sink_ring_buffer_dispose (GObject * object);
@@ -153,7 +153,7 @@ gst_audio_sink_ring_buffer_get_type (void)
 }
 
 static void
-gst_audio_sink_ring_buffer_class_init (GstAudioSinkRingBufferClass * klass)
+gst_audio_sink_ring_buffer_class_init (GstAudioSinkRingBufferClass * klass, gpointer class_data)
 {
   GObjectClass *gobject_class;
   GstAudioRingBufferClass *gstringbuffer_class;
@@ -316,6 +316,8 @@ stop_running:
       GST_WARNING_OBJECT (sink, "failed to restore thread priority");
     return NULL;
   }
+
+  return NULL;
 }
 
 static void
