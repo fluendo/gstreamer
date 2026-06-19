@@ -5038,7 +5038,7 @@ gst_util_filename_compare (const gchar * a, const gchar * b)
 typedef struct
 {
   GstObject *object;
-  GstCallAsyncFunc func;
+  gpointer func;
   gpointer user_data;
   GDestroyNotify notify;
 } GstCallAsyncData;
@@ -5054,7 +5054,8 @@ gst_call_async_func (gpointer data, gpointer user_data)
     (*func) (async_data->object, async_data->user_data);
   } else {
     /* gst_call_async() */
-    async_data->func (async_data->user_data);
+    GstCallAsyncFunc func = (GstCallAsyncFunc) async_data->func;
+    (*func) (async_data->user_data);
   }
 
   /* gst_element_call_async() (deprecated) had a separate destroy callback
@@ -5083,7 +5084,7 @@ gst_setup_thread_pool (void)
 }
 
 static void
-gst_call_async_internal (GstObject * object, GstCallAsyncFunc func,
+gst_call_async_internal (GstObject * object, gpointer func,
     gpointer user_data, GDestroyNotify notify)
 {
   GstCallAsyncData *data;
@@ -5121,7 +5122,7 @@ void
 _priv_gst_object_call_async (GstObject * object, GFunc func,
     gpointer user_data, GDestroyNotify notify)
 {
-  gst_call_async_internal (object, (GstCallAsyncFunc) func, user_data, notify);
+  gst_call_async_internal (object, func, user_data, notify);
 }
 
 void
