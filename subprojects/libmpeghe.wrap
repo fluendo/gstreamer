@@ -1,0 +1,8 @@
+[wrap-git]
+directory = libmpeghe
+url = https://github.com/ittiam-systems/libmpeghe.git
+revision = 603275b
+patch_directory = libmpeghe
+
+[provide]
+libmpeghe = libmpeghe_dep
