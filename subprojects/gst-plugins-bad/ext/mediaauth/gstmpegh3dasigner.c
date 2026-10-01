@@ -80,13 +80,25 @@ gst_mpegh3dasigner_transform (GstBaseTransform * trans, GstBuffer * inbuf,
     GstBuffer * outbuf)
 {
   GstMapInfo inmap, outmap;
+  GstBitReader br;
+  GstMpegh3daMhasPacket pkt;
   gsize size;
 
   /* TODO(implementation): insert AUTH_START / AUTH_SEQUENCE_AU_COUNTER /
    * AUTH_TIMESTAMP / AUTH_SIG MHAS packets and hash the frame bytes. For now
-   * this just copies the input through unchanged. */
+   * this just parses and logs the packets, then copies the input through. */
   if (!gst_buffer_map (inbuf, &inmap, GST_MAP_READ))
     return GST_FLOW_ERROR;
+
+  /* mpeghAudioStream(): while (bitsAvailable() != 0) mpeghAudioStreamPacket(). */
+  gst_bit_reader_init (&br, inmap.data, (guint) inmap.size);
+  while (gst_bit_reader_get_remaining (&br) != 0) {
+    if (!gst_mpegh3da_mhas_parse_packet (&br, &pkt)) {
+      GST_ERROR_OBJECT (trans, "malformed MHAS packet, stopping the parse");
+      break;
+    }
+    gst_mpegh3da_mhas_log_packet (&pkt);
+  }
 
   if (!gst_buffer_map (outbuf, &outmap, GST_MAP_WRITE)) {
     gst_buffer_unmap (inbuf, &inmap);
@@ -266,6 +278,8 @@ plugin_init (GstPlugin * plugin)
 {
   GST_DEBUG_CATEGORY_INIT (gst_mpegh3dasigner_debug, "mpegh3dasigner", 0,
       "MPEG-H 3D Audio Media Authenticity Signer");
+  GST_DEBUG_CATEGORY_INIT (gst_mpegh3da_mhas_debug, "mpegh3da-mhas", 0,
+      "MPEG-H 3D Audio MHAS packet parsing");
 
   return gst_element_register (plugin, "mpegh3dasigner", GST_RANK_NONE,
       GST_TYPE_MPEGH3DASIGNER);

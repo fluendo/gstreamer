@@ -21,6 +21,7 @@
 #define __GST_MPEGH3DACOMMON_H__
 
 #include <gst/gst.h>
+#include <gst/base/gstbitreader.h>
 
 G_BEGIN_DECLS
 
@@ -66,6 +67,27 @@ GType gst_mpegh3da_hash_method_get_type (void);
 #define GST_MPEGH3DA_PACTYP_TIMESTAMP                35
 #define GST_MPEGH3DA_PACTYP_AUTH_TAG                 36
 #define GST_MPEGH3DA_PACTYP_AUTH_SEQUENCE_AU_COUNTER 37
+
+/* escapedValue() (Table 8C), over GstBitReader. */
+gboolean gst_mpegh3da_read_escaped_value (GstBitReader * br,
+    guint nbits1, guint nbits2, guint nbits3, guint64 * value);
+
+/* MHAS packet (ISO/IEC 23008-3 Table 222). */
+typedef struct _GstMpegh3daMhasPacket
+{
+  guint64 type;                 /* MHASPacketType */
+  guint64 label;                /* MHASPacketLabel */
+  guint64 length;               /* MHASPacketLength, payload bytes */
+  gsize header_size;            /* header bytes consumed */
+  const guint8 *payload;        /* MHASPacketPayload */
+} GstMpegh3daMhasPacket;
+
+gboolean gst_mpegh3da_mhas_parse_packet (GstBitReader * br,
+    GstMpegh3daMhasPacket * pkt);
+const gchar *gst_mpegh3da_mhas_packet_type_name (guint64 type);
+void gst_mpegh3da_mhas_log_packet (const GstMpegh3daMhasPacket * pkt);
+
+GST_DEBUG_CATEGORY_EXTERN (gst_mpegh3da_mhas_debug);
 
 G_END_DECLS
 

@@ -41,3 +41,153 @@ gst_mpegh3da_hash_method_get_type (void)
 
   return type;
 }
+
+GST_DEBUG_CATEGORY (gst_mpegh3da_mhas_debug);
+#define GST_CAT_DEFAULT gst_mpegh3da_mhas_debug
+
+gboolean
+gst_mpegh3da_read_escaped_value (GstBitReader * br, guint nbits1,
+    guint nbits2, guint nbits3, guint64 * value)
+{
+  guint64 v, add;
+  guint64 max1 = (G_GUINT64_CONSTANT (1) << nbits1) - 1;
+  guint64 max2 = (G_GUINT64_CONSTANT (1) << nbits2) - 1;
+
+  g_return_val_if_fail (br != NULL, FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+
+  if (!gst_bit_reader_get_bits_uint64 (br, &v, nbits1))
+    return FALSE;
+
+  if (v == max1) {
+    if (!gst_bit_reader_get_bits_uint64 (br, &add, nbits2))
+      return FALSE;
+
+    v += add;
+
+    if (add == max2) {
+      if (!gst_bit_reader_get_bits_uint64 (br, &add, nbits3))
+        return FALSE;
+
+      v += add;
+    }
+  }
+
+  *value = v;
+  return TRUE;
+}
+
+/* ---- MHAS packet (Table 222) ---- */
+
+gboolean
+gst_mpegh3da_mhas_parse_packet (GstBitReader * br, GstMpegh3daMhasPacket * pkt)
+{
+  guint start_pos, header_pos;
+  guint64 type, label, length;
+
+  g_return_val_if_fail (br != NULL, FALSE);
+  g_return_val_if_fail (pkt != NULL, FALSE);
+
+  /* Packets start byte-aligned (Table 222 NOTE). */
+  start_pos = gst_bit_reader_get_pos (br);
+  if (start_pos % 8 != 0)
+    return FALSE;
+
+  if (!gst_mpegh3da_read_escaped_value (br, 3, 8, 8, &type) ||
+      !gst_mpegh3da_read_escaped_value (br, 2, 8, 32, &label) ||
+      !gst_mpegh3da_read_escaped_value (br, 11, 24, 24, &length))
+    return FALSE;
+
+  /* The header always sums to whole bytes (Table 222 NOTE). */
+  header_pos = gst_bit_reader_get_pos (br);
+  if (header_pos % 8 != 0)
+    return FALSE;
+
+  /* Verify the declared payload length fits in the remaining bytes. */
+  if (length > gst_bit_reader_get_remaining (br) / 8)
+    return FALSE;
+
+  pkt->type = type;
+  pkt->label = label;
+  pkt->length = length;
+  pkt->header_size = (header_pos - start_pos) / 8;
+  pkt->payload = br->data + (header_pos / 8);
+
+  /* Skip the byte-aligned payload. */
+  return gst_bit_reader_skip (br, (guint) length * 8);
+}
+
+const gchar *
+gst_mpegh3da_mhas_packet_type_name (guint64 type)
+{
+  switch (type) {
+    case GST_MPEGH3DA_PACTYP_FILLDATA:
+      return "FILLDATA";
+    case GST_MPEGH3DA_PACTYP_MPEGH3DACFG:
+      return "MPEGH3DACFG";
+    case GST_MPEGH3DA_PACTYP_MPEGH3DAFRAME:
+      return "MPEGH3DAFRAME";
+    case GST_MPEGH3DA_PACTYP_AUDIOSCENEINFO:
+      return "AUDIOSCENEINFO";
+    case GST_MPEGH3DA_PACTYP_SYNC:
+      return "SYNC";
+    case GST_MPEGH3DA_PACTYP_SYNCGAP:
+      return "SYNCGAP";
+    case GST_MPEGH3DA_PACTYP_MARKER:
+      return "MARKER";
+    case GST_MPEGH3DA_PACTYP_CRC16:
+      return "CRC16";
+    case GST_MPEGH3DA_PACTYP_CRC32:
+      return "CRC32";
+    case GST_MPEGH3DA_PACTYP_DESCRIPTOR:
+      return "DESCRIPTOR";
+    case GST_MPEGH3DA_PACTYP_USERINTERACTION:
+      return "USERINTERACTION";
+    case GST_MPEGH3DA_PACTYP_LOUDNESS_DRC:
+      return "LOUDNESS_DRC";
+    case GST_MPEGH3DA_PACTYP_BUFFERINFO:
+      return "BUFFERINFO";
+    case GST_MPEGH3DA_PACTYP_GLOBAL_CRC16:
+      return "GLOBAL_CRC16";
+    case GST_MPEGH3DA_PACTYP_GLOBAL_CRC32:
+      return "GLOBAL_CRC32";
+    case GST_MPEGH3DA_PACTYP_AUDIOTRUNCATION:
+      return "AUDIOTRUNCATION";
+    case GST_MPEGH3DA_PACTYP_GENDATA:
+      return "GENDATA";
+    case GST_MPEGH3DA_PACTYP_EARCON:
+      return "EARCON";
+    case GST_MPEGH3DA_PACTYP_PCMCONFIG:
+      return "PCMCONFIG";
+    case GST_MPEGH3DA_PACTYP_PCMDATA:
+      return "PCMDATA";
+    case GST_MPEGH3DA_PACTYP_LOUDNESS:
+      return "LOUDNESS";
+    case GST_MPEGH3DA_PACTYP_AUTH_START:
+      return "AUTH_START";
+    case GST_MPEGH3DA_PACTYP_AUTH_SIG:
+      return "AUTH_SIG";
+    case GST_MPEGH3DA_PACTYP_UUID:
+      return "UUID";
+    case GST_MPEGH3DA_PACTYP_TIMESTAMP:
+      return "TIMESTAMP";
+    case GST_MPEGH3DA_PACTYP_AUTH_TAG:
+      return "AUTH_TAG";
+    case GST_MPEGH3DA_PACTYP_AUTH_SEQUENCE_AU_COUNTER:
+      return "AUTH_SEQUENCE_AU_COUNTER";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+void
+gst_mpegh3da_mhas_log_packet (const GstMpegh3daMhasPacket * pkt)
+{
+  g_return_if_fail (pkt != NULL);
+
+  GST_ERROR ("MHAS packet: type=%" G_GUINT64_FORMAT " (%s), label=%"
+      G_GUINT64_FORMAT ", payload=%" G_GUINT64_FORMAT " bytes, total=%"
+      G_GSIZE_FORMAT " bytes",
+      pkt->type, gst_mpegh3da_mhas_packet_type_name (pkt->type),
+      pkt->label, pkt->length, (gsize) (pkt->header_size + pkt->length));
+}
