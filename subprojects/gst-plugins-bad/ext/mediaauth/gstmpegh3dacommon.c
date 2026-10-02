@@ -42,8 +42,8 @@ gst_mpegh3da_hash_method_get_type (void)
   return type;
 }
 
-GST_DEBUG_CATEGORY (gst_mpegh3da_mhas_debug);
-#define GST_CAT_DEFAULT gst_mpegh3da_mhas_debug
+GST_DEBUG_CATEGORY (gst_mpegh3daauth_debug);
+#define GST_CAT_DEFAULT gst_mpegh3daauth_debug
 
 gboolean
 gst_mpegh3da_read_escaped_value (GstBitReader * br, guint nbits1,

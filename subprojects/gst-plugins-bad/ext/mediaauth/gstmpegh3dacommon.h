@@ -87,7 +87,7 @@ gboolean gst_mpegh3da_mhas_parse_packet (GstBitReader * br,
 const gchar *gst_mpegh3da_mhas_packet_type_name (guint64 type);
 void gst_mpegh3da_mhas_log_packet (const GstMpegh3daMhasPacket * pkt);
 
-GST_DEBUG_CATEGORY_EXTERN (gst_mpegh3da_mhas_debug);
+GST_DEBUG_CATEGORY_EXTERN (gst_mpegh3daauth_debug);
 
 G_END_DECLS
 

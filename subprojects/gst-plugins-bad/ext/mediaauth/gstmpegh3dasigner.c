@@ -24,9 +24,9 @@
 #include <string.h>
 
 #include "gstmpegh3dasigner.h"
+#include "gstmpegh3dahash.h"
 
-GST_DEBUG_CATEGORY_STATIC (gst_mpegh3dasigner_debug);
-#define GST_CAT_DEFAULT gst_mpegh3dasigner_debug
+#define GST_CAT_DEFAULT gst_mpegh3daauth_debug
 
 #define DEFAULT_HASH_METHOD GST_MPEGH3DA_HASH_SHA256
 #define DEFAULT_AUTH_SEQUENCE_LENGTH 30
@@ -276,10 +276,8 @@ gst_mpegh3dasigner_init (GstMpegh3DASigner * self)
 static gboolean
 plugin_init (GstPlugin * plugin)
 {
-  GST_DEBUG_CATEGORY_INIT (gst_mpegh3dasigner_debug, "mpegh3dasigner", 0,
-      "MPEG-H 3D Audio Media Authenticity Signer");
-  GST_DEBUG_CATEGORY_INIT (gst_mpegh3da_mhas_debug, "mpegh3da-mhas", 0,
-      "MPEG-H 3D Audio MHAS packet parsing");
+  GST_DEBUG_CATEGORY_INIT (gst_mpegh3daauth_debug, "mpegh3daauth", 0,
+      "MPEG-H 3D Audio media authenticity signer/verifier");
 
   return gst_element_register (plugin, "mpegh3dasigner", GST_RANK_NONE,
       GST_TYPE_MPEGH3DASIGNER);
