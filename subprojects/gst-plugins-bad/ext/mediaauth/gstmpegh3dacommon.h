@@ -85,6 +85,7 @@ typedef struct _GstMpegh3daMhasPacket
 gboolean gst_mpegh3da_mhas_parse_packet (GstBitReader * br,
     GstMpegh3daMhasPacket * pkt);
 const gchar *gst_mpegh3da_mhas_packet_type_name (guint64 type);
+gboolean gst_mpegh3da_mhas_packet_type_is_excluded (guint64 type);
 void gst_mpegh3da_mhas_log_packet (const GstMpegh3daMhasPacket * pkt);
 
 GST_DEBUG_CATEGORY_EXTERN (gst_mpegh3daauth_debug);

@@ -22,6 +22,7 @@
 
 #include <gst/base/gstbasetransform.h>
 #include "gstmpegh3dacommon.h"
+#include "gstmpegh3dahash.h"
 
 G_BEGIN_DECLS
 
@@ -48,6 +49,17 @@ struct _GstMpegh3DASigner
   guint8 auth_id;
   gboolean au_counter;
   gboolean timestamp;
+
+  gchar *content_uuid;          /* property: RFC 9562 UUID string */
+  guint8 uuid[16];              /* parsed 16-byte UUID */
+  gboolean uuid_set;
+
+  /* authentication sequence state */
+  GstMpegh3daHash *hash;        /* hasher for the current sequence */
+  guint64 seq_label;            /* MHASPacketLabel of the sequence */
+  gboolean have_seq_label;
+  guint frame_count;            /* AUs hashed in the current sequence */
+  gboolean sequence_finished;   /* previous sequence ended; start a new one */
 };
 
 struct _GstMpegh3DASignerClass

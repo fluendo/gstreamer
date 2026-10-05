@@ -180,12 +180,34 @@ gst_mpegh3da_mhas_packet_type_name (guint64 type)
   }
 }
 
+gboolean
+gst_mpegh3da_mhas_packet_type_is_excluded (guint64 type)
+{
+  /* Packets excluded by default from gad_bytes (ISO/IEC 23008-3, 17.12.4.1). */
+  switch (type) {
+    case GST_MPEGH3DA_PACTYP_SYNCGAP:
+    case GST_MPEGH3DA_PACTYP_MARKER:
+    case GST_MPEGH3DA_PACTYP_CRC16:
+    case GST_MPEGH3DA_PACTYP_CRC32:
+    case GST_MPEGH3DA_PACTYP_GLOBAL_CRC16:
+    case GST_MPEGH3DA_PACTYP_GLOBAL_CRC32:
+    case GST_MPEGH3DA_PACTYP_USERINTERACTION:
+    case GST_MPEGH3DA_PACTYP_GENDATA:
+    case GST_MPEGH3DA_PACTYP_EARCON:
+    case GST_MPEGH3DA_PACTYP_PCMCONFIG:
+    case GST_MPEGH3DA_PACTYP_PCMDATA:
+      return TRUE;
+    default:
+      return FALSE;
+  }
+}
+
 void
 gst_mpegh3da_mhas_log_packet (const GstMpegh3daMhasPacket * pkt)
 {
   g_return_if_fail (pkt != NULL);
 
-  GST_ERROR ("MHAS packet: type=%" G_GUINT64_FORMAT " (%s), label=%"
+  GST_DEBUG ("MHAS packet: type=%" G_GUINT64_FORMAT " (%s), label=%"
       G_GUINT64_FORMAT ", payload=%" G_GUINT64_FORMAT " bytes, total=%"
       G_GSIZE_FORMAT " bytes",
       pkt->type, gst_mpegh3da_mhas_packet_type_name (pkt->type),
