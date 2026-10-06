@@ -22,6 +22,7 @@
 
 #include <gst/gst.h>
 #include <gst/base/gstbitreader.h>
+#include <gst/base/gstbitwriter.h>
 
 G_BEGIN_DECLS
 
@@ -68,9 +69,30 @@ GType gst_mpegh3da_hash_method_get_type (void);
 #define GST_MPEGH3DA_PACTYP_AUTH_TAG                 36
 #define GST_MPEGH3DA_PACTYP_AUTH_SEQUENCE_AU_COUNTER 37
 
+/* escapedValue() parameter sets (Table 8C), keyed by the spec field. Each
+ * expands to the (nbits1, nbits2, nbits3) triplet consumed by the read/write
+ * escaped-value helpers. */
+#define GST_MPEGH3DA_ESC_VAL_MHAS_TYPE    3, 8, 8
+#define GST_MPEGH3DA_ESC_VAL_MHAS_LABEL   2, 8, 32
+#define GST_MPEGH3DA_ESC_VAL_MHAS_LENGTH  11, 24, 24
+#define GST_MPEGH3DA_ESC_VAL_AUTH_HASH    4, 8, 8
+#define GST_MPEGH3DA_ESC_VAL_AUTH_KEYID   3, 8, 8
+#define GST_MPEGH3DA_ESC_VAL_AUTH_PROVID  8, 8, 16
+#define GST_MPEGH3DA_ESC_VAL_AU_COUNTER   8, 16, 16
+#define GST_MPEGH3DA_ESC_VAL_AUTH_TIME    12, 16, 32
+
 /* escapedValue() (Table 8C), over GstBitReader. */
 gboolean gst_mpegh3da_read_escaped_value (GstBitReader * br,
     guint nbits1, guint nbits2, guint nbits3, guint64 * value);
+
+/* escapedValue() writer (Table 8C), symmetric to the reader. */
+gboolean gst_mpegh3da_write_escaped_value (GstBitWriter * bw,
+    guint nbits1, guint nbits2, guint nbits3, guint64 value);
+
+/* Write a complete MHAS packet (Table 222 header + byte-aligned payload).
+ * Returns the number of bytes written, or 0 on failure/overflow. */
+gsize gst_mpegh3da_mhas_write_packet (guint8 * out, gsize out_size,
+    guint64 type, guint64 label, const guint8 * payload, gsize payload_len);
 
 /* MHAS packet (ISO/IEC 23008-3 Table 222). */
 typedef struct _GstMpegh3daMhasPacket

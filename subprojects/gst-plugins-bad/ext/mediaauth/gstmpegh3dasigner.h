@@ -23,6 +23,7 @@
 #include <gst/base/gstbasetransform.h>
 #include "gstmpegh3dacommon.h"
 #include "gstmpegh3dahash.h"
+#include "gstmpegh3daauthpktsbuild.h"
 
 G_BEGIN_DECLS
 

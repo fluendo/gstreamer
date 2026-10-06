@@ -34,6 +34,11 @@
 #define DEFAULT_AU_COUNTER TRUE
 #define DEFAULT_TIMESTAMP FALSE
 
+/* Exact MHAS packet sizes for the packets we inject (type >= 32 => 3-byte
+ * header, label 1). AUTH_START: 3 + 5; TIMESTAMP: 3 + 11. */
+#define GST_MPEGH3DA_AUTH_START_SIZE 8
+#define GST_MPEGH3DA_TIMESTAMP_SIZE 14
+
 enum
 {
   PROP_0,
@@ -63,11 +68,8 @@ static void gst_mpegh3dasigner_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec);
 static void gst_mpegh3dasigner_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec);
-static GstFlowReturn gst_mpegh3dasigner_transform (GstBaseTransform * trans,
-    GstBuffer * inbuf, GstBuffer * outbuf);
-static gboolean gst_mpegh3dasigner_transform_size (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps, gsize size,
-    GstCaps * othercaps, gsize * othersize);
+static GstFlowReturn gst_mpegh3dasigner_generate_output (GstBaseTransform *
+    trans, GstBuffer ** outbuf);
 static gboolean gst_mpegh3dasigner_sink_event (GstBaseTransform * trans,
     GstEvent * event);
 static gboolean gst_mpegh3dasigner_start (GstBaseTransform * trans);
@@ -75,94 +77,213 @@ static gboolean gst_mpegh3dasigner_stop (GstBaseTransform * trans);
 static void gst_mpegh3dasigner_finalize (GObject * object);
 static gboolean gst_mpegh3dasigner_parse_uuid (const gchar * str,
     guint8 out[16]);
-static void gst_mpegh3dasigner_start_sequence (GstMpegh3DASigner * self);
-static void gst_mpegh3dasigner_finish_sequence (GstMpegh3DASigner * self);
-
+static gsize gst_mpegh3dasigner_emit_auth_start (GstMpegh3DASigner * self,
+    guint8 * out, gsize out_size);
+static gsize gst_mpegh3dasigner_emit_au_counter (GstMpegh3DASigner * self,
+    guint8 * out, gsize out_size, guint64 counter);
+static gsize gst_mpegh3dasigner_emit_auth_sig (GstMpegh3DASigner * self,
+    guint8 * out, gsize out_size);
 #define parent_class gst_mpegh3dasigner_parent_class
 G_DEFINE_TYPE (GstMpegh3DASigner, gst_mpegh3dasigner, GST_TYPE_BASE_TRANSFORM);
 
-static GstFlowReturn
-gst_mpegh3dasigner_transform (GstBaseTransform * trans, GstBuffer * inbuf,
-    GstBuffer * outbuf)
+static gsize
+gst_mpegh3dasigner_au_counter_size (guint64 counter)
 {
-  GstMpegh3DASigner *self = GST_MPEGH3DASIGNER (trans);
-  GstMapInfo inmap, outmap;
-  GstBitReader br;
-  GstMpegh3daMhasPacket pkt;
-  gsize size;
+  gsize escaped;
 
-  /* Start a new authentication sequence if the previous one has ended. This
-   * runs once per buffer (not inside the packet loop), since it will inject
-   * MHAS packets at the buffer boundary. */
-  if (self->sequence_finished) {
-    gst_mpegh3dasigner_start_sequence (self);
-    self->sequence_finished = FALSE;
-    GST_DEBUG_OBJECT (trans, "starting a new authentication sequence");
+  if (counter < 255)
+    escaped = 1;
+  else if (counter < 255 + 65535)
+    escaped = 3;
+  else
+    escaped = 5;
+
+  return 3 + 1 + escaped;
+}
+
+static gsize
+gst_mpegh3dasigner_auth_sig_size (GstMpegh3daHashMethod method)
+{
+  return 6 + gst_mpegh3da_hash_digest_size (method);
+}
+
+/* Compute the exact output size for a buffer: the input packets plus the
+ * packets that will be injected. Mirrors the injection logic of the splice
+ * pass without mutating element state. */
+static gsize
+gst_mpegh3dasigner_compute_output_size (GstMpegh3DASigner * self,
+    const GstMpegh3daMhasPacket * pkts, guint n_pkts)
+{
+  gboolean l_have_label = self->have_seq_label;
+  gboolean l_finished = self->sequence_finished;
+  guint64 l_label = self->seq_label;
+  guint l_frame_count = self->frame_count;
+  gsize size = 0;
+  guint i;
+
+  for (i = 0; i < n_pkts; i++) {
+    const GstMpegh3daMhasPacket *pkt = &pkts[i];
+    gboolean in_seq;
+
+    if (!l_have_label && pkt->label != 0) {
+      l_label = pkt->label;
+      l_have_label = TRUE;
+    }
+
+    in_seq = l_have_label && pkt->label == l_label
+        && !gst_mpegh3da_mhas_packet_type_is_excluded (pkt->type);
+
+    if (in_seq && l_finished) {
+      size += GST_MPEGH3DA_AUTH_START_SIZE;
+      if (self->timestamp)
+        size += GST_MPEGH3DA_TIMESTAMP_SIZE;
+      l_finished = FALSE;
+    }
+
+    if (in_seq && pkt->type == GST_MPEGH3DA_PACTYP_MPEGH3DAFRAME
+        && self->au_counter) {
+      size += gst_mpegh3dasigner_au_counter_size (l_frame_count);
+    }
+
+    size += pkt->header_size + pkt->length;
+
+    if (in_seq && pkt->type == GST_MPEGH3DA_PACTYP_MPEGH3DAFRAME) {
+      l_frame_count++;
+      if (l_frame_count >= self->auth_sequence_length)
+        size += gst_mpegh3dasigner_auth_sig_size (self->hash_method);
+    }
   }
 
-  /* TODO(implementation): insert AUTH_START / AUTH_SEQUENCE_AU_COUNTER /
-   * AUTH_TIMESTAMP / AUTH_SIG MHAS packets. For now the bytes are hashed
-   * (gad_bytes) and the digest is logged per authentication sequence. */
-  if (!gst_buffer_map (inbuf, &inmap, GST_MAP_READ))
-    return GST_FLOW_ERROR;
+  return size;
+}
 
-  /* mpeghAudioStream(): while (bitsAvailable() != 0) mpeghAudioStreamPacket(). */
+static GstFlowReturn
+gst_mpegh3dasigner_generate_output (GstBaseTransform * trans,
+    GstBuffer ** outbuf)
+{
+  GstMpegh3DASigner *self = GST_MPEGH3DASIGNER (trans);
+  GstBuffer *inbuf;
+  GstMapInfo inmap, outmap;
+  GstBitReader br;
+  GArray *pkts;
+  guint i;
+  gsize out_size, out_off = 0;
+  guint8 *out;
+  const guint8 *pkt_start;
+  gsize pkt_len;
+
+  *outbuf = NULL;
+
+  /* Take the input buffer stashed by the default submit_input_buffer. */
+  inbuf = trans->queued_buf;
+  trans->queued_buf = NULL;
+  if (inbuf == NULL)
+    return GST_FLOW_OK;
+
+  if (!gst_buffer_map (inbuf, &inmap, GST_MAP_READ)) {
+    gst_buffer_unref (inbuf);
+    return GST_FLOW_ERROR;
+  }
+
+  pkts = g_array_new (FALSE, FALSE, sizeof (GstMpegh3daMhasPacket));
+
+  /* Parse all packets (no side effects on element state). */
   gst_bit_reader_init (&br, inmap.data, (guint) inmap.size);
   while (gst_bit_reader_get_remaining (&br) != 0) {
+    GstMpegh3daMhasPacket pkt;
+
     if (!gst_mpegh3da_mhas_parse_packet (&br, &pkt)) {
       GST_ERROR_OBJECT (trans, "malformed MHAS packet, stopping the parse");
       break;
     }
     gst_mpegh3da_mhas_log_packet (&pkt);
+    g_array_append_val (pkts, pkt);
+  }
 
-    /* AUTH_START will be inserted before the CFG, so the sequence starts
-     * right after SYNC; its label is that of the first non-SYNC packet. */
-    if (!self->have_seq_label && pkt.label != 0) {
-      self->seq_label = pkt.label;
+  /* Exact output size. */
+  out_size = gst_mpegh3dasigner_compute_output_size (self,
+      (GstMpegh3daMhasPacket *) pkts->data, pkts->len);
+
+  *outbuf = gst_buffer_new_allocate (NULL, out_size, NULL);
+  if (!*outbuf) {
+    g_array_free (pkts, TRUE);
+    gst_buffer_unmap (inbuf, &inmap);
+    gst_buffer_unref (inbuf);
+    return GST_FLOW_ERROR;
+  }
+  gst_buffer_copy_into (*outbuf, inbuf, GST_BUFFER_COPY_TIMESTAMPS |
+      GST_BUFFER_COPY_FLAGS, 0, 0);
+
+  if (!gst_buffer_map (*outbuf, &outmap, GST_MAP_WRITE)) {
+    g_array_free (pkts, TRUE);
+    gst_buffer_unmap (inbuf, &inmap);
+    gst_buffer_unref (inbuf);
+    gst_buffer_unref (*outbuf);
+    *outbuf = NULL;
+    return GST_FLOW_ERROR;
+  }
+  out = outmap.data;
+
+  /* Splice pass: inject + hash in bitstream order, updating element state. */
+  for (i = 0; i < pkts->len; i++) {
+    const GstMpegh3daMhasPacket *pkt =
+        &g_array_index (pkts, GstMpegh3daMhasPacket, i);
+
+    pkt_start = pkt->payload - pkt->header_size;
+    pkt_len = pkt->header_size + pkt->length;
+
+    if (!self->have_seq_label && pkt->label != 0) {
+      self->seq_label = pkt->label;
       self->have_seq_label = TRUE;
     }
 
-    /* gad_bytes: concatenate the payload bytes of all non-excluded packets
-     * with the sequence's MHASPacketLabel (17.12.4.1). CFG is included. */
-    if (self->have_seq_label && pkt.label == self->seq_label
-        && !gst_mpegh3da_mhas_packet_type_is_excluded (pkt.type)) {
-      gst_mpegh3da_hash_update (self->hash, pkt.payload, pkt.length);
+    if (self->have_seq_label && pkt->label == self->seq_label
+        && !gst_mpegh3da_mhas_packet_type_is_excluded (pkt->type)) {
+      if (self->sequence_finished) {
+        self->hash = gst_mpegh3da_hash_new (self->hash_method);
+        if (!self->hash) {
+          GST_ERROR_OBJECT (self, "failed to create hasher for hash-method %d",
+              self->hash_method);
+          g_array_free (pkts, TRUE);
+          gst_buffer_unmap (*outbuf, &outmap);
+          gst_buffer_unmap (inbuf, &inmap);
+          gst_buffer_unref (inbuf);
+          gst_buffer_unref (*outbuf);
+          *outbuf = NULL;
+          return GST_FLOW_ERROR;
+        }
+        self->frame_count = 0;
+        self->sequence_finished = FALSE;
+        out_off += gst_mpegh3dasigner_emit_auth_start (self,
+            out + out_off, out_size - out_off);
+      }
+
+      if (pkt->type == GST_MPEGH3DA_PACTYP_MPEGH3DAFRAME && self->au_counter) {
+        out_off += gst_mpegh3dasigner_emit_au_counter (self,
+            out + out_off, out_size - out_off, self->frame_count);
+      }
+
+      gst_mpegh3da_hash_update (self->hash, pkt_start, pkt_len);
     }
 
-    /* Each access unit carries one MPEGH3DAFRAME; when auth_sequence_length
-     * AUs have been hashed, the sequence is complete. */
-    if (self->have_seq_label && pkt.label == self->seq_label
-        && pkt.type == GST_MPEGH3DA_PACTYP_MPEGH3DAFRAME) {
+    memcpy (out + out_off, pkt_start, pkt_len);
+    out_off += pkt_len;
+
+    if (self->have_seq_label && pkt->label == self->seq_label
+        && pkt->type == GST_MPEGH3DA_PACTYP_MPEGH3DAFRAME) {
       self->frame_count++;
       if (self->frame_count >= self->auth_sequence_length)
-        gst_mpegh3dasigner_finish_sequence (self);
+        out_off += gst_mpegh3dasigner_emit_auth_sig (self,
+            out + out_off, out_size - out_off);
     }
   }
 
-  if (!gst_buffer_map (outbuf, &outmap, GST_MAP_WRITE)) {
-    gst_buffer_unmap (inbuf, &inmap);
-    return GST_FLOW_ERROR;
-  }
-
-  size = MIN (inmap.size, outmap.size);
-  memcpy (outmap.data, inmap.data, size);
-
-  gst_buffer_unmap (outbuf, &outmap);
+  g_array_free (pkts, TRUE);
+  gst_buffer_unmap (*outbuf, &outmap);
   gst_buffer_unmap (inbuf, &inmap);
-  gst_buffer_set_size (outbuf, size);
+  gst_buffer_unref (inbuf);
 
   return GST_FLOW_OK;
-}
-
-static gboolean
-gst_mpegh3dasigner_transform_size (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps, gsize size, GstCaps * othercaps,
-    gsize * othersize)
-{
-  /* TODO(implementation): account for the injected MHAS packets. */
-  if (othersize)
-    *othersize = size;
-  return TRUE;
 }
 
 static gboolean
@@ -366,9 +487,8 @@ gst_mpegh3dasigner_class_init (GstMpegh3DASignerClass * klass)
       "Signs MPEG-H 3D audio (MHAS) streams with media authenticity",
       "Fluendo");
 
-  transform_class->transform = GST_DEBUG_FUNCPTR (gst_mpegh3dasigner_transform);
-  transform_class->transform_size =
-      GST_DEBUG_FUNCPTR (gst_mpegh3dasigner_transform_size);
+  transform_class->generate_output =
+      GST_DEBUG_FUNCPTR (gst_mpegh3dasigner_generate_output);
   transform_class->sink_event =
       GST_DEBUG_FUNCPTR (gst_mpegh3dasigner_sink_event);
   transform_class->start = GST_DEBUG_FUNCPTR (gst_mpegh3dasigner_start);
@@ -438,38 +558,105 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
   return nibbles == 32;
 }
 
-/* Start a new authentication sequence: create a fresh hasher. This is also
- * where the PACTYP_AUTH_START MHAS packet (and the optional AU counter /
- * timestamp packets) will be injected into the stream. */
-static void
-gst_mpegh3dasigner_start_sequence (GstMpegh3DASigner * self)
+/* Emit PACTYP_AUTH_START (and PACTYP_TIMESTAMP when enabled) at the start of
+ * a new authentication sequence. The emitted packets are part of gad_bytes,
+ * so they are hashed here. Returns bytes written, or 0 on failure. */
+static gsize
+gst_mpegh3dasigner_emit_auth_start (GstMpegh3DASigner * self, guint8 * out,
+    gsize out_size)
 {
-  self->hash = gst_mpegh3da_hash_new (self->hash_method);
-  if (!self->hash) {
-    GST_ERROR_OBJECT (self, "failed to create hasher for hash-method %d",
-        self->hash_method);
-    return;
+  GstMpegh3daAuthStart cfg = { 0, };
+  guint8 payload[128], pkt[160];
+  gsize plen, tlen, written = 0;
+
+  cfg.authID = self->auth_id;
+  cfg.authHashType = self->hash_method;
+  cfg.authKeyID = 0;
+  cfg.authProvID = 1;
+  cfg.authResilienceLevelMax = 0;
+  cfg.hasAuthSequenceAUCounter = self->au_counter;
+  cfg.isFirstSequence = 1;
+
+  plen = gst_mpegh3da_build_AuthStart (&cfg, payload, sizeof (payload));
+  tlen = gst_mpegh3da_mhas_write_packet (pkt, sizeof (pkt),
+      GST_MPEGH3DA_PACTYP_AUTH_START, self->seq_label, payload, plen);
+  if (tlen == 0 || tlen > out_size)
+    return 0;
+
+  gst_mpegh3da_hash_update (self->hash, pkt, tlen);
+  memcpy (out, pkt, tlen);
+  written = tlen;
+
+  if (self->timestamp) {
+    GstMpegh3daAuthTimestamp tcfg = { 0, };
+    guint64 real_usec = g_get_real_time ();
+
+    tcfg.authID = self->auth_id;
+    tcfg.authTimeType = 0;
+    tcfg.authTimeOffsetType = 0;
+    tcfg.authTime = real_usec / G_USEC_PER_SEC - 1735689601ULL;
+    tcfg.authTimeOffset = (guint16) ((real_usec / 1000) % 1000);
+
+    plen = gst_mpegh3da_build_AuthTimestamp (&tcfg, payload, sizeof (payload));
+    tlen = gst_mpegh3da_mhas_write_packet (pkt, sizeof (pkt),
+        GST_MPEGH3DA_PACTYP_TIMESTAMP, self->seq_label, payload, plen);
+    if (tlen == 0 || tlen > out_size - written)
+      return 0;
+
+    gst_mpegh3da_hash_update (self->hash, pkt, tlen);
+    memcpy (out + written, pkt, tlen);
+    written += tlen;
   }
 
-  self->frame_count = 0;
-
-  /* TODO(implementation): inject PACTYP_AUTH_START (and
-   * AUTH_SEQUENCE_AU_COUNTER / AUTH_TIMESTAMP when enabled) before the
-   * first access unit. */
-  GST_WARNING_OBJECT (self, "PACTYP_AUTH_START injection is not implemented");
+  return written;
 }
 
-/* Finalize the current authentication sequence: append the uuid field at the
- * very end (gad_bytes || uuid, 17.12.4.1), compute the digest and log it. The
- * PACTYP_AUTH_SIG MHAS packet will also be injected here. */
-static void
-gst_mpegh3dasigner_finish_sequence (GstMpegh3DASigner * self)
+/* Emit PACTYP_AUTH_SEQUENCE_AU_COUNTER before a frame and hash it (it is part
+ * of gad_bytes). Returns bytes written, or 0 on failure. */
+static gsize
+gst_mpegh3dasigner_emit_au_counter (GstMpegh3DASigner * self, guint8 * out,
+    gsize out_size, guint64 counter)
 {
+  GstMpegh3daAuthSequenceAUCounter cfg = { 0, };
+  guint8 payload[16], pkt[32];
+  gsize plen, tlen;
+
+  cfg.authID = self->auth_id;
+  cfg.authSequenceAUCounter = counter;
+
+  plen = gst_mpegh3da_build_AuthSequenceAUCounter (&cfg, payload,
+      sizeof (payload));
+  tlen = gst_mpegh3da_mhas_write_packet (pkt, sizeof (pkt),
+      GST_MPEGH3DA_PACTYP_AUTH_SEQUENCE_AU_COUNTER, self->seq_label, payload,
+      plen);
+  if (tlen == 0 || tlen > out_size)
+    return 0;
+
+  gst_mpegh3da_hash_update (self->hash, pkt, tlen);
+  memcpy (out, pkt, tlen);
+
+  return tlen;
+}
+
+/* Finalize the current sequence: append the uuid field (gad_bytes || uuid),
+ * compute the digest and emit PACTYP_AUTH_SIG after the last frame. AUTH_SIG
+ * is not part of gad_bytes. Returns bytes written, or 0 on failure. */
+static gsize
+gst_mpegh3dasigner_emit_auth_sig (GstMpegh3DASigner * self, guint8 * out,
+    gsize out_size)
+{
+  GstMpegh3daAuthSig cfg = { 0, };
+  guint8 payload[128], pkt[160];
   guint8 digest[64];
-  gsize digest_len = 0, i;
+  gsize digest_len = 0, plen, tlen, i;
   gchar hex[129];
 
   hex[0] = '\0';
+
+  if (!self->hash) {
+    self->sequence_finished = TRUE;
+    return 0;
+  }
 
   if (self->uuid_set)
     gst_mpegh3da_hash_update (self->hash, self->uuid, 16);
@@ -479,11 +666,25 @@ gst_mpegh3dasigner_finish_sequence (GstMpegh3DASigner * self)
   for (i = 0; i < digest_len; i++)
     g_snprintf (hex + 2 * i, 3, "%02x", (guint) digest[i]);
 
-  GST_ERROR ("authentication sequence digest (label=%" G_GUINT64_FORMAT
+  GST_DEBUG ("authentication sequence digest (label=%" G_GUINT64_FORMAT
       ", frames=%u): %s", self->seq_label, self->frame_count, hex);
 
-  /* TODO(implementation): inject PACTYP_AUTH_SIG carrying the digest here. */
+  cfg.authID = self->auth_id;
+  cfg.sigLengthMinus1 = (guint8) (digest_len - 1);
+  memcpy (cfg.sigComplete, digest, digest_len);
+
+  plen = gst_mpegh3da_build_AuthSig (&cfg, payload, sizeof (payload));
+  tlen = gst_mpegh3da_mhas_write_packet (pkt, sizeof (pkt),
+      GST_MPEGH3DA_PACTYP_AUTH_SIG, self->seq_label, payload, plen);
+  if (tlen == 0 || tlen > out_size)
+    return 0;
+
+  memcpy (out, pkt, tlen);
+
   gst_mpegh3da_hash_free (self->hash);
   self->hash = NULL;
+  self->frame_count = 0;
   self->sequence_finished = TRUE;
+
+  return tlen;
 }

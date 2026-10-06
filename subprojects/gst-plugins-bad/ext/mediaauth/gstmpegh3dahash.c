@@ -124,3 +124,22 @@ gst_mpegh3da_hash_finish (GstMpegh3daHash * hash, guint8 * digest,
 
   return TRUE;
 }
+
+gsize
+gst_mpegh3da_hash_digest_size (GstMpegh3daHashMethod method)
+{
+  switch (method) {
+    case GST_MPEGH3DA_HASH_SHA1:
+      return 20;
+    case GST_MPEGH3DA_HASH_SHA224:
+      return 28;
+    case GST_MPEGH3DA_HASH_SHA256:
+      return 32;
+    case GST_MPEGH3DA_HASH_SHA384:
+      return 48;
+    case GST_MPEGH3DA_HASH_SHA512:
+      return 64;
+    default:
+      return 0;
+  }
+}

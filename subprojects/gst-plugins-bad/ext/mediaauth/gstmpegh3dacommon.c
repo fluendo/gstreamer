@@ -77,6 +77,56 @@ gst_mpegh3da_read_escaped_value (GstBitReader * br, guint nbits1,
   return TRUE;
 }
 
+gboolean
+gst_mpegh3da_write_escaped_value (GstBitWriter * bw, guint nbits1,
+    guint nbits2, guint nbits3, guint64 value)
+{
+  guint64 max1 = (G_GUINT64_CONSTANT (1) << nbits1) - 1;
+  guint64 max2 = (G_GUINT64_CONSTANT (1) << nbits2) - 1;
+
+  g_return_val_if_fail (bw != NULL, FALSE);
+
+  if (value < max1) {
+    return gst_bit_writer_put_bits_uint64 (bw, value, nbits1);
+  } else if (value < max1 + max2) {
+    return gst_bit_writer_put_bits_uint64 (bw, max1, nbits1) &&
+        gst_bit_writer_put_bits_uint64 (bw, value - max1, nbits2);
+  } else {
+    return gst_bit_writer_put_bits_uint64 (bw, max1, nbits1) &&
+        gst_bit_writer_put_bits_uint64 (bw, max2, nbits2) &&
+        gst_bit_writer_put_bits_uint64 (bw, value - max1 - max2, nbits3);
+  }
+}
+
+gsize
+gst_mpegh3da_mhas_write_packet (guint8 * out, gsize out_size, guint64 type,
+    guint64 label, const guint8 * payload, gsize payload_len)
+{
+  GstBitWriter bw;
+  guint size_bits;
+
+  g_return_val_if_fail (out != NULL, 0);
+  g_return_val_if_fail (payload != NULL || payload_len == 0, 0);
+
+  gst_bit_writer_init_with_data (&bw, out, (guint) out_size, FALSE);
+
+  if (!gst_mpegh3da_write_escaped_value (&bw, GST_MPEGH3DA_ESC_VAL_MHAS_TYPE,
+          type) ||
+      !gst_mpegh3da_write_escaped_value (&bw, GST_MPEGH3DA_ESC_VAL_MHAS_LABEL,
+          label) ||
+      !gst_mpegh3da_write_escaped_value (&bw, GST_MPEGH3DA_ESC_VAL_MHAS_LENGTH,
+          payload_len))
+    return 0;
+
+  /* The header always sums to whole bytes (Table 222 NOTE). */
+  gst_bit_writer_align_bytes (&bw, 0);
+  if (!gst_bit_writer_put_bytes (&bw, payload, (guint) payload_len))
+    return 0;
+
+  size_bits = gst_bit_writer_get_size (&bw);
+  return size_bits / 8;
+}
+
 /* ---- MHAS packet (Table 222) ---- */
 
 gboolean
@@ -93,9 +143,12 @@ gst_mpegh3da_mhas_parse_packet (GstBitReader * br, GstMpegh3daMhasPacket * pkt)
   if (start_pos % 8 != 0)
     return FALSE;
 
-  if (!gst_mpegh3da_read_escaped_value (br, 3, 8, 8, &type) ||
-      !gst_mpegh3da_read_escaped_value (br, 2, 8, 32, &label) ||
-      !gst_mpegh3da_read_escaped_value (br, 11, 24, 24, &length))
+  if (!gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_TYPE,
+          &type) ||
+      !gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_LABEL,
+          &label) ||
+      !gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_LENGTH,
+          &length))
     return FALSE;
 
   /* The header always sums to whole bytes (Table 222 NOTE). */

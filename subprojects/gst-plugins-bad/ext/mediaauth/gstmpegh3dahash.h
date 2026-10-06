@@ -35,6 +35,7 @@ gboolean gst_mpegh3da_hash_update (GstMpegh3daHash * hash,
     const guint8 * data, gsize size);
 gboolean gst_mpegh3da_hash_finish (GstMpegh3daHash * hash, guint8 * digest,
     gsize * digest_size);
+gsize gst_mpegh3da_hash_digest_size (GstMpegh3daHashMethod method);
 
 G_END_DECLS
 

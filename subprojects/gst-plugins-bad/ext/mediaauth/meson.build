@@ -1,12 +1,14 @@
 mediaauth_sources = [
   'gstmpegh3dacommon.c',
   'gstmpegh3dahash.c',
+  'gstmpegh3daauthpktsbuild.c',
   'gstmpegh3dasigner.c'
 ]
 
 mediaauth_headers = [
   'gstmpegh3dacommon.h',
   'gstmpegh3dahash.h',
+  'gstmpegh3daauthpktsbuild.h',
   'gstmpegh3dasigner.h'
 ]
 
