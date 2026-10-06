@@ -1,21 +1,4 @@
-/*
- * Copyright (C) 2026 Fluendo
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- *
- * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- */
+/* TODO: add copyright and license header */
 
 #ifndef __GST_MPEGH3DASIGNER_H__
 #define __GST_MPEGH3DASIGNER_H__
@@ -23,6 +6,7 @@
 #include <gst/base/gstbasetransform.h>
 #include "gstmpegh3dacommon.h"
 #include "gstmpegh3dahash.h"
+#include "gstmpegh3daauthpktsbuild.h"
 
 G_BEGIN_DECLS
 
@@ -60,6 +44,8 @@ struct _GstMpegh3DASigner
   gboolean have_seq_label;
   guint frame_count;            /* AUs hashed in the current sequence */
   gboolean sequence_finished;   /* previous sequence ended; start a new one */
+  gboolean pending_auth_sig;    /* defer AUTH_SIG to the start of next buffer */
+  guint64 buffer_count;         /* monotonic input-buffer counter for logging */
 };
 
 struct _GstMpegh3DASignerClass
@@ -68,8 +54,6 @@ struct _GstMpegh3DASignerClass
 };
 
 GType gst_mpegh3dasigner_get_type (void);
-
-GST_ELEMENT_REGISTER_DECLARE (mpegh3dasigner);
 
 G_END_DECLS
 

@@ -1,25 +1,4 @@
-/*
- * Copyright (C) 2026 Fluendo
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- *
- * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- */
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+/* TODO: add copyright and license header */
 
 #include "gstmpegh3dacommon.h"
 
@@ -77,6 +56,56 @@ gst_mpegh3da_read_escaped_value (GstBitReader * br, guint nbits1,
   return TRUE;
 }
 
+gboolean
+gst_mpegh3da_write_escaped_value (GstBitWriter * bw, guint nbits1,
+    guint nbits2, guint nbits3, guint64 value)
+{
+  guint64 max1 = (G_GUINT64_CONSTANT (1) << nbits1) - 1;
+  guint64 max2 = (G_GUINT64_CONSTANT (1) << nbits2) - 1;
+
+  g_return_val_if_fail (bw != NULL, FALSE);
+
+  if (value < max1) {
+    return gst_bit_writer_put_bits_uint64 (bw, value, nbits1);
+  } else if (value < max1 + max2) {
+    return gst_bit_writer_put_bits_uint64 (bw, max1, nbits1) &&
+        gst_bit_writer_put_bits_uint64 (bw, value - max1, nbits2);
+  } else {
+    return gst_bit_writer_put_bits_uint64 (bw, max1, nbits1) &&
+        gst_bit_writer_put_bits_uint64 (bw, max2, nbits2) &&
+        gst_bit_writer_put_bits_uint64 (bw, value - max1 - max2, nbits3);
+  }
+}
+
+gsize
+gst_mpegh3da_mhas_write_packet (guint8 * out, gsize out_size, guint64 type,
+    guint64 label, const guint8 * payload, gsize payload_len)
+{
+  GstBitWriter bw;
+  guint size_bits;
+
+  g_return_val_if_fail (out != NULL, 0);
+  g_return_val_if_fail (payload != NULL || payload_len == 0, 0);
+
+  gst_bit_writer_init_with_data (&bw, out, (guint) out_size, FALSE);
+
+  if (!gst_mpegh3da_write_escaped_value (&bw, GST_MPEGH3DA_ESC_VAL_MHAS_TYPE,
+          type) ||
+      !gst_mpegh3da_write_escaped_value (&bw, GST_MPEGH3DA_ESC_VAL_MHAS_LABEL,
+          label) ||
+      !gst_mpegh3da_write_escaped_value (&bw, GST_MPEGH3DA_ESC_VAL_MHAS_LENGTH,
+          payload_len))
+    return 0;
+
+  /* The header always sums to whole bytes (Table 222 NOTE). */
+  gst_bit_writer_align_bytes (&bw, 0);
+  if (!gst_bit_writer_put_bytes (&bw, payload, (guint) payload_len))
+    return 0;
+
+  size_bits = gst_bit_writer_get_size (&bw);
+  return size_bits / 8;
+}
+
 /* ---- MHAS packet (Table 222) ---- */
 
 gboolean
@@ -93,9 +122,12 @@ gst_mpegh3da_mhas_parse_packet (GstBitReader * br, GstMpegh3daMhasPacket * pkt)
   if (start_pos % 8 != 0)
     return FALSE;
 
-  if (!gst_mpegh3da_read_escaped_value (br, 3, 8, 8, &type) ||
-      !gst_mpegh3da_read_escaped_value (br, 2, 8, 32, &label) ||
-      !gst_mpegh3da_read_escaped_value (br, 11, 24, 24, &length))
+  if (!gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_TYPE,
+          &type) ||
+      !gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_LABEL,
+          &label) ||
+      !gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_LENGTH,
+          &length))
     return FALSE;
 
   /* The header always sums to whole bytes (Table 222 NOTE). */
@@ -203,13 +235,76 @@ gst_mpegh3da_mhas_packet_type_is_excluded (guint64 type)
 }
 
 void
-gst_mpegh3da_mhas_log_packet (const GstMpegh3daMhasPacket * pkt)
+gst_mpegh3da_mhas_log_packet (GstObject * object,
+    const GstMpegh3daMhasPacket * pkt)
 {
   g_return_if_fail (pkt != NULL);
 
-  GST_DEBUG ("MHAS packet: type=%" G_GUINT64_FORMAT " (%s), label=%"
+  GST_DEBUG_OBJECT (object, "  type=%" G_GUINT64_FORMAT " (%s), label=%"
       G_GUINT64_FORMAT ", payload=%" G_GUINT64_FORMAT " bytes, total=%"
       G_GSIZE_FORMAT " bytes",
       pkt->type, gst_mpegh3da_mhas_packet_type_name (pkt->type),
       pkt->label, pkt->length, (gsize) (pkt->header_size + pkt->length));
+}
+
+/* Log every MHAS packet (header + payload length) in a byte buffer. */
+void
+gst_mpegh3da_mhas_log_buffer (GstObject * object, const guint8 * data,
+    gsize size, const gchar * title)
+{
+  GstBitReader br;
+  guint count = 0;
+
+  g_return_if_fail (data != NULL || size == 0);
+  g_return_if_fail (title != NULL);
+
+  GST_DEBUG_OBJECT (object, "--- %s (%" G_GSIZE_FORMAT " bytes) ---",
+      title, size);
+
+  gst_bit_reader_init (&br, data, (guint) size);
+  while (gst_bit_reader_get_remaining (&br) != 0) {
+    GstMpegh3daMhasPacket pkt;
+
+    if (!gst_mpegh3da_mhas_parse_packet (&br, &pkt)) {
+      GST_WARNING_OBJECT (object, "malformed MHAS packet at byte %u",
+          gst_bit_reader_get_pos (&br) / 8);
+      break;
+    }
+    gst_mpegh3da_mhas_log_packet (object, &pkt);
+    count++;
+  }
+
+  GST_DEBUG_OBJECT (object, "--- %s: %u packet%s ---", title, count,
+      count == 1 ? "" : "s");
+}
+
+/* Parse an RFC 9562 UUID in canonical hyphenated form
+ * ("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") into 16 bytes. */
+gboolean
+gst_mpegh3da_parse_uuid (const gchar * str, guint8 out[16])
+{
+  guint i, nibbles = 0;
+
+  if (!g_uuid_string_is_valid (str))
+    return FALSE;
+
+  for (i = 0; str[i] != '\0'; i++) {
+    gint hi;
+
+    if (str[i] == '-')
+      continue;
+
+    hi = g_ascii_xdigit_value (str[i]);
+    if (hi < 0 || nibbles >= 32)
+      return FALSE;
+
+    if (nibbles % 2 == 0)
+      out[nibbles / 2] = (guint8) (hi << 4);
+    else
+      out[nibbles / 2] |= (guint8) hi;
+
+    nibbles++;
+  }
+
+  return nibbles == 32;
 }

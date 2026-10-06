@@ -1,25 +1,4 @@
-/*
- * Copyright (C) 2026 Fluendo
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- *
- * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- */
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+/* TODO: add copyright and license header */
 
 #include "gstmpegh3dahash.h"
 
@@ -123,4 +102,29 @@ gst_mpegh3da_hash_finish (GstMpegh3daHash * hash, guint8 * digest,
   *digest_size = len;
 
   return TRUE;
+}
+
+gsize
+gst_mpegh3da_hash_get_digest_size (GstMpegh3daHash * hash)
+{
+  g_return_val_if_fail (hash != NULL, 0);
+
+  return hash->digest_len;
+}
+
+/* Log a digest in hexadecimal using the object's debug category. */
+void
+gst_mpegh3da_hash_log_digest (GstObject * object, const guint8 * digest,
+    gsize digest_len)
+{
+  gchar hex[GST_MPEGH3DA_HASH_MAX_DIGEST_BYTES * 2 + 1];
+  gsize i;
+
+  g_return_if_fail (digest != NULL);
+
+  hex[0] = '\0';
+  for (i = 0; i < digest_len; i++)
+    g_snprintf (hex + 2 * i, 3, "%02x", (guint) digest[i]);
+
+  GST_DEBUG_OBJECT (object, "digest: %s", hex);
 }
