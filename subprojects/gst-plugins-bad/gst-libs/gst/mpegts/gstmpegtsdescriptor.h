@@ -160,6 +160,16 @@ typedef enum {
  */
 typedef enum {
   GST_MTS_DESC_EXT_JXS_VIDEO                    = 0x14,
+  /**
+   * GST_MTS_DESC_EXT_MPEGH_3D_AUDIO:
+   *
+   * MPEG-H_3dAudio_descriptor, extension descriptor tag value 0x08.
+   *
+   * See Table 2-106 of ISO/IEC 13818-1:2015/Amd.5 (H.222.0 Amd.5).
+   *
+   * Since: 1.30
+   */
+  GST_MTS_DESC_EXT_MPEGH_3D_AUDIO               = 0x08,
 } GstMpegtsExtendedDescriptorType;
 
 /**

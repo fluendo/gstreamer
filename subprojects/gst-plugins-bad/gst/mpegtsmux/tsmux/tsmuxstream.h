@@ -118,6 +118,7 @@ enum TsMuxStreamType {
   /* later extensions */
   TSMUX_ST_AUDIO_AAC                  = 0x0f,
   TSMUX_ST_VIDEO_MPEG4                = 0x10,
+  TSMUX_ST_AUDIO_MPEGH                = 0x2d,
   TSMUX_ST_PES_METADATA               = 0x15,
   TSMUX_ST_VIDEO_H264                 = 0x1b,
   TSMUX_ST_VIDEO_HEVC                 = 0x24,

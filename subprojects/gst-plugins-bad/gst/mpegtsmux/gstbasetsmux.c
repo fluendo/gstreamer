@@ -548,6 +548,85 @@ free_return:
   }
 }
 
+/* Compute the mpegh3daProfileLevelIndication value carried in the
+ * MPEG-H_3dAudio_descriptor from the "profile" and "level" caps fields. See
+ * Table 67 of ISO/IEC 23008-3 (MPEG-H 3D Audio).
+*/
+static guint8
+get_mpegh3da_indication (const gchar * profile, gint level)
+{
+  guint8 indication = 0;
+
+  if (g_strcmp0 (profile, "baseline") == 0) {
+    switch (level) {
+      case 1:
+        indication = 0x10;
+        break;
+      case 2:
+        indication = 0x11;
+        break;
+      case 3:
+        indication = 0x12;
+        break;
+      case 4:
+        indication = 0x13;
+        break;
+      default:
+        break;
+    }
+  } else if (g_strcmp0 (profile, "low-complexity") == 0) {
+    switch (level) {
+      case 1:
+        indication = 0x0B;
+        break;
+      case 2:
+        indication = 0x0C;
+        break;
+      case 3:
+        indication = 0x0D;
+        break;
+      case 4:
+        indication = 0x0E;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return indication;
+}
+
+/* Build the MPEG-H_3dAudio_descriptor that is mandatory ("shall") in the PMT
+ * for MPEG-H 3D audio content with stream_type 0x2D. See clauses 2.6.106 and
+ * 2.6.107 of ISO/IEC 13818-1:2015/Amd.5,
+ *   mpegh3daProfileLevelIndication   8  uimsbf
+ *   interactivityEnabled             1  bslbf
+ *   reserved                         9  bslbf
+ *   referenceChannelLayout           6  uimsbf
+ */
+static GstMpegtsDescriptor *
+construct_mpegh3d_audio_descriptor (guint8 profile_level_indication)
+{
+  guint8 data[3];
+
+  data[0] = profile_level_indication;
+
+  /* Set interactivityEnabled = 0, reserved = 0 and referenceChannelLayout = 0
+   * ("any setup"/unspecified, i.e. CICP ChannelConfiguration 0).
+   *
+   * TODO: referenceChannelLayout should be read from the caps (once
+   * audio/x-mpeg-h carries a reference-channel-layout field), populated by the
+   * encoder or a future MPEG-H 3D audio parser element from the in-band
+   * mpegh3daConfig(). Until then it is left unspecified and receivers must
+   * rely on the in-band referenceLayout. */
+  data[1] = 0x00;
+  data[2] = 0x00;
+
+  return
+      gst_mpegts_descriptor_from_custom_with_extension (GST_MTS_DESC_EXTENSION,
+      GST_MTS_DESC_EXT_MPEGH_3D_AUDIO, data, 3);
+}
+
 /* Must be called with mux->lock held */
 static GstFlowReturn
 gst_base_ts_mux_create_or_update_stream (GstBaseTsMux * mux,
@@ -689,6 +768,27 @@ gst_base_ts_mux_create_or_update_stream (GstBaseTsMux * mux,
         GST_WARNING_OBJECT (ts_pad, "unsupported mpegversion %d", mpegversion);
         goto not_negotiated;
     }
+  } else if (strcmp (mt, "audio/x-mpeg-h") == 0) {
+    /* MPEG-H 3D Audio (ISO/IEC 23008-3) with MHAS transport syntax, carried
+     * as a "main stream" with stream_type 0x2D (Table 2-34 and clause 2.19 of
+     * ISO/IEC 13818-1:2015/Amd.5). The MHAS packets are already framed by the
+     * upstream encoder (framed=true), so no prepare function is needed. */
+    const gchar *profile = gst_structure_get_string (s, "profile");
+    gint level = 0;
+    guint8 indication;
+
+    gst_structure_get_int (s, "level", &level);
+
+    indication = get_mpegh3da_indication (profile, level);
+    if (indication == 0) {
+      GST_ERROR_OBJECT (ts_pad, "Unsupported MPEG-H profile '%s' level %d",
+          profile ? profile : "(null)", level);
+      goto not_negotiated;
+    }
+
+    pmt_descriptor = construct_mpegh3d_audio_descriptor (indication);
+
+    st = TSMUX_ST_AUDIO_MPEGH;
   } else if (strcmp (mt, "video/mpeg") == 0) {
     gint mpegversion;
 

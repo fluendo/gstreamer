@@ -184,6 +184,18 @@ tsmux_stream_new (guint16 pid, guint stream_type, guint stream_number)
       stream->pi.flags |= TSMUX_PACKET_FLAG_PES_FULL_HEADER;
       supports_user_specified_stream_number = TRUE;
       break;
+    case TSMUX_ST_AUDIO_MPEGH:
+      if (stream_number > 0x1F) {
+        GST_WARNING
+            ("audio stream number %d is greater than 0x1F. Setting to 0.",
+            stream_number);
+        stream_number = 0;
+      }
+      stream->gst_stream_type = GST_STREAM_TYPE_AUDIO;
+      stream->id = 0xC0 | stream_number;
+      stream->pi.flags |= TSMUX_PACKET_FLAG_PES_FULL_HEADER;
+      supports_user_specified_stream_number = TRUE;
+      break;
     case TSMUX_ST_VIDEO_DIRAC:
     case TSMUX_ST_PS_AUDIO_LPCM:
     case TSMUX_ST_PS_AUDIO_AC3:
@@ -959,6 +971,16 @@ tsmux_stream_default_get_es_descrs (TsMuxStream * stream,
     }
       break;
     case TSMUX_ST_VIDEO_JPEG_XS:
+    {
+      g_ptr_array_add (pmt_stream->descriptors,
+          gst_mpegts_descriptor_copy (stream->pmt_descriptor));
+    }
+      break;
+      /* The MPEG-H_3dAudio_descriptor is mandatory ("shall") in the PMT for
+       * MPEG-H 3D audio content with stream_type 0x2D (clauses 2.6.106 and
+       * 2.19.2 of ISO/IEC 13818-1:2015/Amd.5). The descriptor was built at
+       * caps negotiation time and stored in pmt_descriptor. */
+    case TSMUX_ST_AUDIO_MPEGH:
     {
       g_ptr_array_add (pmt_stream->descriptors,
           gst_mpegts_descriptor_copy (stream->pmt_descriptor));

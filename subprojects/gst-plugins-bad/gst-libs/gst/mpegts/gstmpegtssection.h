@@ -414,6 +414,25 @@ typedef enum {
    * Since: 1.26
    */
   GST_MPEGTS_STREAM_TYPE_VIDEO_VVC                    = 0x33,
+  /**
+   * GST_MPEGTS_STREAM_TYPE_AUDIO_MPEGH:
+   *
+   * MPEG-H 3D Audio (ISO/IEC 23008-3) with MHAS transport syntax, main stream.
+   *
+   * Added by ISO/IEC 13818-1:2015/Amd.5 (H.222.0 Amd.5), Table 2-34.
+   *
+   * Since: 1.30
+   */
+  GST_MPEGTS_STREAM_TYPE_AUDIO_MPEGH                 = 0x2D,
+  /**
+   * GST_MPEGTS_STREAM_TYPE_AUDIO_MPEGH_AUX:
+   *
+   * MPEG-H 3D Audio (ISO/IEC 23008-3) with MHAS transport syntax, auxiliary
+   * stream. See Table 2-34 of ISO/IEC 13818-1:2015/Amd.5.
+   *
+   * Since: 1.30
+   */
+  GST_MPEGTS_STREAM_TYPE_AUDIO_MPEGH_AUX             = 0x2E,
   /* 0x36 - 0x7e : Rec. ITU-T H.222.0 | ISO/IEC 13818-1 Reserved */
   GST_MPEGTS_STREAM_TYPE_IPMP_STREAM                  = 0x7f,
   /* 0x80 - 0xff : User Private (or defined in other specs) */
