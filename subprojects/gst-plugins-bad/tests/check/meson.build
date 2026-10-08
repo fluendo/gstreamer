@@ -66,6 +66,7 @@ base_tests = [
   [['elements/mpegtsmux.c'], get_option('mpegtsmux').disabled(), [gstmpegts_dep]],
   [['elements/mpeg4videoparse.c'], false, [libparser_dep, gstcodecparsers_dep]],
   [['elements/mpegvideoparse.c'], false, [libparser_dep, gstcodecparsers_dep]],
+  [['elements/mpegh3daenc.c'], not mpegh3daenc_dep.found(), [mpegh3daenc_dep]],
   [['elements/msdkh264enc.c'], not have_msdk, [msdk_dep]],
   [['elements/mxfdemux.c'], get_option('mxf').disabled()],
   [['elements/mxfmux.c'], get_option('mxf').disabled()],
