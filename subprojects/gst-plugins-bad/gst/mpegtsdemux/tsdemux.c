@@ -265,6 +265,7 @@ struct _TSDemuxStream
     "audio/x-ac4;" \
     "audio/x-dts;" \
     "audio/x-opus;" \
+    "audio/x-mpeg-h;" \
     "audio/x-private-ts-lpcm" \
   )
 
@@ -1373,6 +1374,35 @@ gst_ts_demux_create_tags (TSDemuxStream * stream)
   }
 }
 
+ /* TODO: Extracting profile/level (and the full configuration, i.e. sample
+  * rate, channel layout, ...) from the MPEG-H 3D audio stream is the
+  * responsibility of a dedicated MPEG-H 3D audio parser element. The
+  * descriptor-based signalling below should be moved there once such an
+  * element exists.
+  */
+static gboolean
+mpegh_profile_level_from_indication (guint8 indication, const gchar ** profile,
+    gint * level)
+{
+  if (indication >= 0x01 && indication <= 0x05) {
+    *profile = "main";
+    *level = indication - 0x00;
+  } else if (indication >= 0x06 && indication <= 0x0A) {
+    *profile = "high";
+    *level = indication - 0x05;
+  } else if (indication >= 0x0B && indication <= 0x0F) {
+    *profile = "low-complexity";
+    *level = indication - 0x0A;
+  } else if (indication >= 0x10 && indication <= 0x14) {
+    *profile = "baseline";
+    *level = indication - 0x0F;
+  } else {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
 static GstPad *
 create_pad_for_stream (MpegTSBase * base, MpegTSBaseStream * bstream,
     MpegTSBaseProgram * program)
@@ -1801,6 +1831,34 @@ create_pad_for_stream (MpegTSBase * base, MpegTSBaseStream * bstream,
           "mpegversion", G_TYPE_INT, 4,
           "stream-format", G_TYPE_STRING, "loas", NULL);
       break;
+    case GST_MPEGTS_STREAM_TYPE_AUDIO_MPEGH:
+    {
+      const gchar *profile = NULL;
+      gint level = 0;
+
+      is_audio = TRUE;
+      caps = gst_caps_new_simple ("audio/x-mpeg-h",
+          "stream-format", G_TYPE_STRING, "mhas",
+          "framed", G_TYPE_BOOLEAN, TRUE,
+          "stream-type", G_TYPE_STRING, "single",
+          /* The sample rate is not signalled in the PMT (it is carried in the
+           * in-band mpegh3daConfig), so it cannot be derived here. Set it to
+           * 48 kHz, the only rate supported by the current encoder/decoder;
+           * determining the real rate from the stream is the responsibility of
+           * a dedicated MPEG-H 3D audio parser element. */
+          "rate", G_TYPE_INT, 48000, NULL);
+
+      desc = mpegts_get_descriptor_from_stream_with_extension (bstream,
+          GST_MTS_DESC_EXTENSION, GST_MTS_DESC_EXT_MPEGH_3D_AUDIO);
+      if (desc && desc->length >= 4 &&
+          mpegh_profile_level_from_indication (desc->data[3],
+              &profile, &level)) {
+        gst_caps_set_simple (caps,
+            "profile", G_TYPE_STRING, profile,
+            "level", G_TYPE_INT, level, NULL);
+      }
+      break;
+    }
     case GST_MPEGTS_STREAM_TYPE_VIDEO_MPEG4:
       is_video = TRUE;
       caps = gst_caps_new_simple ("video/mpeg",
@@ -3280,6 +3338,155 @@ error:
   }
 }
 
+/* MHAS packet types as defined in ISO/IEC 23008-3, section 14.3.1. */
+#define MHAS_PAC_TYP_MPEGH3DACFG 1
+#define MHAS_PAC_TYP_MPEGH3DAFRAME 2
+
+/*
+ * TODO: This MHAS parsing only exists to split the MHAS elementary stream
+ * into individual access units (one PACTYP_MPEGH3DAFRAME per buffer) as
+ * required by the "framed" caps. This is the responsibility of the MPEG-H 3D
+ * audio parser element and must be moved there once such an element exists.
+ *
+ * See ISO/IEC 23008-3, sections 14.2.1/14.3.1.
+ * */
+static gboolean
+mhas_read_packet_header (GstBitReader * br, guint32 * packet_type,
+    guint * header_bits, guint32 * packet_length)
+{
+  guint start = gst_bit_reader_get_pos (br);
+  guint32 value;
+  guint8 bits;
+  guint16 bits16;
+  guint32 bits32;
+
+  /* MHASPacketType: escapedValue(3, 8, 8) */
+  if (!gst_bit_reader_get_bits_uint8 (br, &bits, 3))
+    return FALSE;
+  value = bits;
+  if (value == (1 << 3) - 1) {
+    guint8 escape;
+
+    if (!gst_bit_reader_get_bits_uint8 (br, &escape, 8))
+      return FALSE;
+    value += escape;
+    if (escape == 0xFF) {
+      if (!gst_bit_reader_get_bits_uint8 (br, &escape, 8))
+        return FALSE;
+      value += escape;
+    }
+  }
+  *packet_type = value;
+
+  /* MHASPacketLabel: escapedValue(2, 8, 32). Not needed here, just skip it. */
+  if (!gst_bit_reader_get_bits_uint8 (br, &bits, 2))
+    return FALSE;
+  value = bits;
+  if (value == (1 << 2) - 1) {
+    guint8 escape;
+
+    if (!gst_bit_reader_get_bits_uint8 (br, &escape, 8))
+      return FALSE;
+    value += escape;
+    if (escape == 0xFF) {
+      if (!gst_bit_reader_get_bits_uint32 (br, &bits32, 32))
+        return FALSE;
+      value += bits32;
+    }
+  }
+
+  /* MHASPacketLength: escapedValue(11, 24, 24) */
+  if (!gst_bit_reader_get_bits_uint16 (br, &bits16, 11))
+    return FALSE;
+  value = bits16;
+  if (value == (1 << 11) - 1) {
+    guint32 escape;
+
+    if (!gst_bit_reader_get_bits_uint32 (br, &escape, 24))
+      return FALSE;
+    value += escape;
+    if (escape == (1 << 24) - 1) {
+      if (!gst_bit_reader_get_bits_uint32 (br, &escape, 24))
+        return FALSE;
+      value += escape;
+    }
+  }
+  *packet_length = value;
+
+  *header_bits = gst_bit_reader_get_pos (br) - start;
+
+  return TRUE;
+}
+
+static GstBufferList *
+parse_mpegh_access_unit (TSDemuxStream * stream)
+{
+  GstBufferList *buffer_list = gst_buffer_list_new ();
+  guint offset = 0;
+  guint au_start = 0;
+  guint frame_count = 0;
+  gboolean have_pts = GST_CLOCK_TIME_IS_VALID (stream->pts);
+
+  while (offset < stream->current_size) {
+    GstBitReader br;
+    guint32 packet_type, packet_length;
+    guint header_bits, packet_bytes;
+
+    gst_bit_reader_init (&br, stream->data + offset,
+        stream->current_size - offset);
+
+    if (!mhas_read_packet_header (&br, &packet_type, &header_bits,
+            &packet_length)) {
+      GST_WARNING_OBJECT (stream->pad, "Truncated MHAS packet header");
+      goto error;
+    }
+
+    packet_bytes = (header_bits / 8) + packet_length;
+
+    if (offset + packet_bytes > stream->current_size) {
+      GST_WARNING_OBJECT (stream->pad, "Truncated MHAS packet payload");
+      goto error;
+    }
+
+    if (packet_type == MHAS_PAC_TYP_MPEGH3DAFRAME) {
+      /* Emit one access unit, from the start of the current AU up to the end
+       * of this frame. Any preceding non-frame packets (e.g. the
+       * PACTYP_MPEGH3DACFG config) are prepended to the first frame. */
+      GstBuffer *buffer = gst_buffer_new_memdup (stream->data + au_start,
+          (offset + packet_bytes) - au_start);
+
+      /* The PES PTS only refers to the first access unit of the PES (clause
+       * 2.19.2 of ISO/IEC 13818-1:2015/Amd.5), so derive the PTS of each
+       * subsequent frame from the 1024-sample frame duration at 48 kHz. */
+      if (have_pts) {
+        GstClockTime ts =
+            stream->pts +
+            gst_util_uint64_scale (frame_count * 1024, GST_SECOND, 48000);
+        GST_BUFFER_PTS (buffer) = ts;
+        GST_BUFFER_DTS (buffer) = ts;
+      }
+
+      gst_buffer_list_add (buffer_list, buffer);
+      au_start = offset + packet_bytes;
+      frame_count++;
+    }
+
+    offset += packet_bytes;
+  }
+
+  g_free (stream->data);
+  stream->data = NULL;
+  stream->current_size = 0;
+  return buffer_list;
+
+error:
+  gst_buffer_list_unref (buffer_list);
+  g_free (stream->data);
+  stream->data = NULL;
+  stream->current_size = 0;
+  return NULL;
+}
+
 static GstBuffer *
 parse_jpegxs_access_unit (TSDemuxStream * stream)
 {
@@ -3643,6 +3850,8 @@ parse_access_unit (GstTSDemux * demux, TSDemuxStream * stream,
     buffer = parse_jp2k_access_unit (stream);
   } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_AUDIO_AAC_ADTS) {
     buffer = parse_aac_adts_frame (stream);
+  } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_AUDIO_MPEGH) {
+    buffer_list = parse_mpegh_access_unit (stream);
   } else if (bs->stream_type == GST_MPEGTS_STREAM_TYPE_METADATA_PES_PACKETS) {
     if (bs->registration_id == DRF_ID_KLVA) {
       buffer_list = parse_pes_metadata_frame (stream);
