@@ -62,6 +62,7 @@ base_tests = [
   [['elements/jpeg2000parse.c'], false, [libparser_dep, gstcodecparsers_dep]],
   [['elements/line21.c'], get_option('closedcaption').disabled()],
   [['elements/mfvideosrc.c'], host_machine.system() != 'windows', ],
+  [['elements/mpegh3daauth.c'], get_option('mpegh3da-media-auth').disabled(), [openssl_dep]],
   [['elements/mpegtsdemux.c'], get_option('mpegtsdemux').disabled(), [gstmpegts_dep]],
   [['elements/mpegtsmux.c'], get_option('mpegtsmux').disabled(), [gstmpegts_dep]],
   [['elements/mpeg4videoparse.c'], false, [libparser_dep, gstcodecparsers_dep]],

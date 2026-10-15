@@ -8,8 +8,9 @@
 
 G_BEGIN_DECLS
 
-/* Incremental digest hasher (SHA-1/256/384/512), GLib GChecksum backed.
- * SHA-224 is not implemented yet. */
+/* Incremental digest hasher (SHA-1/224/256/384/512), OpenSSL EVP digest
+ * backed. Shares the hash-method -> digest mapping with the RSA sign/verify
+ * backend in gstmpegh3dacrypto.c. */
 typedef struct _GstMpegh3daHash GstMpegh3daHash;
 
 GstMpegh3daHash *gst_mpegh3da_hash_new (GstMpegh3daHashMethod method);

@@ -9,8 +9,7 @@
 
 G_BEGIN_DECLS
 
-/* Hash methods (authHashType, ISO/IEC 23008-3 Table 239). Same numeric map as
- * the video DSC plugin's hash-method enum. */
+/* Hash methods (authHashType, ISO/IEC 23008-3 Table 239). */
 typedef enum
 {
   GST_MPEGH3DA_HASH_SHA1 = 0,
@@ -64,6 +63,7 @@ GType gst_mpegh3da_hash_method_get_type (void);
 #define GST_MPEGH3DA_ESC_VAL_AUTH_HASH    4, 8, 8
 #define GST_MPEGH3DA_ESC_VAL_AUTH_KEYID   3, 8, 8
 #define GST_MPEGH3DA_ESC_VAL_AUTH_PROVID  8, 8, 16
+#define GST_MPEGH3DA_ESC_VAL_AUTH_SOURCE_URI_LEN 8, 8, 8
 #define GST_MPEGH3DA_ESC_VAL_AU_COUNTER   8, 16, 16
 #define GST_MPEGH3DA_ESC_VAL_AUTH_TIME    12, 16, 32
 
@@ -92,6 +92,18 @@ GType gst_mpegh3da_hash_method_get_type (void);
 #define GST_MPEGH3DA_AUTH_ABR_ENABLE_BITS            2
 #define GST_MPEGH3DA_SIG_LENGTH_MINUS1_BITS          6
 #define GST_MPEGH3DA_SIG_COMPLETE_MAX_BYTES          64 /* sigLengthMinus1 max 63 -> 64 B */
+#define GST_MPEGH3DA_SIG_SEGMENT_START_BITS          1
+#define GST_MPEGH3DA_SIG_SEGMENT_STOP_BITS           1
+#define GST_MPEGH3DA_SIG_SEGMENT_LENGTH_MINUS1_BITS  4
+#define GST_MPEGH3DA_SIG_PARTIAL_MAX_BYTES           16 /* sigSegmentLengthMinus1 max 15 -> (15+1)*8 bits = 16 B */
+
+/* authSourceURI (Table 233, authProvID == 0). Capped for the plugin; the
+ * escaped length field itself can represent up to 518 bytes. */
+#define GST_MPEGH3DA_AUTH_SOURCE_URI_MAX_BYTES       512
+
+/* Maximum number of AUTH_SIG segments emitted per sequence (RSA <= 4096 bits
+ * => 512-byte signature => 32 x 16-byte segments). */
+#define GST_MPEGH3DA_MAX_AUTH_SIG_SEGMENTS           32
 
 /* Table 235 — authUUID() */
 #define GST_MPEGH3DA_UUID_SEGMENT_START_BITS         1
@@ -120,16 +132,35 @@ GType gst_mpegh3da_hash_method_get_type (void);
    GST_MPEGH3DA_ESC_VAL_MAX_BITS (GST_MPEGH3DA_ESC_VAL_AUTH_HASH) + \
    GST_MPEGH3DA_ESC_VAL_MAX_BITS (GST_MPEGH3DA_ESC_VAL_AUTH_KEYID) + \
    GST_MPEGH3DA_ESC_VAL_MAX_BITS (GST_MPEGH3DA_ESC_VAL_AUTH_PROVID) + \
+   GST_MPEGH3DA_ESC_VAL_MAX_BITS (GST_MPEGH3DA_ESC_VAL_AUTH_SOURCE_URI_LEN) + \
+   GST_MPEGH3DA_AUTH_SOURCE_URI_MAX_BYTES * 8 + \
    GST_MPEGH3DA_AUTH_RESILIENCE_LEVEL_MAX_BITS + \
    GST_MPEGH3DA_HAS_AUTH_SEQUENCE_AU_COUNTER_BITS + \
    GST_MPEGH3DA_IS_FIRST_SEQUENCE_BITS + \
    GST_MPEGH3DA_IS_AUTH_CRC_BITS + \
    GST_MPEGH3DA_AUTH_FRAME_TYPES_BITS + \
    GST_MPEGH3DA_AUTH_MULTI_STREAMS_BITS)
-#define GST_MPEGH3DA_AUTH_SIG_MAX_PAYLOAD_BITS \
+/* Common AUTH_SIG prefix: authID + authSequence + authPartialSig + authABREnable. */
+#define GST_MPEGH3DA_AUTH_SIG_HEADER_BITS \
   (GST_MPEGH3DA_AUTH_ID_BITS + GST_MPEGH3DA_AUTH_SEQUENCE_BITS + \
-   GST_MPEGH3DA_AUTH_PARTIAL_SIG_BITS + GST_MPEGH3DA_AUTH_ABR_ENABLE_BITS + \
+   GST_MPEGH3DA_AUTH_PARTIAL_SIG_BITS + GST_MPEGH3DA_AUTH_ABR_ENABLE_BITS)
+
+/* Complete signature (authPartialSig = 0): sigLengthMinus1 + sigComplete. */
+#define GST_MPEGH3DA_AUTH_SIG_COMPLETE_MAX_PAYLOAD_BITS \
+  (GST_MPEGH3DA_AUTH_SIG_HEADER_BITS + \
    GST_MPEGH3DA_SIG_LENGTH_MINUS1_BITS + GST_MPEGH3DA_SIG_COMPLETE_MAX_BYTES * 8)
+
+/* Partial signature segment (authPartialSig = 1). */
+#define GST_MPEGH3DA_AUTH_SIG_PARTIAL_MAX_PAYLOAD_BITS \
+  (GST_MPEGH3DA_AUTH_SIG_HEADER_BITS + \
+   GST_MPEGH3DA_SIG_SEGMENT_START_BITS + GST_MPEGH3DA_SIG_SEGMENT_STOP_BITS + \
+   GST_MPEGH3DA_SIG_SEGMENT_LENGTH_MINUS1_BITS + \
+   GST_MPEGH3DA_SIG_PARTIAL_MAX_BYTES * 8)
+
+/* Largest AUTH_SIG payload is the partial-segment layout. */
+#define GST_MPEGH3DA_AUTH_SIG_MAX_PAYLOAD_BITS \
+  MAX (GST_MPEGH3DA_AUTH_SIG_COMPLETE_MAX_PAYLOAD_BITS, \
+       GST_MPEGH3DA_AUTH_SIG_PARTIAL_MAX_PAYLOAD_BITS)
 #define GST_MPEGH3DA_UUID_MAX_PAYLOAD_BITS \
   (GST_MPEGH3DA_UUID_SEGMENT_START_BITS + \
    GST_MPEGH3DA_UUID_SEGMENT_STOP_BITS + \
@@ -168,10 +199,6 @@ GType gst_mpegh3da_hash_method_get_type (void);
   (GST_MPEGH3DA_MHAS_HEADER_MAX_BYTES + \
    GST_MPEGH3DA_AUTH_SEQUENCE_AU_COUNTER_MAX_PAYLOAD_BYTES)
 
-/* escapedValue() (Table 8C), over GstBitReader. */
-gboolean gst_mpegh3da_read_escaped_value (GstBitReader * br,
-    guint nbits1, guint nbits2, guint nbits3, guint64 * value);
-
 /* escapedValue() writer (Table 8C), symmetric to the reader. */
 gboolean gst_mpegh3da_write_escaped_value (GstBitWriter * bw,
     guint nbits1, guint nbits2, guint nbits3, guint64 value);
@@ -196,9 +223,11 @@ typedef struct _GstMpegh3daAuthStart
 {
   guint8 authID;
   guint8 authSequence;
-  guint16 authHashType;
-  guint16 authKeyID;
-  guint32 authProvID;
+  guint64 authHashType;                 /* escapedValue(4,8,8)  -> 20 bits */
+  guint64 authKeyID;                    /* escapedValue(3,8,8)  -> 19 bits */
+  guint64 authProvID;                   /* escapedValue(8,8,16) -> 32 bits */
+  guint64 authSourceURILengthMinus1;    /* escapedValue(8,8,8) -> 24 bits; only when authProvID == 0 */
+  guint8 authSourceURI[GST_MPEGH3DA_AUTH_SOURCE_URI_MAX_BYTES];
   guint8 authResilienceLevelMax;
   guint8 hasAuthSequenceAUCounter;
   guint8 isFirstSequence;
@@ -207,15 +236,24 @@ typedef struct _GstMpegh3daAuthStart
   guint8 authMultiStreams;
 } GstMpegh3daAuthStart;
 
-/* mpegh3daAuthSig() — Table 234 (authPartialSig = authABREnable = 0). */
+/* mpegh3daAuthSig() — Table 234. authPartialSig selects the carried field:
+ *   0 -> sigLengthMinus1 + sigComplete (complete, <= 64 bytes)
+ *   1 -> sigSegmentStart/Stop + sigSegmentLengthMinus1 + sigPartial
+ *        (one segment, <= 128 bytes) */
 typedef struct _GstMpegh3daAuthSig
 {
   guint8 authID;
   guint8 authSequence;
   guint8 authPartialSig;
   guint8 authABREnable;
+  /* authPartialSig == 0 */
   guint8 sigLengthMinus1;
   guint8 sigComplete[GST_MPEGH3DA_SIG_COMPLETE_MAX_BYTES];
+  /* authPartialSig == 1 */
+  guint8 sigSegmentStart;
+  guint8 sigSegmentStop;
+  guint8 sigSegmentLengthMinus1;
+  guint8 sigPartial[GST_MPEGH3DA_SIG_PARTIAL_MAX_BYTES];
 } GstMpegh3daAuthSig;
 
 /* mpegh3daAuthSequenceAUCounter() — Table 238. */
@@ -244,14 +282,10 @@ typedef struct _GstMpegh3daAuthUUID
   guint8 uuid[16];
 } GstMpegh3daAuthUUID;
 
-gboolean gst_mpegh3da_mhas_parse_packet (GstBitReader * br,
-    GstMpegh3daMhasPacket * pkt);
 const gchar *gst_mpegh3da_mhas_packet_type_name (guint64 type);
 gboolean gst_mpegh3da_mhas_packet_type_is_excluded (guint64 type);
 void gst_mpegh3da_mhas_log_packet (GstObject * object,
     const GstMpegh3daMhasPacket * pkt);
-void gst_mpegh3da_mhas_log_buffer (GstObject * object, const guint8 * data,
-    gsize size, const gchar * title);
 
 /* Parse an RFC 9562 UUID in canonical hyphenated form into 16 bytes. */
 gboolean gst_mpegh3da_parse_uuid (const gchar * str, guint8 out[16]);
