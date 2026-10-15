@@ -14,6 +14,7 @@ enum
 {
   PROP_0,
   PROP_FAIL_ON_VERIFICATION_ERROR,
+  PROP_KEY_STORE_PATH,
 };
 
 static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
@@ -46,7 +47,9 @@ static gboolean gst_mpegh3daverifier_sink_event (GstPad * pad,
 
 /* ---- helpers ---- */
 static void gst_mpegh3daverifier_post_result (GstMpegh3DAVerifier * self,
-    gboolean verified, gsize digest_size, const gchar * error);
+    gboolean verified, gsize signature_size, const gchar * error);
+static gchar *gst_mpegh3daverifier_resolve_cert_path (GstMpegh3DAVerifier *
+    self, const GstMpegh3daAuthStart * auth_start);
 static GstFlowReturn gst_mpegh3daverifier_finish_sequence (GstMpegh3DAVerifier *
     self);
 static GstFlowReturn gst_mpegh3daverifier_process_buffer (GstMpegh3DAVerifier *
@@ -118,6 +121,10 @@ gst_mpegh3daverifier_set_property (GObject * object, guint prop_id,
     case PROP_FAIL_ON_VERIFICATION_ERROR:
       self->fail_on_verification_error = g_value_get_boolean (value);
       break;
+    case PROP_KEY_STORE_PATH:
+      g_free (self->key_store_path);
+      self->key_store_path = g_value_dup_string (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -133,6 +140,9 @@ gst_mpegh3daverifier_get_property (GObject * object, guint prop_id,
   switch (prop_id) {
     case PROP_FAIL_ON_VERIFICATION_ERROR:
       g_value_set_boolean (value, self->fail_on_verification_error);
+      break;
+    case PROP_KEY_STORE_PATH:
+      g_value_set_string (value, self->key_store_path);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -158,6 +168,12 @@ gst_mpegh3daverifier_class_init (GstMpegh3DAVerifierClass * klass)
           DEFAULT_FAIL_ON_VERIFICATION_ERROR,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+  g_object_class_install_property (gobject_class, PROP_KEY_STORE_PATH,
+      g_param_spec_string ("key-store-path", "Key store path",
+          "Directory where the certificate identified by authSourceURI is "
+          "stored (basename of the URI is used)", NULL,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
   gst_element_class_add_static_pad_template (element_class, &sink_template);
   gst_element_class_add_static_pad_template (element_class, &src_template);
 
@@ -172,6 +188,7 @@ gst_mpegh3daverifier_init (GstMpegh3DAVerifier * self)
   GstPadTemplate *templ;
 
   self->fail_on_verification_error = DEFAULT_FAIL_ON_VERIFICATION_ERROR;
+  self->key_store_path = NULL;
 
   gst_mpegh3da_auth_data_init (&self->auth_data);
   self->in_sequence = FALSE;
@@ -201,6 +218,7 @@ gst_mpegh3daverifier_finalize (GObject * object)
   GstMpegh3DAVerifier *self = GST_MPEGH3DAVERIFIER (object);
 
   gst_mpegh3da_auth_data_clear (&self->auth_data);
+  g_free (self->key_store_path);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -211,14 +229,27 @@ gst_mpegh3daverifier_finalize (GObject * object)
  * without the certificate fields). */
 static void
 gst_mpegh3daverifier_post_result (GstMpegh3DAVerifier * self,
-    gboolean verified, gsize digest_size, const gchar * error)
+    gboolean verified, gsize signature_size, const gchar * error)
 {
   GstStructure *s;
   GstMessage *msg;
 
   s = gst_structure_new ("mpegh3da-verification-result",
       "verified", G_TYPE_BOOLEAN, verified,
-      "digest-size", G_TYPE_UINT, (guint) digest_size, NULL);
+      "signature-size", G_TYPE_UINT, (guint) signature_size, NULL);
+
+  if (self->auth_data.auth_uuid_present) {
+    gchar uuid_str[37];
+    const guint8 *u = self->auth_data.auth_uuid.uuid;
+
+    /* RFC 9562 canonical hyphenated form. */
+    g_snprintf (uuid_str, sizeof (uuid_str),
+        "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+        u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7],
+        u[8], u[9], u[10], u[11], u[12], u[13], u[14], u[15]);
+    gst_structure_set (s, "content-uuid", G_TYPE_STRING, uuid_str, NULL);
+  }
+
   if (error != NULL)
     gst_structure_set (s, "error", G_TYPE_STRING, error, NULL);
 
@@ -226,30 +257,76 @@ gst_mpegh3daverifier_post_result (GstMpegh3DAVerifier * self,
   gst_element_post_message (GST_ELEMENT_CAST (self), msg);
 }
 
-/* Finalize the current sequence: finish the digest (appending the uuid field),
- * compare it with the received sigComplete, post the result and reset state. */
+/* Resolve the certificate file for an authSourceURI: key-store-path + basename
+ * of the URI, mirroring the video DSC plugin's resolve_cert_path. */
+static gchar *
+gst_mpegh3daverifier_resolve_cert_path (GstMpegh3DAVerifier * self,
+    const GstMpegh3daAuthStart * auth_start)
+{
+  gchar *uri;
+  gchar *base;
+  gchar *path;
+  gsize uri_len = (gsize) auth_start->authSourceURILengthMinus1 + 1;
+
+  if (self->key_store_path == NULL || *self->key_store_path == '\0') {
+    GST_WARNING_OBJECT (self, "key-store-path is not set, cannot resolve "
+        "authSourceURI");
+    return NULL;
+  }
+
+  uri = g_strndup ((const gchar *) auth_start->authSourceURI, uri_len);
+  base = g_path_get_basename (uri);
+  path = g_build_filename (self->key_store_path, base, NULL);
+
+  GST_DEBUG_OBJECT (self, "resolved authSourceURI \"%s\" -> \"%s\"", uri, path);
+
+  g_free (base);
+  g_free (uri);
+  return path;
+}
+
+/* Finalize the current sequence: verify the signature (RSA or digest), post
+ * the result and reset state. */
 static GstFlowReturn
 gst_mpegh3daverifier_finish_sequence (GstMpegh3DAVerifier * self)
 {
-  guint8 digest[GST_MPEGH3DA_HASH_MAX_DIGEST_BYTES];
-  gsize digest_size = 0;
   gboolean verified = FALSE;
   GstFlowReturn ret = GST_FLOW_OK;
 
-  if (!gst_mpegh3da_auth_data_hash_finish (&self->auth_data, digest,
-          &digest_size)) {
-    gst_mpegh3daverifier_post_result (self, FALSE, 0, "hash finalize failed");
-  } else {
-    gst_mpegh3da_crypto_log_digest (GST_OBJECT (self), digest, digest_size);
+  if (self->auth_data.rsa_mode) {
+    gboolean error = FALSE;
 
-    verified = gst_mpegh3da_auth_data_verify_signature (GST_OBJECT (self),
-        &self->auth_data, digest, digest_size);
+    verified = gst_mpegh3da_auth_data_verify_finish (&self->auth_data,
+        GST_OBJECT (self), &error);
 
-    if (verified)
-      gst_mpegh3daverifier_post_result (self, TRUE, digest_size, NULL);
+    if (error)
+      gst_mpegh3daverifier_post_result (self, FALSE,
+          self->auth_data.signature_len, "verification error");
+    else if (verified)
+      gst_mpegh3daverifier_post_result (self, TRUE,
+          self->auth_data.signature_len, NULL);
     else
-      gst_mpegh3daverifier_post_result (self, FALSE, digest_size,
-          "digest mismatch");
+      gst_mpegh3daverifier_post_result (self, FALSE,
+          self->auth_data.signature_len, "signature mismatch");
+  } else {
+    guint8 digest[GST_MPEGH3DA_HASH_MAX_DIGEST_BYTES];
+    gsize digest_size = 0;
+
+    if (!gst_mpegh3da_auth_data_hash_finish (&self->auth_data, digest,
+            &digest_size)) {
+      gst_mpegh3daverifier_post_result (self, FALSE, 0, "hash finalize failed");
+    } else {
+      gst_mpegh3da_crypto_log_digest (GST_OBJECT (self), digest, digest_size);
+
+      verified = gst_mpegh3da_auth_data_verify_signature (GST_OBJECT (self),
+          &self->auth_data, digest, digest_size);
+
+      if (verified)
+        gst_mpegh3daverifier_post_result (self, TRUE, digest_size, NULL);
+      else
+        gst_mpegh3daverifier_post_result (self, FALSE, digest_size,
+            "digest mismatch");
+    }
   }
 
   gst_mpegh3da_auth_data_log (GST_OBJECT (self), &self->auth_data);
@@ -301,12 +378,34 @@ gst_mpegh3daverifier_process_buffer (GstMpegh3DAVerifier * self,
       self->seq_label = pkt.label;
       self->in_sequence = TRUE;
 
-      if (!gst_mpegh3da_auth_data_start_hash (&self->auth_data,
-              GST_OBJECT (self))) {
-        GST_ERROR_OBJECT (self, "unsupported hash method %u",
-            self->auth_data.auth_start.authHashType);
-        self->in_sequence = FALSE;
-        return GST_FLOW_ERROR;
+      if (self->auth_data.auth_start.authProvID == 0) {
+        gchar *path;
+
+        path = gst_mpegh3daverifier_resolve_cert_path (self,
+            &self->auth_data.auth_start);
+        if (path == NULL) {
+          GST_ERROR_OBJECT (self, "failed to resolve public key path");
+          self->in_sequence = FALSE;
+          return GST_FLOW_ERROR;
+        }
+
+        if (!gst_mpegh3da_auth_data_start_verify (&self->auth_data,
+                GST_OBJECT (self), path)) {
+          GST_ERROR_OBJECT (self, "failed to start verification for "
+              "certificate \"%s\"", path);
+          g_free (path);
+          self->in_sequence = FALSE;
+          return GST_FLOW_ERROR;
+        }
+        g_free (path);
+      } else {
+        if (!gst_mpegh3da_auth_data_start_hash (&self->auth_data,
+                GST_OBJECT (self))) {
+          GST_ERROR_OBJECT (self, "unsupported hash method %" G_GUINT64_FORMAT,
+              self->auth_data.auth_start.authHashType);
+          self->in_sequence = FALSE;
+          return GST_FLOW_ERROR;
+        }
       }
 
       /* AUTH_START is part of gad_bytes (§17.12.4.1). */
@@ -327,12 +426,26 @@ gst_mpegh3daverifier_process_buffer (GstMpegh3DAVerifier * self,
     switch (pkt.type) {
       case GST_MPEGH3DA_PACTYP_AUTH_SIG:
       {
+        GstMpegh3daAuthSig sig;
         GstFlowReturn ret;
 
         if (!gst_mpegh3da_parse_AuthSig (GST_OBJECT (self), pkt.payload,
-                pkt.length, &self->auth_data.auth_sig)) {
-          GST_WARNING_OBJECT (self, "failed to parse AUTH_SIG");
+                pkt.length, &sig)) {
+          GST_ERROR_OBJECT (self, "failed to parse AUTH_SIG");
           return GST_FLOW_ERROR;
+        }
+
+        self->auth_data.auth_sig = sig;
+
+        if (sig.authPartialSig != 0) {
+          if (!gst_mpegh3da_auth_data_append_signature (&self->auth_data,
+                  sig.sigPartial, (gsize) sig.sigSegmentLengthMinus1 + 1)) {
+            GST_ERROR_OBJECT (self, "signature too large");
+            return GST_FLOW_ERROR;
+          }
+          /* Only the segment with sigSegmentStop closes the sequence. */
+          if (!sig.sigSegmentStop)
+            continue;
         }
 
         ret = gst_mpegh3daverifier_finish_sequence (self);
@@ -344,7 +457,7 @@ gst_mpegh3daverifier_process_buffer (GstMpegh3DAVerifier * self,
       {
         if (!gst_mpegh3da_parse_AuthUUID (GST_OBJECT (self), pkt.payload,
                 pkt.length, &self->auth_data.auth_uuid)) {
-          GST_WARNING_OBJECT (self, "failed to parse UUID");
+          GST_ERROR_OBJECT (self, "failed to parse UUID");
           return GST_FLOW_ERROR;
         }
         self->auth_data.auth_uuid_present = TRUE;
@@ -354,7 +467,7 @@ gst_mpegh3daverifier_process_buffer (GstMpegh3DAVerifier * self,
       {
         if (!gst_mpegh3da_parse_AuthTimestamp (GST_OBJECT (self), pkt.payload,
                 pkt.length, &self->auth_data.auth_timestamp)) {
-          GST_WARNING_OBJECT (self, "failed to parse TIMESTAMP");
+          GST_ERROR_OBJECT (self, "failed to parse TIMESTAMP");
           return GST_FLOW_ERROR;
         }
         self->auth_data.auth_timestamp_present = TRUE;
@@ -366,7 +479,7 @@ gst_mpegh3daverifier_process_buffer (GstMpegh3DAVerifier * self,
 
         if (!gst_mpegh3da_parse_AuthSequenceAUCounter (GST_OBJECT (self),
                 pkt.payload, pkt.length, &cfg)) {
-          GST_WARNING_OBJECT (self, "failed to parse AUTH_SEQUENCE_AU_COUNTER");
+          GST_ERROR_OBJECT (self, "failed to parse AUTH_SEQUENCE_AU_COUNTER");
           return GST_FLOW_ERROR;
         }
         break;

@@ -109,7 +109,7 @@ gst_mpegh3da_mhas_log_buffer (GstObject * object, const guint8 * data,
 }
 
 static const gchar *
-hash_method_name (guint16 method)
+hash_method_name (guint64 method)
 {
   switch (method) {
     case GST_MPEGH3DA_HASH_SHA1:
@@ -151,7 +151,7 @@ gst_mpegh3da_parse_AuthStart (GstObject * object, const guint8 * data,
     gsize size, GstMpegh3daAuthStart * cfg)
 {
   GstBitReader br;
-  guint64 authHashType = 0, authKeyID = 0, authProvID = 0;
+  guint i;
 
   g_return_val_if_fail (cfg != NULL, FALSE);
 
@@ -160,12 +160,30 @@ gst_mpegh3da_parse_AuthStart (GstObject * object, const guint8 * data,
   if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->authID, 8) ||
       !gst_bit_reader_get_bits_uint8 (&br, &cfg->authSequence, 1) ||
       !gst_mpegh3da_read_escaped_value (&br, GST_MPEGH3DA_ESC_VAL_AUTH_HASH,
-          &authHashType) ||
+          &cfg->authHashType) ||
       !gst_mpegh3da_read_escaped_value (&br, GST_MPEGH3DA_ESC_VAL_AUTH_KEYID,
-          &authKeyID) ||
+          &cfg->authKeyID) ||
       !gst_mpegh3da_read_escaped_value (&br, GST_MPEGH3DA_ESC_VAL_AUTH_PROVID,
-          &authProvID) ||
-      !gst_bit_reader_get_bits_uint8 (&br, &cfg->authResilienceLevelMax, 4) ||
+          &cfg->authProvID))
+    return FALSE;
+
+  if (cfg->authProvID == 0) {
+    if (!gst_mpegh3da_read_escaped_value (&br,
+            GST_MPEGH3DA_ESC_VAL_AUTH_SOURCE_URI_LEN,
+            &cfg->authSourceURILengthMinus1))
+      return FALSE;
+
+    if (cfg->authSourceURILengthMinus1 + 1 >
+        GST_MPEGH3DA_AUTH_SOURCE_URI_MAX_BYTES)
+      return FALSE;
+
+    for (i = 0; i <= cfg->authSourceURILengthMinus1; i++) {
+      if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->authSourceURI[i], 8))
+        return FALSE;
+    }
+  }
+
+  if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->authResilienceLevelMax, 4) ||
       !gst_bit_reader_get_bits_uint8 (&br, &cfg->hasAuthSequenceAUCounter, 1) ||
       !gst_bit_reader_get_bits_uint8 (&br, &cfg->isFirstSequence, 1) ||
       !gst_bit_reader_get_bits_uint8 (&br, &cfg->isAuthCRC, 1) ||
@@ -173,19 +191,17 @@ gst_mpegh3da_parse_AuthStart (GstObject * object, const guint8 * data,
       !gst_bit_reader_get_bits_uint8 (&br, &cfg->authMultiStreams, 1))
     return FALSE;
 
-  cfg->authHashType = (guint16) authHashType;
-  cfg->authKeyID = (guint16) authKeyID;
-  cfg->authProvID = (guint32) authProvID;
-
   GST_DEBUG_OBJECT (object, "AUTH_START: authID=%u authSequence=%u "
-      "authHashType=%u (%s) authKeyID=%u authProvID=%u "
-      "authResilienceLevelMax=%u hasAuthSequenceAUCounter=%u "
+      "authHashType=%" G_GUINT64_FORMAT " (%s) authKeyID=%"
+      G_GUINT64_FORMAT " authProvID=%" G_GUINT64_FORMAT
+      " authSourceURILength=%" G_GUINT64_FORMAT
+      " authResilienceLevelMax=%u hasAuthSequenceAUCounter=%u "
       "isFirstSequence=%u isAuthCRC=%u authFrameTypes=%u authMultiStreams=%u",
       cfg->authID, cfg->authSequence, cfg->authHashType,
       hash_method_name (cfg->authHashType), cfg->authKeyID, cfg->authProvID,
-      cfg->authResilienceLevelMax, cfg->hasAuthSequenceAUCounter,
-      cfg->isFirstSequence, cfg->isAuthCRC, cfg->authFrameTypes,
-      cfg->authMultiStreams);
+      cfg->authSourceURILengthMinus1 + 1, cfg->authResilienceLevelMax,
+      cfg->hasAuthSequenceAUCounter, cfg->isFirstSequence, cfg->isAuthCRC,
+      cfg->authFrameTypes, cfg->authMultiStreams);
 
   return TRUE;
 }
@@ -204,33 +220,52 @@ gst_mpegh3da_parse_AuthSig (GstObject * object, const guint8 * data,
   if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->authID, 8) ||
       !gst_bit_reader_get_bits_uint8 (&br, &cfg->authSequence, 1) ||
       !gst_bit_reader_get_bits_uint8 (&br, &cfg->authPartialSig, 1) ||
-      !gst_bit_reader_get_bits_uint8 (&br, &cfg->authABREnable, 2) ||
-      !gst_bit_reader_get_bits_uint8 (&br, &cfg->sigLengthMinus1, 6))
+      !gst_bit_reader_get_bits_uint8 (&br, &cfg->authABREnable, 2))
     return FALSE;
 
-  if (cfg->authPartialSig != 0) {
-    GST_WARNING_OBJECT (object, "partial signatures are not supported");
-    return FALSE;
-  }
   if (cfg->authABREnable != 0) {
     GST_WARNING_OBJECT (object, "ABR signatures are not supported");
     return FALSE;
   }
 
-  sig_len = (guint) cfg->sigLengthMinus1 + 1;
-  if (sig_len > GST_MPEGH3DA_SIG_COMPLETE_MAX_BYTES)
-    return FALSE;
-
-  for (i = 0; i < sig_len; i++) {
-    if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->sigComplete[i], 8))
+  if (cfg->authPartialSig != 0) {
+    if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->sigSegmentStart, 1) ||
+        !gst_bit_reader_get_bits_uint8 (&br, &cfg->sigSegmentStop, 1) ||
+        !gst_bit_reader_get_bits_uint8 (&br, &cfg->sigSegmentLengthMinus1, 4))
       return FALSE;
-  }
 
-  GST_DEBUG_OBJECT (object, "AUTH_SIG: authID=%u authSequence=%u "
-      "authPartialSig=%u authABREnable=%u sigLength=%u",
-      cfg->authID, cfg->authSequence, cfg->authPartialSig, cfg->authABREnable,
-      sig_len);
-  log_bytes_hex (object, "sigComplete", cfg->sigComplete, sig_len);
+    sig_len = (guint) cfg->sigSegmentLengthMinus1 + 1;
+    if (sig_len > GST_MPEGH3DA_SIG_PARTIAL_MAX_BYTES)
+      return FALSE;
+
+    for (i = 0; i < sig_len; i++) {
+      if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->sigPartial[i], 8))
+        return FALSE;
+    }
+
+    GST_DEBUG_OBJECT (object, "AUTH_SIG (partial): authID=%u authSequence=%u "
+        "sigSegmentStart=%u sigSegmentStop=%u sigSegmentLength=%u",
+        cfg->authID, cfg->authSequence, cfg->sigSegmentStart,
+        cfg->sigSegmentStop, sig_len);
+  } else {
+    if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->sigLengthMinus1, 6))
+      return FALSE;
+
+    sig_len = (guint) cfg->sigLengthMinus1 + 1;
+    if (sig_len > GST_MPEGH3DA_SIG_COMPLETE_MAX_BYTES)
+      return FALSE;
+
+    for (i = 0; i < sig_len; i++) {
+      if (!gst_bit_reader_get_bits_uint8 (&br, &cfg->sigComplete[i], 8))
+        return FALSE;
+    }
+
+    GST_DEBUG_OBJECT (object, "AUTH_SIG: authID=%u authSequence=%u "
+        "authPartialSig=%u authABREnable=%u sigLength=%u",
+        cfg->authID, cfg->authSequence, cfg->authPartialSig, cfg->authABREnable,
+        sig_len);
+    log_bytes_hex (object, "sigComplete", cfg->sigComplete, sig_len);
+  }
 
   return TRUE;
 }

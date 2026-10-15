@@ -150,16 +150,16 @@ gst_mpegh3da_crypto_load_public_key (GstObject * object, const gchar * path)
 struct _GstMpegh3daCryptoCtx
 {
   EVP_MD_CTX *ctx;
+  GstMpegh3daCryptoMode mode;
 };
 
 GstMpegh3daCryptoCtx *
-gst_mpegh3da_crypto_sign_new (GstObject * object, EVP_PKEY * pkey,
-    GstMpegh3daHashMethod method)
+gst_mpegh3da_crypto_new (GstObject * object, GstMpegh3daCryptoMode mode,
+    EVP_PKEY * pkey, GstMpegh3daHashMethod method)
 {
   GstMpegh3daCryptoCtx *ctx;
   const EVP_MD *md;
-
-  g_return_val_if_fail (pkey != NULL, NULL);
+  gint ok = 0;
 
   md = gst_mpegh3da_crypto_evp_md (method);
   if (md == NULL) {
@@ -168,47 +168,40 @@ gst_mpegh3da_crypto_sign_new (GstObject * object, EVP_PKEY * pkey,
   }
 
   ctx = g_new0 (GstMpegh3daCryptoCtx, 1);
+  ctx->mode = mode;
   ctx->ctx = EVP_MD_CTX_new ();
   if (ctx->ctx == NULL) {
     g_free (ctx);
     return NULL;
   }
 
-  if (EVP_DigestSignInit (ctx->ctx, NULL, md, NULL, pkey) != 1) {
-    GST_ERROR_OBJECT (object, "EVP_DigestSignInit failed");
-    log_openssl_error (object, "EVP_DigestSignInit failed");
-    gst_mpegh3da_crypto_ctx_free (ctx);
-    return NULL;
+  switch (mode) {
+    case GST_MPEGH3DA_CRYPTO_MODE_SIGN:
+      if (pkey == NULL) {
+        GST_ERROR_OBJECT (object, "sign mode requires a private key");
+        gst_mpegh3da_crypto_ctx_free (ctx);
+        return NULL;
+      }
+      ok = EVP_DigestSignInit (ctx->ctx, NULL, md, NULL, pkey);
+      break;
+    case GST_MPEGH3DA_CRYPTO_MODE_VERIFY:
+      if (pkey == NULL) {
+        GST_ERROR_OBJECT (object, "verify mode requires a public key");
+        gst_mpegh3da_crypto_ctx_free (ctx);
+        return NULL;
+      }
+      ok = EVP_DigestVerifyInit (ctx->ctx, NULL, md, NULL, pkey);
+      break;
+    case GST_MPEGH3DA_CRYPTO_MODE_DIGEST:
+    default:
+      ok = EVP_DigestInit_ex (ctx->ctx, md, NULL);
+      break;
   }
 
-  return ctx;
-}
-
-GstMpegh3daCryptoCtx *
-gst_mpegh3da_crypto_verify_new (GstObject * object, EVP_PKEY * pkey,
-    GstMpegh3daHashMethod method)
-{
-  GstMpegh3daCryptoCtx *ctx;
-  const EVP_MD *md;
-
-  g_return_val_if_fail (pkey != NULL, NULL);
-
-  md = gst_mpegh3da_crypto_evp_md (method);
-  if (md == NULL) {
-    GST_ERROR_OBJECT (object, "unsupported hash method %d", method);
-    return NULL;
-  }
-
-  ctx = g_new0 (GstMpegh3daCryptoCtx, 1);
-  ctx->ctx = EVP_MD_CTX_new ();
-  if (ctx->ctx == NULL) {
-    g_free (ctx);
-    return NULL;
-  }
-
-  if (EVP_DigestVerifyInit (ctx->ctx, NULL, md, NULL, pkey) != 1) {
-    GST_ERROR_OBJECT (object, "EVP_DigestVerifyInit failed");
-    log_openssl_error (object, "EVP_DigestVerifyInit failed");
+  if (ok != 1) {
+    GST_ERROR_OBJECT (object, "failed to initialize crypto context "
+        "(mode %d)", mode);
+    log_openssl_error (object, "crypto context init failed");
     gst_mpegh3da_crypto_ctx_free (ctx);
     return NULL;
   }
@@ -228,7 +221,7 @@ gst_mpegh3da_crypto_ctx_free (GstMpegh3daCryptoCtx * ctx)
 }
 
 gboolean
-gst_mpegh3da_crypto_sign_update (GstMpegh3daCryptoCtx * ctx,
+gst_mpegh3da_crypto_update (GstMpegh3daCryptoCtx * ctx,
     const guint8 * data, gsize len)
 {
   g_return_val_if_fail (ctx != NULL, FALSE);
@@ -238,7 +231,15 @@ gst_mpegh3da_crypto_sign_update (GstMpegh3daCryptoCtx * ctx,
   if (len == 0)
     return TRUE;
 
-  return EVP_DigestSignUpdate (ctx->ctx, data, len) == 1;
+  switch (ctx->mode) {
+    case GST_MPEGH3DA_CRYPTO_MODE_SIGN:
+      return EVP_DigestSignUpdate (ctx->ctx, data, len) == 1;
+    case GST_MPEGH3DA_CRYPTO_MODE_VERIFY:
+      return EVP_DigestVerifyUpdate (ctx->ctx, data, len) == 1;
+    case GST_MPEGH3DA_CRYPTO_MODE_DIGEST:
+    default:
+      return EVP_DigestUpdate (ctx->ctx, data, len) == 1;
+  }
 }
 
 gboolean
@@ -261,20 +262,6 @@ gst_mpegh3da_crypto_sign_final (GstMpegh3daCryptoCtx * ctx, guint8 * sig,
 }
 
 gboolean
-gst_mpegh3da_crypto_verify_update (GstMpegh3daCryptoCtx * ctx,
-    const guint8 * data, gsize len)
-{
-  g_return_val_if_fail (ctx != NULL, FALSE);
-  g_return_val_if_fail (ctx->ctx != NULL, FALSE);
-  g_return_val_if_fail (data != NULL || len == 0, FALSE);
-
-  if (len == 0)
-    return TRUE;
-
-  return EVP_DigestVerifyUpdate (ctx->ctx, data, len) == 1;
-}
-
-gboolean
 gst_mpegh3da_crypto_verify_final (GstMpegh3daCryptoCtx * ctx,
     const guint8 * sig, gsize sig_len, gboolean * error_out)
 {
@@ -290,50 +277,6 @@ gst_mpegh3da_crypto_verify_final (GstMpegh3daCryptoCtx * ctx,
     *error_out = (ret < 0);
 
   return ret == 1;
-}
-
-GstMpegh3daCryptoCtx *
-gst_mpegh3da_crypto_digest_new (GstObject * object,
-    GstMpegh3daHashMethod method)
-{
-  GstMpegh3daCryptoCtx *ctx;
-  const EVP_MD *md;
-
-  md = gst_mpegh3da_crypto_evp_md (method);
-  if (md == NULL) {
-    GST_ERROR_OBJECT (object, "unsupported hash method %d", method);
-    return NULL;
-  }
-
-  ctx = g_new0 (GstMpegh3daCryptoCtx, 1);
-  ctx->ctx = EVP_MD_CTX_new ();
-  if (ctx->ctx == NULL) {
-    g_free (ctx);
-    return NULL;
-  }
-
-  if (EVP_DigestInit_ex (ctx->ctx, md, NULL) != 1) {
-    GST_ERROR_OBJECT (object, "EVP_DigestInit_ex failed");
-    log_openssl_error (object, "EVP_DigestInit_ex failed");
-    gst_mpegh3da_crypto_ctx_free (ctx);
-    return NULL;
-  }
-
-  return ctx;
-}
-
-gboolean
-gst_mpegh3da_crypto_digest_update (GstMpegh3daCryptoCtx * ctx,
-    const guint8 * data, gsize len)
-{
-  g_return_val_if_fail (ctx != NULL, FALSE);
-  g_return_val_if_fail (ctx->ctx != NULL, FALSE);
-  g_return_val_if_fail (data != NULL || len == 0, FALSE);
-
-  if (len == 0)
-    return TRUE;
-
-  return EVP_DigestUpdate (ctx->ctx, data, len) == 1;
 }
 
 gboolean

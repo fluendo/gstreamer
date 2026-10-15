@@ -32,6 +32,7 @@ struct _GstMpegh3DAVerifier
 
   /* properties */
   gboolean fail_on_verification_error;
+  gchar *key_store_path;        /* directory with the certificate/public key */
 
   /* verification state */
   GstMpegh3daAuthData auth_data; /* current sequence data (owns hasher) */

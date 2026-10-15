@@ -12,7 +12,8 @@ G_BEGIN_DECLS
 gsize gst_mpegh3da_build_AuthStart (const GstMpegh3daAuthStart * cfg,
     guint8 * out, gsize out_size);
 
-/* Serialize mpegh3daAuthSig() (Table 234) into a byte-aligned payload. */
+/* Serialize mpegh3daAuthSig() (Table 234) into a byte-aligned payload.
+ * authPartialSig selects the complete or segmented layout. */
 gsize gst_mpegh3da_build_AuthSig (const GstMpegh3daAuthSig * cfg,
     guint8 * out, gsize out_size);
 

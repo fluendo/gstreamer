@@ -44,6 +44,13 @@ typedef struct _GstMpegh3daAuthData
   guint8 byte_alignment;
 
   GstMpegh3daCryptoCtx *hash;   /* streaming digest/verify context for gad_bytes */
+
+  /* RSA mode (authProvID == 0) */
+  gboolean rsa_mode;
+  EVP_PKEY *public_key;         /* owned reference */
+  guint8 signature[GST_MPEGH3DA_MAX_AUTH_SIG_SEGMENTS *
+      GST_MPEGH3DA_SIG_PARTIAL_MAX_BYTES];
+  gsize signature_len;          /* bytes accumulated so far */
 } GstMpegh3daAuthData;
 
 /* Initialize @data to defaults (all-zero; flags unset). */
@@ -56,6 +63,21 @@ void gst_mpegh3da_auth_data_clear (GstMpegh3daAuthData * data);
  * FALSE if the hash method is unsupported. */
 gboolean gst_mpegh3da_auth_data_start_hash (GstMpegh3daAuthData * data,
     GstObject * object);
+
+/* Create the streaming verify context for RSA mode (authProvID == 0), loading
+ * the public key from the X.509 certificate at @cert_path. */
+gboolean gst_mpegh3da_auth_data_start_verify (GstMpegh3daAuthData * data,
+    GstObject * object, const gchar * cert_path);
+
+/* Append one partial signature segment to the reassembly buffer. */
+gboolean gst_mpegh3da_auth_data_append_signature (GstMpegh3daAuthData * data,
+    const guint8 * seg, gsize len);
+
+/* RSA mode finish: append the uuid field, verify the reassembled signature and
+ * free the context. Returns TRUE when the signature is valid; *error_out is
+ * TRUE only on a real error. */
+gboolean gst_mpegh3da_auth_data_verify_finish (GstMpegh3daAuthData * data,
+    GstObject * object, gboolean * error_out);
 
 /* Feed @len bytes from @bytes into the hasher (gad_bytes accumulation). */
 gboolean gst_mpegh3da_auth_data_hash_update (GstMpegh3daAuthData * data,
