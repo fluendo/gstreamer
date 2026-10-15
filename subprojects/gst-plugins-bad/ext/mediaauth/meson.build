@@ -1,15 +1,22 @@
 mediaauth_sources = [
+  'gstmpegh3daauth.c',
   'gstmpegh3dacommon.c',
-  'gstmpegh3dahash.c',
+  'gstmpegh3daparse.c',
+  'gstmpegh3dacrypto.c',
   'gstmpegh3daauthpktsbuild.c',
-  'gstmpegh3dasigner.c'
+  'gstmpegh3dasigner.c',
+  'gstmpegh3daverifier.c',
+  'gstmpegh3daverify.c'
 ]
 
 mediaauth_headers = [
   'gstmpegh3dacommon.h',
-  'gstmpegh3dahash.h',
+  'gstmpegh3daparse.h',
+  'gstmpegh3dacrypto.h',
   'gstmpegh3daauthpktsbuild.h',
-  'gstmpegh3dasigner.h'
+  'gstmpegh3dasigner.h',
+  'gstmpegh3daverifier.h',
+  'gstmpegh3daverify.h'
 ]
 
 doc_sources = []
@@ -25,7 +32,10 @@ if get_option('mpegh3da-media-auth').disabled()
   subdir_done()
 endif
 
-mediaauth_deps = [gst_dep, gstbase_dep]
+openssl_dep = dependency('openssl', version : '>= 1.1.0',
+    required : get_option('mpegh3da-media-auth'))
+
+mediaauth_deps = [gst_dep, gstbase_dep, openssl_dep]
 
 gstmpegh3daauth = library('gstmpegh3daauth',
   mediaauth_sources,

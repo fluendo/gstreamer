@@ -5,7 +5,7 @@
 
 #include <gst/base/gstbasetransform.h>
 #include "gstmpegh3dacommon.h"
-#include "gstmpegh3dahash.h"
+#include "gstmpegh3dacrypto.h"
 #include "gstmpegh3daauthpktsbuild.h"
 
 G_BEGIN_DECLS
@@ -38,8 +38,13 @@ struct _GstMpegh3DASigner
   guint8 uuid[16];              /* parsed 16-byte UUID */
   gboolean uuid_set;
 
+  gchar *private_key_path;      /* property: PEM RSA private key */
+  gchar *public_key_uri;        /* property -> authSourceURI */
+  EVP_PKEY *private_key;        /* loaded key (RSA mode only) */
+  gboolean rsa_mode;            /* TRUE: RSA sign; FALSE: digest-only */
+
   /* authentication sequence state */
-  GstMpegh3daHash *hash;        /* hasher for the current sequence */
+  GstMpegh3daCryptoCtx *hash;   /* digest/sign context for the current sequence */
   guint64 seq_label;            /* MHASPacketLabel of the sequence */
   gboolean have_seq_label;
   guint frame_count;            /* AUs hashed in the current sequence */

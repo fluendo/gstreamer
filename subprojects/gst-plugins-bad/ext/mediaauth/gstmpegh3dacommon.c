@@ -25,38 +25,6 @@ GST_DEBUG_CATEGORY (gst_mpegh3daauth_debug);
 #define GST_CAT_DEFAULT gst_mpegh3daauth_debug
 
 gboolean
-gst_mpegh3da_read_escaped_value (GstBitReader * br, guint nbits1,
-    guint nbits2, guint nbits3, guint64 * value)
-{
-  guint64 v, add;
-  guint64 max1 = (G_GUINT64_CONSTANT (1) << nbits1) - 1;
-  guint64 max2 = (G_GUINT64_CONSTANT (1) << nbits2) - 1;
-
-  g_return_val_if_fail (br != NULL, FALSE);
-  g_return_val_if_fail (value != NULL, FALSE);
-
-  if (!gst_bit_reader_get_bits_uint64 (br, &v, nbits1))
-    return FALSE;
-
-  if (v == max1) {
-    if (!gst_bit_reader_get_bits_uint64 (br, &add, nbits2))
-      return FALSE;
-
-    v += add;
-
-    if (add == max2) {
-      if (!gst_bit_reader_get_bits_uint64 (br, &add, nbits3))
-        return FALSE;
-
-      v += add;
-    }
-  }
-
-  *value = v;
-  return TRUE;
-}
-
-gboolean
 gst_mpegh3da_write_escaped_value (GstBitWriter * bw, guint nbits1,
     guint nbits2, guint nbits3, guint64 value)
 {
@@ -104,49 +72,6 @@ gst_mpegh3da_mhas_write_packet (guint8 * out, gsize out_size, guint64 type,
 
   size_bits = gst_bit_writer_get_size (&bw);
   return size_bits / 8;
-}
-
-/* ---- MHAS packet (Table 222) ---- */
-
-gboolean
-gst_mpegh3da_mhas_parse_packet (GstBitReader * br, GstMpegh3daMhasPacket * pkt)
-{
-  guint start_pos, header_pos;
-  guint64 type, label, length;
-
-  g_return_val_if_fail (br != NULL, FALSE);
-  g_return_val_if_fail (pkt != NULL, FALSE);
-
-  /* Packets start byte-aligned (Table 222 NOTE). */
-  start_pos = gst_bit_reader_get_pos (br);
-  if (start_pos % 8 != 0)
-    return FALSE;
-
-  if (!gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_TYPE,
-          &type) ||
-      !gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_LABEL,
-          &label) ||
-      !gst_mpegh3da_read_escaped_value (br, GST_MPEGH3DA_ESC_VAL_MHAS_LENGTH,
-          &length))
-    return FALSE;
-
-  /* The header always sums to whole bytes (Table 222 NOTE). */
-  header_pos = gst_bit_reader_get_pos (br);
-  if (header_pos % 8 != 0)
-    return FALSE;
-
-  /* Verify the declared payload length fits in the remaining bytes. */
-  if (length > gst_bit_reader_get_remaining (br) / 8)
-    return FALSE;
-
-  pkt->type = type;
-  pkt->label = label;
-  pkt->length = length;
-  pkt->header_size = (header_pos - start_pos) / 8;
-  pkt->payload = br->data + (header_pos / 8);
-
-  /* Skip the byte-aligned payload. */
-  return gst_bit_reader_skip (br, (guint) length * 8);
 }
 
 const gchar *
@@ -245,37 +170,6 @@ gst_mpegh3da_mhas_log_packet (GstObject * object,
       G_GSIZE_FORMAT " bytes",
       pkt->type, gst_mpegh3da_mhas_packet_type_name (pkt->type),
       pkt->label, pkt->length, (gsize) (pkt->header_size + pkt->length));
-}
-
-/* Log every MHAS packet (header + payload length) in a byte buffer. */
-void
-gst_mpegh3da_mhas_log_buffer (GstObject * object, const guint8 * data,
-    gsize size, const gchar * title)
-{
-  GstBitReader br;
-  guint count = 0;
-
-  g_return_if_fail (data != NULL || size == 0);
-  g_return_if_fail (title != NULL);
-
-  GST_DEBUG_OBJECT (object, "--- %s (%" G_GSIZE_FORMAT " bytes) ---",
-      title, size);
-
-  gst_bit_reader_init (&br, data, (guint) size);
-  while (gst_bit_reader_get_remaining (&br) != 0) {
-    GstMpegh3daMhasPacket pkt;
-
-    if (!gst_mpegh3da_mhas_parse_packet (&br, &pkt)) {
-      GST_WARNING_OBJECT (object, "malformed MHAS packet at byte %u",
-          gst_bit_reader_get_pos (&br) / 8);
-      break;
-    }
-    gst_mpegh3da_mhas_log_packet (object, &pkt);
-    count++;
-  }
-
-  GST_DEBUG_OBJECT (object, "--- %s: %u packet%s ---", title, count,
-      count == 1 ? "" : "s");
 }
 
 /* Parse an RFC 9562 UUID in canonical hyphenated form

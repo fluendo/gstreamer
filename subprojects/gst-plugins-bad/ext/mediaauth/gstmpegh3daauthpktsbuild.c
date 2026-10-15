@@ -23,8 +23,24 @@ gst_mpegh3da_build_AuthStart (const GstMpegh3daAuthStart * cfg,
       !gst_mpegh3da_write_escaped_value (&bw, GST_MPEGH3DA_ESC_VAL_AUTH_KEYID,
           cfg->authKeyID) ||
       !gst_mpegh3da_write_escaped_value (&bw, GST_MPEGH3DA_ESC_VAL_AUTH_PROVID,
-          cfg->authProvID) ||
-      !gst_bit_writer_put_bits_uint8 (&bw, cfg->authResilienceLevelMax, 4) ||
+          cfg->authProvID))
+    return 0;
+
+  if (cfg->authProvID == 0) {
+    guint i;
+
+    if (!gst_mpegh3da_write_escaped_value (&bw,
+            GST_MPEGH3DA_ESC_VAL_AUTH_SOURCE_URI_LEN,
+            cfg->authSourceURILengthMinus1))
+      return 0;
+
+    for (i = 0; i <= cfg->authSourceURILengthMinus1; i++) {
+      if (!gst_bit_writer_put_bits_uint8 (&bw, cfg->authSourceURI[i], 8))
+        return 0;
+    }
+  }
+
+  if (!gst_bit_writer_put_bits_uint8 (&bw, cfg->authResilienceLevelMax, 4) ||
       !gst_bit_writer_put_bits_uint8 (&bw, cfg->hasAuthSequenceAUCounter, 1) ||
       !gst_bit_writer_put_bits_uint8 (&bw, cfg->isFirstSequence, 1) ||
       !gst_bit_writer_put_bits_uint8 (&bw, cfg->isAuthCRC, 1) ||
@@ -38,7 +54,9 @@ gst_mpegh3da_build_AuthStart (const GstMpegh3daAuthStart * cfg,
   return size_bits / 8;
 }
 
-/* Serialize mpegh3daAuthSig() (Table 234) into a byte-aligned payload. */
+/* Serialize mpegh3daAuthSig() (Table 234) into a byte-aligned payload.
+ * authPartialSig selects the complete (sigComplete) or segmented (sigPartial)
+ * layout. */
 gsize
 gst_mpegh3da_build_AuthSig (const GstMpegh3daAuthSig * cfg,
     guint8 * out, gsize out_size)
@@ -54,14 +72,28 @@ gst_mpegh3da_build_AuthSig (const GstMpegh3daAuthSig * cfg,
   if (!gst_bit_writer_put_bits_uint8 (&bw, cfg->authID, 8) ||
       !gst_bit_writer_put_bits_uint8 (&bw, cfg->authSequence, 1) ||
       !gst_bit_writer_put_bits_uint8 (&bw, cfg->authPartialSig, 1) ||
-      !gst_bit_writer_put_bits_uint8 (&bw, cfg->authABREnable, 2) ||
-      !gst_bit_writer_put_bits_uint8 (&bw, cfg->sigLengthMinus1, 6))
+      !gst_bit_writer_put_bits_uint8 (&bw, cfg->authABREnable, 2))
     return 0;
 
-  /* sigComplete starts at a non-byte-aligned offset; write byte-wise. */
-  for (i = 0; i <= cfg->sigLengthMinus1; i++) {
-    if (!gst_bit_writer_put_bits_uint8 (&bw, cfg->sigComplete[i], 8))
+  if (cfg->authPartialSig != 0) {
+    if (!gst_bit_writer_put_bits_uint8 (&bw, cfg->sigSegmentStart, 1) ||
+        !gst_bit_writer_put_bits_uint8 (&bw, cfg->sigSegmentStop, 1) ||
+        !gst_bit_writer_put_bits_uint8 (&bw, cfg->sigSegmentLengthMinus1, 4))
       return 0;
+
+    for (i = 0; i <= cfg->sigSegmentLengthMinus1; i++) {
+      if (!gst_bit_writer_put_bits_uint8 (&bw, cfg->sigPartial[i], 8))
+        return 0;
+    }
+  } else {
+    if (!gst_bit_writer_put_bits_uint8 (&bw, cfg->sigLengthMinus1, 6))
+      return 0;
+
+    /* sigComplete starts at a non-byte-aligned offset; write byte-wise. */
+    for (i = 0; i <= cfg->sigLengthMinus1; i++) {
+      if (!gst_bit_writer_put_bits_uint8 (&bw, cfg->sigComplete[i], 8))
+        return 0;
+    }
   }
 
   gst_bit_writer_align_bytes (&bw, 0);
