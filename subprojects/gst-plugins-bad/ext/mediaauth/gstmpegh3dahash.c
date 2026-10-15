@@ -1,61 +1,46 @@
 /* TODO: add copyright and license header */
 
+#include <openssl/evp.h>
+
+#include "gstmpegh3dacrypto.h"
 #include "gstmpegh3dahash.h"
 
 #define GST_CAT_DEFAULT gst_mpegh3daauth_debug
 
+/* Incremental digest hasher backed by the OpenSSL EVP digest API. It shares
+ * the hash-method -> digest mapping with the RSA sign/verify backend in
+ * gstmpegh3dacrypto.c (single source of truth, including SHA-224). */
 struct _GstMpegh3daHash
 {
-  GChecksum *checksum;
-  gsize digest_len;
+  EVP_MD_CTX *ctx;
+  const EVP_MD *md;
 };
-
-static gboolean
-hash_method_to_gchecksum (GstMpegh3daHashMethod method, GChecksumType * ctype,
-    gsize * digest_len)
-{
-  switch (method) {
-    case GST_MPEGH3DA_HASH_SHA1:
-      *ctype = G_CHECKSUM_SHA1;
-      *digest_len = 20;
-      return TRUE;
-    case GST_MPEGH3DA_HASH_SHA256:
-      *ctype = G_CHECKSUM_SHA256;
-      *digest_len = 32;
-      return TRUE;
-    case GST_MPEGH3DA_HASH_SHA384:
-      *ctype = G_CHECKSUM_SHA384;
-      *digest_len = 48;
-      return TRUE;
-    case GST_MPEGH3DA_HASH_SHA512:
-      *ctype = G_CHECKSUM_SHA512;
-      *digest_len = 64;
-      return TRUE;
-    case GST_MPEGH3DA_HASH_SHA224:
-      GST_ERROR ("SHA-224 hash method is not implemented");
-      return FALSE;
-    default:
-      return FALSE;
-  }
-}
 
 GstMpegh3daHash *
 gst_mpegh3da_hash_new (GstMpegh3daHashMethod method)
 {
   GstMpegh3daHash *hash;
-  GChecksumType ctype;
-  gsize digest_len;
+  const EVP_MD *md;
 
-  if (!hash_method_to_gchecksum (method, &ctype, &digest_len))
+  md = gst_mpegh3da_crypto_evp_md (method);
+  if (md == NULL) {
+    GST_ERROR ("unsupported hash method %d", method);
     return NULL;
+  }
 
   hash = g_new0 (GstMpegh3daHash, 1);
-  hash->checksum = g_checksum_new (ctype);
-  if (!hash->checksum) {
+  hash->md = md;
+  hash->ctx = EVP_MD_CTX_new ();
+  if (hash->ctx == NULL) {
     g_free (hash);
     return NULL;
   }
-  hash->digest_len = digest_len;
+
+  if (EVP_DigestInit_ex (hash->ctx, md, NULL) != 1) {
+    EVP_MD_CTX_free (hash->ctx);
+    g_free (hash);
+    return NULL;
+  }
 
   return hash;
 }
@@ -66,8 +51,8 @@ gst_mpegh3da_hash_free (GstMpegh3daHash * hash)
   if (!hash)
     return;
 
-  if (hash->checksum)
-    g_checksum_free (hash->checksum);
+  if (hash->ctx)
+    EVP_MD_CTX_free (hash->ctx);
   g_free (hash);
 }
 
@@ -76,31 +61,30 @@ gst_mpegh3da_hash_update (GstMpegh3daHash * hash, const guint8 * data,
     gsize size)
 {
   g_return_val_if_fail (hash != NULL, FALSE);
-  g_return_val_if_fail (hash->checksum != NULL, FALSE);
+  g_return_val_if_fail (hash->ctx != NULL, FALSE);
   g_return_val_if_fail (data != NULL || size == 0, FALSE);
 
   if (size == 0)
     return TRUE;
 
-  g_checksum_update (hash->checksum, data, size);
-  return TRUE;
+  return EVP_DigestUpdate (hash->ctx, data, size) == 1;
 }
 
 gboolean
 gst_mpegh3da_hash_finish (GstMpegh3daHash * hash, guint8 * digest,
     gsize * digest_size)
 {
-  gsize len;
+  unsigned int len = 0;
 
   g_return_val_if_fail (hash != NULL, FALSE);
-  g_return_val_if_fail (hash->checksum != NULL, FALSE);
+  g_return_val_if_fail (hash->ctx != NULL, FALSE);
   g_return_val_if_fail (digest != NULL, FALSE);
   g_return_val_if_fail (digest_size != NULL, FALSE);
 
-  len = hash->digest_len;
-  g_checksum_get_digest (hash->checksum, digest, &len);
-  *digest_size = len;
+  if (EVP_DigestFinal_ex (hash->ctx, digest, &len) != 1)
+    return FALSE;
 
+  *digest_size = len;
   return TRUE;
 }
 
@@ -108,8 +92,9 @@ gsize
 gst_mpegh3da_hash_get_digest_size (GstMpegh3daHash * hash)
 {
   g_return_val_if_fail (hash != NULL, 0);
+  g_return_val_if_fail (hash->md != NULL, 0);
 
-  return hash->digest_len;
+  return (gsize) EVP_MD_size (hash->md);
 }
 
 /* Log a digest in hexadecimal using the object's debug category. */

@@ -7,7 +7,8 @@
 #include <string.h>
 
 #include "gstmpegh3dasigner.h"
-#include "gstmpegh3dahash.h"
+#include "gstmpegh3daparse.h"
+#include "gstmpegh3dacrypto.h"
 
 #define GST_CAT_DEFAULT gst_mpegh3daauth_debug
 
@@ -192,7 +193,7 @@ gst_mpegh3dasigner_transform (GstBaseTransform * trans, GstBuffer * inbuf,
         out_off += emit_size;
       }
 
-      gst_mpegh3da_hash_update (self->hash, pkt_start, pkt_len);
+      gst_mpegh3da_crypto_digest_update (self->hash, pkt_start, pkt_len);
     }
 
     memcpy (out + out_off, pkt_start, pkt_len);
@@ -274,14 +275,14 @@ gst_mpegh3dasigner_sink_event (GstBaseTransform * trans, GstEvent * event)
               GST_FLOW_OK)
             return FALSE;
         } else {
-          g_clear_pointer (&self->hash, gst_mpegh3da_hash_free);
+          g_clear_pointer (&self->hash, gst_mpegh3da_crypto_ctx_free);
           self->sequence_finished = TRUE;
           self->pending_auth_sig = FALSE;
         }
       }
       break;
     case GST_EVENT_FLUSH_STOP:
-      g_clear_pointer (&self->hash, gst_mpegh3da_hash_free);
+      g_clear_pointer (&self->hash, gst_mpegh3da_crypto_ctx_free);
       self->frame_count = 0;
       self->have_seq_label = FALSE;
       self->seq_label = 0;
@@ -314,14 +315,15 @@ gst_mpegh3dasigner_start (GstBaseTransform * trans)
   /* Verify the hash method is supported before streaming. The actual hasher
    * is created per-sequence in gst_mpegh3dasigner_transform(). */
   {
-    GstMpegh3daHash *probe = gst_mpegh3da_hash_new (self->hash_method);
+    GstMpegh3daCryptoCtx *probe =
+        gst_mpegh3da_crypto_digest_new (GST_OBJECT (self), self->hash_method);
 
     if (!probe) {
       GST_ERROR_OBJECT (self, "failed to create hasher for hash-method %d",
           self->hash_method);
       return FALSE;
     }
-    gst_mpegh3da_hash_free (probe);
+    gst_mpegh3da_crypto_ctx_free (probe);
   }
 
   self->hash = NULL;
@@ -340,7 +342,7 @@ gst_mpegh3dasigner_stop (GstBaseTransform * trans)
 {
   GstMpegh3DASigner *self = GST_MPEGH3DASIGNER (trans);
 
-  g_clear_pointer (&self->hash, gst_mpegh3da_hash_free);
+  g_clear_pointer (&self->hash, gst_mpegh3da_crypto_ctx_free);
 
   return TRUE;
 }
@@ -494,31 +496,17 @@ gst_mpegh3dasigner_init (GstMpegh3DASigner * self)
   gst_base_transform_set_passthrough (GST_BASE_TRANSFORM (self), FALSE);
 }
 
-static gboolean
-plugin_init (GstPlugin * plugin)
-{
-  GST_DEBUG_CATEGORY_INIT (gst_mpegh3daauth_debug, "mpegh3daauth", 0,
-      "MPEG-H 3D Audio media authenticity signer/verifier");
-
-  return gst_element_register (plugin, "mpegh3dasigner", GST_RANK_NONE,
-      GST_TYPE_MPEGH3DASIGNER);
-}
-
-GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
-    GST_VERSION_MINOR,
-    mpegh3daauth,
-    "MPEG-H 3D Audio media authenticity signer/verifier",
-    plugin_init, VERSION, "LGPL", GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)
 /* ---- helpers ---- */
 /* Start a new authentication sequence: create the hasher, reset the counters
  * and emit AUTH_START (+ UUID). Returns FALSE on failure. */
-     static gboolean
-         gst_mpegh3dasigner_begin_sequence (GstMpegh3DASigner * self,
+static gboolean
+gst_mpegh3dasigner_begin_sequence (GstMpegh3DASigner * self,
     guint8 * out, gsize out_size, gsize * out_off)
 {
   gsize emit_size;
 
-  self->hash = gst_mpegh3da_hash_new (self->hash_method);
+  self->hash = gst_mpegh3da_crypto_digest_new (GST_OBJECT (self),
+      self->hash_method);
   if (!self->hash) {
     GST_ERROR_OBJECT (self, "failed to create hasher for hash-method %d",
         self->hash_method);
@@ -532,7 +520,7 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
       out + *out_off, out_size - *out_off);
   if (emit_size == 0) {
     GST_ERROR_OBJECT (self, "failed to emit AUTH_START");
-    g_clear_pointer (&self->hash, gst_mpegh3da_hash_free);
+    g_clear_pointer (&self->hash, gst_mpegh3da_crypto_ctx_free);
     self->frame_count = 0;
     self->sequence_finished = TRUE;
     return FALSE;
@@ -544,7 +532,7 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
         out + *out_off, out_size - *out_off);
     if (emit_size == 0) {
       GST_ERROR_OBJECT (self, "failed to emit UUID");
-      g_clear_pointer (&self->hash, gst_mpegh3da_hash_free);
+      g_clear_pointer (&self->hash, gst_mpegh3da_crypto_ctx_free);
       self->frame_count = 0;
       self->sequence_finished = TRUE;
       return FALSE;
@@ -599,7 +587,7 @@ gst_mpegh3dasigner_insert_auth_start (GstMpegh3DASigner * self, guint8 * out,
   if (tlen == 0)
     return 0;
 
-  gst_mpegh3da_hash_update (self->hash, out, tlen);
+  gst_mpegh3da_crypto_digest_update (self->hash, out, tlen);
 
   return tlen;
 }
@@ -625,7 +613,7 @@ gst_mpegh3dasigner_insert_uuid (GstMpegh3DASigner * self, guint8 * out,
   if (tlen == 0)
     return 0;
 
-  gst_mpegh3da_hash_update (self->hash, out, tlen);
+  gst_mpegh3da_crypto_digest_update (self->hash, out, tlen);
 
   return tlen;
 }
@@ -654,7 +642,7 @@ gst_mpegh3dasigner_insert_timestamp (GstMpegh3DASigner * self, guint8 * out,
   if (tlen == 0)
     return 0;
 
-  gst_mpegh3da_hash_update (self->hash, out, tlen);
+  gst_mpegh3da_crypto_digest_update (self->hash, out, tlen);
 
   return tlen;
 }
@@ -680,7 +668,7 @@ gst_mpegh3dasigner_insert_au_counter (GstMpegh3DASigner * self, guint8 * out,
   if (tlen == 0)
     return 0;
 
-  gst_mpegh3da_hash_update (self->hash, out, tlen);
+  gst_mpegh3da_crypto_digest_update (self->hash, out, tlen);
 
   return tlen;
 }
@@ -701,14 +689,15 @@ gst_mpegh3dasigner_insert_auth_sig (GstMpegh3DASigner * self, guint8 * out,
     return 0;
   }
 
-  digest_len = gst_mpegh3da_hash_get_digest_size (self->hash);
+  digest_len = gst_mpegh3da_crypto_digest_size (self->hash);
 
   if (self->uuid_set)
-    gst_mpegh3da_hash_update (self->hash, self->uuid, 16);
+    gst_mpegh3da_crypto_digest_update (self->hash, self->uuid, 16);
 
-  gst_mpegh3da_hash_finish (self->hash, cfg.sigComplete, &digest_len);
+  gst_mpegh3da_crypto_digest_final (self->hash, cfg.sigComplete, &digest_len);
 
-  gst_mpegh3da_hash_log_digest (GST_OBJECT (self), cfg.sigComplete, digest_len);
+  gst_mpegh3da_crypto_log_digest (GST_OBJECT (self), cfg.sigComplete,
+      digest_len);
 
   cfg.authID = self->auth_id;
   cfg.sigLengthMinus1 = (guint8) (digest_len - 1);
@@ -717,7 +706,7 @@ gst_mpegh3dasigner_insert_auth_sig (GstMpegh3DASigner * self, guint8 * out,
   tlen = gst_mpegh3da_mhas_write_packet (out, out_size,
       GST_MPEGH3DA_PACTYP_AUTH_SIG, self->seq_label, payload, plen);
 
-  g_clear_pointer (&self->hash, gst_mpegh3da_hash_free);
+  g_clear_pointer (&self->hash, gst_mpegh3da_crypto_ctx_free);
   self->frame_count = 0;
   self->sequence_finished = TRUE;
 

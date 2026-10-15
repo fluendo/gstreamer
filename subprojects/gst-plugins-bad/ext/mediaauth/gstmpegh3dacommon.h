@@ -168,10 +168,6 @@ GType gst_mpegh3da_hash_method_get_type (void);
   (GST_MPEGH3DA_MHAS_HEADER_MAX_BYTES + \
    GST_MPEGH3DA_AUTH_SEQUENCE_AU_COUNTER_MAX_PAYLOAD_BYTES)
 
-/* escapedValue() (Table 8C), over GstBitReader. */
-gboolean gst_mpegh3da_read_escaped_value (GstBitReader * br,
-    guint nbits1, guint nbits2, guint nbits3, guint64 * value);
-
 /* escapedValue() writer (Table 8C), symmetric to the reader. */
 gboolean gst_mpegh3da_write_escaped_value (GstBitWriter * bw,
     guint nbits1, guint nbits2, guint nbits3, guint64 value);
@@ -244,14 +240,10 @@ typedef struct _GstMpegh3daAuthUUID
   guint8 uuid[16];
 } GstMpegh3daAuthUUID;
 
-gboolean gst_mpegh3da_mhas_parse_packet (GstBitReader * br,
-    GstMpegh3daMhasPacket * pkt);
 const gchar *gst_mpegh3da_mhas_packet_type_name (guint64 type);
 gboolean gst_mpegh3da_mhas_packet_type_is_excluded (guint64 type);
 void gst_mpegh3da_mhas_log_packet (GstObject * object,
     const GstMpegh3daMhasPacket * pkt);
-void gst_mpegh3da_mhas_log_buffer (GstObject * object, const guint8 * data,
-    gsize size, const gchar * title);
 
 /* Parse an RFC 9562 UUID in canonical hyphenated form into 16 bytes. */
 gboolean gst_mpegh3da_parse_uuid (const gchar * str, guint8 out[16]);

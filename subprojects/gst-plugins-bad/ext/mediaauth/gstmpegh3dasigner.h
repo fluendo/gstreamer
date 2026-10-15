@@ -5,7 +5,7 @@
 
 #include <gst/base/gstbasetransform.h>
 #include "gstmpegh3dacommon.h"
-#include "gstmpegh3dahash.h"
+#include "gstmpegh3dacrypto.h"
 #include "gstmpegh3daauthpktsbuild.h"
 
 G_BEGIN_DECLS
@@ -39,7 +39,7 @@ struct _GstMpegh3DASigner
   gboolean uuid_set;
 
   /* authentication sequence state */
-  GstMpegh3daHash *hash;        /* hasher for the current sequence */
+  GstMpegh3daCryptoCtx *hash;   /* digest/sign context for the current sequence */
   guint64 seq_label;            /* MHASPacketLabel of the sequence */
   gboolean have_seq_label;
   guint frame_count;            /* AUs hashed in the current sequence */
