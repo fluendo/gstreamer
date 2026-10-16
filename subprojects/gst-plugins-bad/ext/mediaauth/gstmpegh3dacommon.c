@@ -240,7 +240,7 @@ gst_mpegh3da_mhas_log_packet (GstObject * object,
 {
   g_return_if_fail (pkt != NULL);
 
-  GST_DEBUG_OBJECT (object, "  type=%" G_GUINT64_FORMAT " (%s), label=%"
+  GST_LOG_OBJECT (object, "  type=%" G_GUINT64_FORMAT " (%s), label=%"
       G_GUINT64_FORMAT ", payload=%" G_GUINT64_FORMAT " bytes, total=%"
       G_GSIZE_FORMAT " bytes",
       pkt->type, gst_mpegh3da_mhas_packet_type_name (pkt->type),
@@ -258,7 +258,7 @@ gst_mpegh3da_mhas_log_buffer (GstObject * object, const guint8 * data,
   g_return_if_fail (data != NULL || size == 0);
   g_return_if_fail (title != NULL);
 
-  GST_DEBUG_OBJECT (object, "--- %s (%" G_GSIZE_FORMAT " bytes) ---",
+  GST_LOG_OBJECT (object, "--- %s (%" G_GSIZE_FORMAT " bytes) ---",
       title, size);
 
   gst_bit_reader_init (&br, data, (guint) size);
@@ -274,7 +274,7 @@ gst_mpegh3da_mhas_log_buffer (GstObject * object, const guint8 * data,
     count++;
   }
 
-  GST_DEBUG_OBJECT (object, "--- %s: %u packet%s ---", title, count,
+  GST_LOG_OBJECT (object, "--- %s: %u packet%s ---", title, count,
       count == 1 ? "" : "s");
 }
 

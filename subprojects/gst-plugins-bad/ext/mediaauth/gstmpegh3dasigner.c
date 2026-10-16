@@ -105,7 +105,7 @@ gst_mpegh3dasigner_transform (GstBaseTransform * trans, GstBuffer * inbuf,
   GArray *pkts = NULL;
   gboolean in_mapped = FALSE, out_mapped = FALSE;
   guint i, nframes = 0;
-  gsize out_size, out_off = 0, emit_size;
+  gsize out_size, out_off = 0, insert_size;
   guint8 *out;
   const guint8 *pkt_start;
   gsize pkt_len;
@@ -117,7 +117,7 @@ gst_mpegh3dasigner_transform (GstBaseTransform * trans, GstBuffer * inbuf,
   in_mapped = TRUE;
 
   self->buffer_count++;
-  GST_INFO_OBJECT (trans, "=== buffer %" G_GUINT64_FORMAT
+  GST_LOG_OBJECT (trans, "=== buffer %" G_GUINT64_FORMAT
       " (input %" G_GSIZE_FORMAT " bytes) ===", self->buffer_count, inmap.size);
 
   /* Parse all packets (no side effects on element state). */
@@ -173,23 +173,23 @@ gst_mpegh3dasigner_transform (GstBaseTransform * trans, GstBuffer * inbuf,
       }
 
       if (pkt->type == GST_MPEGH3DA_PACTYP_MPEGH3DAFRAME && self->timestamp) {
-        emit_size = gst_mpegh3dasigner_insert_timestamp (self,
+        insert_size = gst_mpegh3dasigner_insert_timestamp (self,
             out + out_off, out_size - out_off);
-        if (emit_size == 0) {
+        if (insert_size == 0) {
           GST_ERROR_OBJECT (self, "failed to insert TIMESTAMP");
           goto error;
         }
-        out_off += emit_size;
+        out_off += insert_size;
       }
 
       if (pkt->type == GST_MPEGH3DA_PACTYP_MPEGH3DAFRAME && self->au_counter) {
-        emit_size = gst_mpegh3dasigner_insert_au_counter (self,
+        insert_size = gst_mpegh3dasigner_insert_au_counter (self,
             out + out_off, out_size - out_off, self->frame_count);
-        if (emit_size == 0) {
-          GST_ERROR_OBJECT (self, "failed to emit AU_COUNTER");
+        if (insert_size == 0) {
+          GST_ERROR_OBJECT (self, "failed to insert AU_COUNTER");
           goto error;
         }
-        out_off += emit_size;
+        out_off += insert_size;
       }
 
       gst_mpegh3da_hash_update (self->hash, pkt_start, pkt_len);
@@ -213,7 +213,7 @@ gst_mpegh3dasigner_transform (GstBaseTransform * trans, GstBuffer * inbuf,
   out_mapped = FALSE;
   gst_buffer_resize (outbuf, 0, out_off);
 
-  /* Log the exact emitted packet order for this output buffer. */
+  /* Log the exact inserted packet order for this output buffer. */
   {
     GstMapInfo fmap;
 
@@ -449,12 +449,12 @@ gst_mpegh3dasigner_class_init (GstMpegh3DASignerClass * klass)
 
   g_object_class_install_property (gobject_class, PROP_AU_COUNTER,
       g_param_spec_boolean ("au-counter", "AU counter",
-          "Emit PACTYP_AUTH_SEQUENCE_AU_COUNTER before each frame",
+          "Insert PACTYP_AUTH_SEQUENCE_AU_COUNTER before each frame",
           DEFAULT_AU_COUNTER, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_TIMESTAMP,
       g_param_spec_boolean ("timestamp", "Timestamp",
-          "Emit PACTYP_AUTH_TIMESTAMP (authTimeLong) before each frame",
+          "Insert PACTYP_AUTH_TIMESTAMP (authTimeLong) before each frame",
           DEFAULT_TIMESTAMP, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_CONTENT_UUID,
@@ -511,12 +511,12 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     plugin_init, VERSION, "LGPL", GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)
 /* ---- helpers ---- */
 /* Start a new authentication sequence: create the hasher, reset the counters
- * and emit AUTH_START (+ UUID). Returns FALSE on failure. */
+ * and insert AUTH_START (+ UUID). Returns FALSE on failure. */
      static gboolean
          gst_mpegh3dasigner_begin_sequence (GstMpegh3DASigner * self,
     guint8 * out, gsize out_size, gsize * out_off)
 {
-  gsize emit_size;
+  gsize insert_size;
 
   self->hash = gst_mpegh3da_hash_new (self->hash_method);
   if (!self->hash) {
@@ -528,28 +528,28 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
   self->frame_count = 0;
   self->sequence_finished = FALSE;
 
-  emit_size = gst_mpegh3dasigner_insert_auth_start (self,
+  insert_size = gst_mpegh3dasigner_insert_auth_start (self,
       out + *out_off, out_size - *out_off);
-  if (emit_size == 0) {
-    GST_ERROR_OBJECT (self, "failed to emit AUTH_START");
+  if (insert_size == 0) {
+    GST_ERROR_OBJECT (self, "failed to insert AUTH_START");
     g_clear_pointer (&self->hash, gst_mpegh3da_hash_free);
     self->frame_count = 0;
     self->sequence_finished = TRUE;
     return FALSE;
   }
-  *out_off += emit_size;
+  *out_off += insert_size;
 
   if (self->uuid_set) {
-    emit_size = gst_mpegh3dasigner_insert_uuid (self,
+    insert_size = gst_mpegh3dasigner_insert_uuid (self,
         out + *out_off, out_size - *out_off);
-    if (emit_size == 0) {
-      GST_ERROR_OBJECT (self, "failed to emit UUID");
+    if (insert_size == 0) {
+      GST_ERROR_OBJECT (self, "failed to insert UUID");
       g_clear_pointer (&self->hash, gst_mpegh3da_hash_free);
       self->frame_count = 0;
       self->sequence_finished = TRUE;
       return FALSE;
     }
-    *out_off += emit_size;
+    *out_off += insert_size;
   }
 
   return TRUE;
@@ -561,21 +561,21 @@ static gboolean
 gst_mpegh3dasigner_finish_sequence (GstMpegh3DASigner * self, guint8 * out,
     gsize out_size, gsize * out_off)
 {
-  gsize emit_size;
+  gsize insert_size;
 
-  emit_size = gst_mpegh3dasigner_insert_auth_sig (self,
+  insert_size = gst_mpegh3dasigner_insert_auth_sig (self,
       out + *out_off, out_size - *out_off);
-  if (emit_size == 0) {
+  if (insert_size == 0) {
     GST_ERROR_OBJECT (self, "failed to insert AUTH_SIG");
     return FALSE;
   }
-  *out_off += emit_size;
+  *out_off += insert_size;
   self->pending_auth_sig = FALSE;
 
   return TRUE;
 }
 
-/* Emit PACTYP_AUTH_START at the start of a new authentication sequence. It is
+/* Insert PACTYP_AUTH_START at the start of a new authentication sequence. It is
  * part of gad_bytes, so it is hashed here. Returns bytes written, or 0. */
 static gsize
 gst_mpegh3dasigner_insert_auth_start (GstMpegh3DASigner * self, guint8 * out,
@@ -604,7 +604,7 @@ gst_mpegh3dasigner_insert_auth_start (GstMpegh3DASigner * self, guint8 * out,
   return tlen;
 }
 
-/* Emit PACTYP_UUID after AUTH_START and hash it (it is part of gad_bytes).
+/* Insert PACTYP_UUID after AUTH_START and hash it (it is part of gad_bytes).
  * Returns bytes written, or 0 on failure. */
 static gsize
 gst_mpegh3dasigner_insert_uuid (GstMpegh3DASigner * self, guint8 * out,
@@ -630,15 +630,17 @@ gst_mpegh3dasigner_insert_uuid (GstMpegh3DASigner * self, guint8 * out,
   return tlen;
 }
 
-/* Emit PACTYP_TIMESTAMP (authTimeLong) before a frame, so authTime +
+/* Insert PACTYP_TIMESTAMP (authTimeLong) before a frame, so authTime +
  * authTimeOffset records that frame's first-sample time. It is part of
  * gad_bytes, so it is hashed here. Returns bytes written, or 0. */
 static gsize
 gst_mpegh3dasigner_insert_timestamp (GstMpegh3DASigner * self, guint8 * out,
     gsize out_size)
 {
+
   GstMpegh3daAuthTimestamp cfg = { 0, };
   guint8 payload[GST_MPEGH3DA_TIMESTAMP_MAX_PAYLOAD_BYTES];
+  /* TODO: Proper timestamping mechanism according to buffers TS */
   guint64 real_usec = g_get_real_time ();
   gsize plen, tlen;
 
@@ -659,7 +661,7 @@ gst_mpegh3dasigner_insert_timestamp (GstMpegh3DASigner * self, guint8 * out,
   return tlen;
 }
 
-/* Emit PACTYP_AUTH_SEQUENCE_AU_COUNTER before a frame and hash it (it is part
+/* Insert PACTYP_AUTH_SEQUENCE_AU_COUNTER before a frame and hash it (it is part
  * of gad_bytes). Returns bytes written, or 0 on failure. */
 static gsize
 gst_mpegh3dasigner_insert_au_counter (GstMpegh3DASigner * self, guint8 * out,
@@ -686,7 +688,7 @@ gst_mpegh3dasigner_insert_au_counter (GstMpegh3DASigner * self, guint8 * out,
 }
 
 /* Finalize the current sequence: append the uuid field (gad_bytes || uuid),
- * compute the digest and emit PACTYP_AUTH_SIG after the last frame. AUTH_SIG
+ * compute the digest and insert PACTYP_AUTH_SIG after the last frame. AUTH_SIG
  * is not part of gad_bytes. Returns bytes written, or 0 on failure. */
 static gsize
 gst_mpegh3dasigner_insert_auth_sig (GstMpegh3DASigner * self, guint8 * out,

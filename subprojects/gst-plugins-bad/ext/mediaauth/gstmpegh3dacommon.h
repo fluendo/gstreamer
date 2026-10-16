@@ -222,7 +222,7 @@ typedef struct _GstMpegh3daAuthSig
 typedef struct _GstMpegh3daAuthSequenceAUCounter
 {
   guint8 authID;
-  guint32 authSequenceAUCounter;
+  guint64 authSequenceAUCounter;
 } GstMpegh3daAuthSequenceAUCounter;
 
 /* authTimestamp() (authTimeLong) — Table 236. */
